@@ -12,25 +12,30 @@ import ResizableUint8Array from "./ResizableUint8Array";
 import SimplePrettifier from "./SimplePrettifier";
 import {formatSizeInBytes} from "./utils";
 
+const FILE_MANAGER_LOG_SEARCH_MAX_RESULTS = 1000;
+const FILE_MANAGER_LOG_SEARCH_CHUNK_SIZE = 10000;
+
 /**
  * File manager to manage and track state of each file that is loaded.
  */
 class FileManager {
     /**
-     * Initializes the class and sets the default states.
-     *
-     * @param {string} fileInfo
-     * @param {boolean} prettify
-     * @param {number} logEventIdx
-     * @param {number} initialTimestamp
-     * @param {number} pageSize
-     * @param {function} loadingMessageCallback
-     * @param {function} updateStateCallback
-     * @param {function} updateLogsCallback
-     * @param {updateFileInfoCallback} updateFileInfoCallback
-     */
+   * Initializes the class and sets the default states.
+   *
+   * @param {string} fileInfo
+   * @param {boolean} prettify
+   * @param {number} logEventIdx
+   * @param {number} initialTimestamp
+   * @param {number} pageSize
+   * @param {function} loadingMessageCallback
+   * @param {function} updateStateCallback
+   * @param {function} updateLogsCallback
+   * @param {updateFileInfoCallback} updateFileInfoCallback
+   */
     constructor (fileInfo, prettify, logEventIdx, initialTimestamp, pageSize,
-        loadingMessageCallback, updateStateCallback, updateLogsCallback, updateFileInfoCallback) {
+        loadingMessageCallback,
+        updateStateCallback, updateLogsCallback, updateFileInfoCallback,
+        updateSearchResultsCallback) {
         this._fileInfo = fileInfo;
         this._prettify = prettify;
         this._initialTimestamp = initialTimestamp;
@@ -75,36 +80,42 @@ class FileManager {
         this._updateStateCallback = updateStateCallback;
         this._updateLogsCallback = updateLogsCallback;
         this._updateFileInfoCallback = updateFileInfoCallback;
+        this._updateSearchResultsCallback = updateSearchResultsCallback;
 
         this._PRETTIFICATION_THRESHOLD = 200;
+
+        this._logSearchJobId = 0;
     }
 
     /**
-     * Callback when progress is updated in file getXMLHttpRequest.
-     * @param {number} numBytesDownloaded Number of bytes downloaded
-     * @param {number} fileSizeBytes Total file size
-     * @private
-     */
+   * Callback when progress is updated in file getXMLHttpRequest.
+   * @param {number} numBytesDownloaded Number of bytes downloaded
+   * @param {number} fileSizeBytes Total file size
+   * @private
+   */
     _updateFileLoadProgress = (numBytesDownloaded, fileSizeBytes) => {
         const percentComplete = (numBytesDownloaded / fileSizeBytes) * 100;
         if (this._loadState.prevCheckTime != null) {
-            const loadedTime = performance.now()-this._loadState.prevCheckTime;
+            const loadedTime = performance.now() - this._loadState.prevCheckTime;
             const downloadSpeed =
-                `${formatSizeInBytes(numBytesDownloaded/(loadedTime/1000), false)}/s`;
+          `${formatSizeInBytes(numBytesDownloaded / (loadedTime / 1000),
+              false)}/s`;
             this._loadingMessageCallback(
-                `Download Progress: ${percentComplete.toFixed(2)}% at ${downloadSpeed}`
+                `Download Progress: ${percentComplete.toFixed(
+                    2)}% at ${downloadSpeed}`
             );
         } else {
-            this._loadingMessageCallback(`Download Progress: ${percentComplete.toFixed(2)}%`);
+            this._loadingMessageCallback(
+                `Download Progress: ${percentComplete.toFixed(2)}%`);
             this._loadState.prevCheckTime = performance.now();
         }
     };
 
     /**
-     * Callback when file is size is received from getXMLHttpRequest.
-     * @param {event} evt
-     * @private
-     */
+   * Callback when file is size is received from getXMLHttpRequest.
+   * @param {event} evt
+   * @private
+   */
     _updateFileSize = (evt) => {
         this._loadingMessageCallback(
             `Loading ${formatSizeInBytes(evt, false)} file from object store...`
@@ -112,11 +123,11 @@ class FileManager {
     };
 
     /**
-     * Builds file index from startIndex, endIndex, verbosity,
-     * timestamp for each log event.
-     */
+   * Builds file index from startIndex, endIndex, verbosity,
+   * timestamp for each log event.
+   */
     _buildIndex () {
-        // Building log event offsets
+    // Building log event offsets
         const dataInputStream = new DataInputStream(this._arrayBuffer);
         this._outputResizableBuffer = new ResizableUint8Array(511000000);
         this._irStreamReader = new FourByteClpIrStreamReader(dataInputStream,
@@ -126,7 +137,8 @@ class FileManager {
             this._timestampSorted = true;
             let prevTimestamp = 0;
             while (this._irStreamReader.indexNextLogEvent(this._logEventOffsets)) {
-                const timestamp = this._logEventOffsets[this._logEventOffsets.length - 1].timestamp;
+                const timestamp = this._logEventOffsets[this._logEventOffsets.length -
+        1].timestamp;
                 if (timestamp < prevTimestamp) {
                     this._timestampSorted = false;
                 }
@@ -365,15 +377,16 @@ class FileManager {
     }
 
     /**
-     * @param {number} timestamp The timestamp to search for as milliseconds
-     * since the UNIX epoch.
-     * @return {number} The logEventIdx for the log event whose timestamp is
-     * greater than or equal to the given timestamp
-     */
+   * @param {number} timestamp The timestamp to search for as milliseconds
+   * since the UNIX epoch.
+   * @return {number} The logEventIdx for the log event whose timestamp is
+   * greater than or equal to the given timestamp
+   */
     getLogEventIdxFromTimestamp (timestamp) {
         const numberOfEvents = this._logEventOffsets.length;
         if (this._timestampSorted) {
-            const targetIdx = binarySearchWithTimestamp(timestamp, this._logEventOffsets);
+            const targetIdx = binarySearchWithTimestamp(timestamp,
+                this._logEventOffsets);
             return null === targetIdx ? numberOfEvents : targetIdx + 1;
         } else {
             for (let idx = 0; idx < numberOfEvents; idx++) {
@@ -386,14 +399,14 @@ class FileManager {
     }
 
     /**
-     * Gets the page of the current log event
-     */
+   * Gets the page of the current log event
+   */
     computePageNumFromLogEventIdx () {
         for (let index = 0; index < this._logEventOffsetsFiltered.length; index++) {
             const event = this._logEventOffsetsFiltered[index];
             const logEventIndex = event.mappedIndex + 1;
             if (logEventIndex >= this.state.logEventIdx) {
-                this.state.page = Math.floor(index / this.state.pageSize)+1;
+                this.state.page = Math.floor(index / this.state.pageSize) + 1;
                 return;
             }
         }
@@ -401,8 +414,8 @@ class FileManager {
     };
 
     /**
-     * Creates pages from the filtered log events and the page size.
-     */
+   * Creates pages from the filtered log events and the page size.
+   */
     createPages () {
         if (this._logEventOffsetsFiltered.length <= this.state.pageSize) {
             this.state.page = 1;
@@ -410,9 +423,9 @@ class FileManager {
         } else {
             const numOfEvents = this._logEventOffsetsFiltered.length;
             if (0 === numOfEvents % this.state.pageSize) {
-                this.state.pages = Math.floor(numOfEvents/this.state.pageSize);
+                this.state.pages = Math.floor(numOfEvents / this.state.pageSize);
             } else {
-                this.state.pages = Math.floor(numOfEvents/this.state.pageSize) + 1;
+                this.state.pages = Math.floor(numOfEvents / this.state.pageSize) + 1;
             }
 
             this.state.page = this.state.pages;
@@ -420,8 +433,8 @@ class FileManager {
     };
 
     /**
-     * Decodes the logs for the selected page (state.page).
-     */
+   * Decodes the logs for the selected page (state.page).
+   */
     decodePage () {
         const numEventsAtLevel = this._logEventOffsetsFiltered.length;
 
@@ -434,7 +447,8 @@ class FileManager {
         // Calculate where to start decoding from and how many events to decode
         // On final page, the numberOfEvents is likely less than pageSize
         const logEventsBeginIdx = ((this.state.page - 1) * this.state.pageSize);
-        const numOfEvents = Math.min(this.state.pageSize, numEventsAtLevel - logEventsBeginIdx);
+        const numOfEvents = Math.min(this.state.pageSize,
+            numEventsAtLevel - logEventsBeginIdx);
 
         // Create IRStream Reader with the input stream
         const dataInputStream = new DataInputStream(this._arrayBuffer);
@@ -457,7 +471,8 @@ class FileManager {
             if (event.mappedIndex === 0) {
                 decoder._reset();
             } else {
-                decoder._setTimestamp(this._logEventOffsets[event.mappedIndex-1].timestamp);
+                decoder._setTimestamp(
+                    this._logEventOffsets[event.mappedIndex - 1].timestamp);
             }
 
             try {
@@ -465,7 +480,8 @@ class FileManager {
                     this._outputResizableBuffer,
                     this.logEventMetadata
                 );
-                const lastEvent = this.logEventMetadata[this.logEventMetadata.length - 1];
+                const lastEvent = this.logEventMetadata[this.logEventMetadata.length -
+        1];
                 this._availableVerbosityIndexes.add(lastEvent["verbosityIx"]);
                 lastEvent.mappedIndex = event.mappedIndex;
             } catch (error) {
@@ -482,7 +498,8 @@ class FileManager {
         }
 
         // Decode the text and set the available verbosities
-        const logs = this._textDecoder.decode(this._outputResizableBuffer.getUint8Array());
+        const logs = this._textDecoder.decode(
+            this._outputResizableBuffer.getUint8Array());
 
         for (const verbosityIx of this._availableVerbosityIndexes) {
             if (verbosityIx < this._minAvailableVerbosityIx) {
@@ -494,11 +511,146 @@ class FileManager {
         this._updateLogsCallback(this._logs);
     };
 
-    /**
-     * Get the long event from the selected line number
-     */
+    searchLogEvents = (searchString, isRegex, matchCase) => {
+        // increment job id for every new query
+        //  so the last job can be interrupted by itself checking
+        //  if the job id matches
+        this._logSearchJobId++;
+        const currentLogSearchJobId = this._logSearchJobId;
+
+        // If there are no logs at this verbosity level, return
+        const numEventsAtLevel = this._logEventOffsetsFiltered.length;
+        if (0 === numEventsAtLevel) {
+            this._updateLogsCallback("No logs at selected verbosity level");
+            return;
+        } else if (searchString === "") {
+            return;
+        }
+
+        this._outputResizableBuffer = new ResizableUint8Array(1000000);
+        const dataInputStream = new DataInputStream(this._arrayBuffer);
+        this._irStreamReader = new FourByteClpIrStreamReader(dataInputStream,
+            this.state.prettify ? this._prettifyLogEventContent : null);
+
+        let numTotalResults = 0;
+        const searchResultsToSend = [];
+        const searchResults = [];
+        let isSearching = true;
+        let pageIdx = 0; // current page being searched
+        let pageEndEventIdx = Math.min(this.state.pageSize, numEventsAtLevel);
+        const searchChunk = (logEventsBeginIdx) => {
+            const logEventsEndIdx =
+                logEventsBeginIdx + FILE_MANAGER_LOG_SEARCH_CHUNK_SIZE;
+            for (let eventIdx = logEventsBeginIdx; eventIdx < logEventsEndIdx; eventIdx++) {
+                const event = this._logEventOffsetsFiltered[eventIdx];
+                const decoder = this._irStreamReader._streamProtocolDecoder;
+                this._irStreamReader._dataInputStream.seek(event.startIndex);
+                this._outputResizableBuffer.clear();
+                // Set the timestamp before decoding the message.
+                // If it is first message, use timestamp in metadata.
+                if (event.mappedIndex === 0) {
+                    decoder._reset();
+                } else {
+                    decoder._setTimestamp(this._logEventOffsets[event.mappedIndex - 1].timestamp);
+                }
+                try {
+                    const {match, contentString} =
+                        this._irStreamReader.decodeAndMatchLogEvent(
+                            this._outputResizableBuffer,
+                            searchString, isRegex, matchCase);
+
+                    const lastEvent = this.logEventMetadata[this.logEventMetadata.length - 1];
+                    lastEvent.mappedIndex = event.mappedIndex;
+
+                    if (match) {
+                        searchResults.push({
+                            eventIndex: eventIdx,
+                            content: contentString,
+                            match: match,
+                        });
+                        numTotalResults++;
+                    }
+                } catch (error) {
+                // Ignore EOF errors since we should still be able
+                // to print the decoded messages
+                    if (error instanceof DataInputStreamEOFError) {
+                    // TODO Give visual indication that the stream is truncated
+                        console.error("Stream truncated.");
+                    } else {
+                        console.log("random error");
+                        throw error;
+                    }
+                } // try - catch
+
+                if (numTotalResults >= FILE_MANAGER_LOG_SEARCH_MAX_RESULTS) {
+                    isSearching = false;
+                    searchResultsToSend.push({pageIdx: pageIdx,
+                        searchResults: structuredClone(searchResults)});
+                    searchResultsToSend.push({pageIdx: this.state.pages - 1,
+                        searchResults: []});
+                    break;
+                } else if (eventIdx + 1 === pageEndEventIdx) {
+                    // Page end reached
+
+                    // To update progress, always send searchResults
+                    //  even if it is empty
+                    searchResultsToSend.push({pageIdx: pageIdx,
+                        searchResults: structuredClone(searchResults)});
+
+                    // clear searchResults[]
+                    searchResults.splice(0, searchResults.length);
+
+                    // update page end event index
+                    pageIdx++;
+                    if (pageIdx >= this.state.pages) {
+                        isSearching = false;
+                        break;
+                    }
+                    pageEndEventIdx = Math.min(
+                        this.state.pageSize * (pageIdx + 1),
+                        numEventsAtLevel
+                    );
+                }
+            } // for (let eventIdx = logEventsBeginIdx; eventIdx < logEventsEndIdx; eventIdx++)
+
+            // schedule the iterations one-by-one to avoid clogging up
+            setTimeout(()=>{
+                if (currentLogSearchJobId === this._logSearchJobId) {
+                    // avoid sending empty searchResults for consecutive pages
+                    let lastEmptyResultPageIdx = null;
+                    for (let i = 0; i < searchResultsToSend.length; i++) {
+                        if (searchResultsToSend[i].searchResults.length === 0) {
+                            lastEmptyResultPageIdx = searchResultsToSend[i].pageIdx;
+                        } else {
+                            if (null !== lastEmptyResultPageIdx) {
+                                this._updateSearchResultsCallback(lastEmptyResultPageIdx, []);
+                                lastEmptyResultPageIdx = null;
+                            }
+                            this._updateSearchResultsCallback(
+                                searchResultsToSend[i].pageIdx,
+                                searchResultsToSend[i].searchResults);
+                        }
+                    }
+                    if (null !== lastEmptyResultPageIdx) {
+                        this._updateSearchResultsCallback(lastEmptyResultPageIdx, []);
+                    }
+                    searchResultsToSend.splice(0, searchResultsToSend.length);
+
+                    if (isSearching) {
+                        setTimeout(() => {searchChunk(logEventsEndIdx);}, 0);
+                    }
+                }
+            }, 0);
+        }; // const searchChunk = (logEventsBeginIdx) => {
+
+        searchChunk(0);
+    };
+
+   /**
+   * Get the long event from the selected line number
+   */
     computeLogEventIdxFromLineNum () {
-        // If there are no logs, return
+    // If there are no logs, return
         if (this.logEventMetadata.length === 0) {
             this.state.logEventIdx = null;
             return;
@@ -519,10 +671,10 @@ class FileManager {
     };
 
     /**
-     * Get the line number from the log event.
-     */
+    * Get the line number from the log event.
+    */
     computeLineNumFromLogEventIdx () {
-        // If there are no logs, go to line 1
+    // If there are no logs, go to line 1
         if (0 === this._logEventOffsetsFiltered.length) {
             this.state.columnNumber = 1;
             this.state.lineNumber = 1;
@@ -548,9 +700,9 @@ class FileManager {
     };
 
     /**
-     * Filters the log events with the given verbosity.
-     * @param {number} desiredMinVerbosityIx
-     */
+   * Filters the log events with the given verbosity.
+   * @param {number} desiredMinVerbosityIx
+   */
     filterLogEvents (desiredMinVerbosityIx) {
         this.state.verbosity = desiredMinVerbosityIx;
         this._logEventOffsetsFiltered = [];
@@ -569,17 +721,19 @@ class FileManager {
     };
 
     /**
-     * Prettifies the given log event content, if necessary
-     * @param {Uint8Array} contentUint8Array The content as a Uint8Array
-     * @return {[boolean, (string|*)]} A tuple containing a boolean indicating
-     * whether the content was prettified, and if so, the prettified content.
-     */
+   * Prettifies the given log event content, if necessary
+   * @param {Uint8Array} contentUint8Array The content as a Uint8Array
+   * @return {[boolean, (string|*)]} A tuple containing a boolean indicating
+   * whether the content was prettified, and if so, the prettified content.
+   */
     _prettifyLogEventContent = (contentUint8Array) => {
         if (contentUint8Array.length > this._PRETTIFICATION_THRESHOLD) {
-            return this._prettifier.prettify(this._textDecoder.decode(contentUint8Array));
+            return this._prettifier.prettify(
+                this._textDecoder.decode(contentUint8Array));
         } else {
             return [false, null];
         }
     };
 }
+
 export default FileManager;

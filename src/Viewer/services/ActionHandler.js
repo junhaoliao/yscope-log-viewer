@@ -24,7 +24,7 @@ class ActionHandler {
     constructor (fileInfo, prettify, logEventIdx, initialTimestamp, pageSize) {
         this._logFile = new FileManager(fileInfo, prettify, logEventIdx, initialTimestamp, pageSize,
             this._loadingMessageCallback, this._updateStateCallback, this._updateLogsCallback,
-            this._updateFileInfoCallback);
+            this._updateFileInfoCallback, this._updateSearchResultsCallback);
         this._logFile.loadLogFile();
     }
 
@@ -80,6 +80,16 @@ class ActionHandler {
         this._logFile.computeLogEventIdxFromLineNum();
         this._updateStateCallback(CLP_WORKER_PROTOCOL.UPDATE_STATE, this._logFile.state);
     }
+
+    /**
+     * Search for the given string and go to the next result.
+     * @param {string} searchString
+     * @param {boolean} isRegex
+     * @param {boolean} matchCase
+     */
+    changeSearchString = (searchString, isRegex, matchCase) => {
+        this._logFile.searchLogEvents(searchString, isRegex, matchCase);
+    };
 
     /**
      * Set prettify state, rebuild the page and update line number
@@ -198,6 +208,14 @@ class ActionHandler {
         postMessage({
             code: CLP_WORKER_PROTOCOL.UPDATE_FILE_INFO,
             fileState: fileState,
+        });
+    };
+
+    _updateSearchResultsCallback = (i, searchResults) => {
+        postMessage({
+            code: CLP_WORKER_PROTOCOL.UPDATE_SEARCH_RESULTS,
+            page_num: i,
+            searchResults: searchResults,
         });
     };
 }

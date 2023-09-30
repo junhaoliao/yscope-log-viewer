@@ -6,8 +6,10 @@ import LoadingIcons from "react-loading-icons";
 
 import {THEME_STATES} from "../ThemeContext/THEME_STATES";
 import {ThemeContext} from "../ThemeContext/ThemeContext";
+import {LEFT_PANEL_TAB_IDS, LeftPanel} from "./components/LeftPanel/LeftPanel";
 import {MenuBar} from "./components/MenuBar/MenuBar";
 import MonacoInstance from "./components/Monaco/MonacoInstance";
+import {SearchPanel} from "./components/SearchPanel/SearchPanel";
 import {StatusBar} from "./components/StatusBar/StatusBar";
 import CLP_WORKER_PROTOCOL from "./services/CLP_WORKER_PROTOCOL";
 import FourByteClpIrStreamReader from "./services/decoder/FourByteClpIrStreamReader";
@@ -48,6 +50,7 @@ export function Viewer ({fileInfo, prettifyLog, logEventNumber, timestamp}) {
     // Loading States
     const [loadingFile, setLoadingFile] = useState(true);
     const [loadingLogs, setLoadingLogs] = useState(true);
+    const [shouldReloadSearch, setShouldReloadSearch] = useState(false);
     const [statusMessage, setStatusMessage] = useState("");
     const [statusMessageLogs, setStatusMessageLogs] = useState([]);
 
@@ -67,6 +70,14 @@ export function Viewer ({fileInfo, prettifyLog, logEventNumber, timestamp}) {
     });
     const [fileMetadata, setFileMetadata] = useState(null);
     const [logData, setLogData] = useState("");
+
+    const [leftPanelActiveTabId, setLeftPanelActiveTabId] = useState(LEFT_PANEL_TAB_IDS.SEARCH);
+    const [leftPanelWidth, setLeftPanelWidth] = useState(0);
+    const [searchQuery, setSearchQuery] = useState({
+        searchString: "",
+        isRegex: false,
+        matchCase: false});
+    const [searchResults, setSearchResults] = useState(null);
 
     useEffect(() => {
         // Cleanup
@@ -88,10 +99,10 @@ export function Viewer ({fileInfo, prettifyLog, logEventNumber, timestamp}) {
         setStatusMessageLogs([...msgLogger.current.reset()]);
         setLoadingLogs(false);
         setLoadingFile(true);
+        setShouldReloadSearch(true);
 
         // Create new worker and pass args to worker to load file
         clpWorker.current = new Worker(new URL("./services/clpWorker.js", import.meta.url));
-        clpWorker.current.onmessage = handleWorkerMessage;
         // If file was loaded using file dialog or drag/drop, reset logEventIdx
         const logEvent = (typeof fileInfo === "string") ? logFileState.logEventIdx : null;
         const initialTimestamp = isNumeric(timestamp) ? Number(timestamp) : null;
@@ -114,6 +125,21 @@ export function Viewer ({fileInfo, prettifyLog, logEventNumber, timestamp}) {
     useEffect(() => {
         msgLogger.current.add(statusMessage);
     }, [statusMessage]);
+
+    const handleStateChangeSearch = (args) => {
+        if (args.searchString === "") {
+            setSearchResults(null);
+        } else {
+            setSearchResults([]);
+        }
+
+        clpWorker.current.postMessage({
+            code: CLP_WORKER_PROTOCOL.UPDATE_SEARCH_STRING,
+            searchString: args.searchString,
+            isRegex: args.isRegex,
+            matchCase: args.matchCase,
+        });
+    };
 
     /**
      * Passes state changes to the worker. Worker performs operation
@@ -141,6 +167,8 @@ export function Viewer ({fileInfo, prettifyLog, logEventNumber, timestamp}) {
                 break;
             case STATE_CHANGE_TYPE.verbosity:
                 if (args.verbosity !== logFileState.verbosity) {
+                    setShouldReloadSearch(true);
+                    handleStateChangeSearch({searchString: ""});
                     setLoadingLogs(true);
                     const verbosity = (args.verbosity === -1) ? "ALL"
                         : FourByteClpIrStreamReader.VERBOSITIES[args.verbosity].label;
@@ -152,12 +180,16 @@ export function Viewer ({fileInfo, prettifyLog, logEventNumber, timestamp}) {
                 }
                 break;
             case STATE_CHANGE_TYPE.pageSize:
-                setLoadingLogs(true);
-                setStatusMessage(`Changing events per page to ${args.pageSize}`);
-                clpWorker.current.postMessage({
-                    code: CLP_WORKER_PROTOCOL.REDRAW_PAGE,
-                    pageSize: Number(args.pageSize),
-                });
+                if (args.pageSize !== logFileState.pageSize) {
+                    setShouldReloadSearch(true);
+                    handleStateChangeSearch({searchString: ""});
+                    setLoadingLogs(true);
+                    setStatusMessage(`Changing events per page to ${args.pageSize}`);
+                    clpWorker.current.postMessage({
+                        code: CLP_WORKER_PROTOCOL.REDRAW_PAGE,
+                        pageSize: Number(args.pageSize),
+                    });
+                }
                 break;
             case STATE_CHANGE_TYPE.prettify:
                 setLoadingLogs(true);
@@ -181,6 +213,9 @@ export function Viewer ({fileInfo, prettifyLog, logEventNumber, timestamp}) {
                     code: CLP_WORKER_PROTOCOL.GET_LINE_FROM_EVENT,
                     desiredLogEventIdx: args.logEventIdx,
                 });
+                break;
+            case STATE_CHANGE_TYPE.search:
+                handleStateChangeSearch(args);
                 break;
             default:
                 break;
@@ -213,6 +248,10 @@ export function Viewer ({fileInfo, prettifyLog, logEventNumber, timestamp}) {
                 setLoadingFile(false);
                 setLoadingLogs(false);
                 setStatusMessage("");
+                if (shouldReloadSearch) {
+                    handleStateChangeSearch({...searchQuery});
+                    setShouldReloadSearch(false);
+                }
                 break;
             case CLP_WORKER_PROTOCOL.LOAD_LOGS:
                 setLogData(event.data.logs);
@@ -222,10 +261,20 @@ export function Viewer ({fileInfo, prettifyLog, logEventNumber, timestamp}) {
             case CLP_WORKER_PROTOCOL.UPDATE_FILE_INFO:
                 setFileMetadata(event.data.fileState);
                 break;
+            case CLP_WORKER_PROTOCOL.UPDATE_SEARCH_RESULTS:
+                setSearchResults((prevArray) => [...prevArray, {
+                    page_num: event.data.page_num,
+                    searchResults: event.data.searchResults,
+                }]);
+                break;
             default:
+                console.error("Unhandled code:", event.data);
                 break;
         }
-    }, [logFileState, logData]);
+    }, [logFileState, logData, searchQuery, shouldReloadSearch]);
+    useEffect(()=>{
+        clpWorker.current.onmessage = handleWorkerMessage;
+    }, [logFileState, logData, searchQuery, shouldReloadSearch]);
 
     useEffect(() => {
         modifyFileMetadata(fileMetadata, logFileState.logEventIdx);
@@ -241,6 +290,29 @@ export function Viewer ({fileInfo, prettifyLog, logEventNumber, timestamp}) {
             changeState(STATE_CHANGE_TYPE.logEventIdx, {logEventIdx: logFileState.logEventIdx});
         }
     };
+
+    const searchQueryChangeHandler = (newQuery) => {
+        setSearchQuery(newQuery);
+        changeState(STATE_CHANGE_TYPE.search, {...newQuery});
+    };
+
+    const goToEventCallback = (logEventIdx) => {
+        changeState(STATE_CHANGE_TYPE.logEventIdx, {logEventIdx: logEventIdx});
+    };
+
+    let leftPanelContent = (<></>);
+    if (0 !== leftPanelWidth) {
+        if (LEFT_PANEL_TAB_IDS.SEARCH === leftPanelActiveTabId) {
+            leftPanelContent = (
+                <SearchPanel
+                    query={searchQuery} searchResults={searchResults}
+                    totalPages={logFileState.pages}
+                    queryChangeHandler={searchQueryChangeHandler}
+                    searchResultClickHandler={goToEventCallback}
+                />
+            );
+        }
+    }
 
     return (
         <div data-theme={theme} className="viewer-container">
@@ -261,20 +333,63 @@ export function Viewer ({fileInfo, prettifyLog, logEventNumber, timestamp}) {
                 </div>
             }
             {false === loadingFile &&
-                <div className="d-flex h-100 flex-column">
-                    <MenuBar
-                        loadingLogs={loadingLogs}
-                        fileMetaData={fileMetadata}
-                        logFileState={logFileState}
-                        changeStateCallback={changeState}
-                        loadFileCallback={loadFile}/>
-
-                    <div className="flex-fill h-100 overflow-hidden">
-                        <MonacoInstance
-                            logData={logData}
-                            loadingLogs={loadingLogs}
+                <>
+                    <div style={{
+                        display: "flex",
+                        flexGrow: 1,
+                        height: "100%",
+                        // Without this, if this element's content exceeds the
+                        // size of this element's parent, flex-grow won't shrink
+                        // this element to fit within the parent.
+                        minHeight: 0,
+                        overflow: "hidden",
+                        width: "100%",
+                    }}>
+                        <LeftPanel
+                            logFileState={logFileState}
+                            panelWidth={leftPanelWidth}
+                            setPanelWidth={setLeftPanelWidth}
+                            activeTabId={leftPanelActiveTabId}
+                            setActiveTabId={setLeftPanelActiveTabId}
+                            loadFileCallback={loadFile}
                             changeStateCallback={changeState}
-                            logFileState={logFileState}/>
+                        >
+                            {leftPanelContent}
+                        </LeftPanel>
+
+                        <div style={{
+                            flexGrow: 1,
+                            height: "100%",
+                            overflow: "hidden",
+                        }}>
+                            <div style={{
+                                display: "flex",
+                                flexDirection: "column",
+                                height: "100%",
+                            }}>
+                                <MenuBar
+                                    loadingLogs={loadingLogs}
+                                    fileMetaData={fileMetadata}
+                                    logFileState={logFileState}
+                                    changeStateCallback={changeState}
+                                />
+                                <div style={{
+                                    flexGrow: 1,
+                                    // Without this, if this element's content
+                                    // exceeds the size of this element's
+                                    // parent, flex-grow won't shrink this
+                                    // element to fit within the parent.
+                                    minHeight: 0,
+                                    height: "100%",
+                                }}>
+                                    <MonacoInstance
+                                        logData={logData}
+                                        loadingLogs={loadingLogs}
+                                        changeStateCallback={changeState}
+                                        logFileState={logFileState}/>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <StatusBar
@@ -282,7 +397,7 @@ export function Viewer ({fileInfo, prettifyLog, logEventNumber, timestamp}) {
                         logFileState={logFileState}
                         loadingLogs={loadingLogs}
                         changeStateCallback={changeState}/>
-                </div>
+                </>
             }
         </div>
     );

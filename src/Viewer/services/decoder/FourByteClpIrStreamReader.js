@@ -189,6 +189,53 @@ class FourByteClpIrStreamReader {
         return true;
     }
 
+    decodeAndMatchLogEvent (outputResizableBuffer, searchString, isRegex, matchCase) {
+        const {timestamp, _, numValidVars} = this._readLogEvent();
+        this._tokenDecoder.decodeTimestamp(outputResizableBuffer, timestamp);
+
+        // Decode logtype and variables
+        this._tokenDecoder.loadLogtype(this._logtype);
+        for (let i = 0; i < numValidVars; ++i) {
+            const v = this._varPool.get(i);
+            switch (this._tokenDecoder.decodeUpToNextVar(outputResizableBuffer)) {
+                case LogtypeBuf.INTEGER_VARIABLE_DELIMITER:
+                    v.decodeAsIntegerType();
+                    break;
+                case LogtypeBuf.FLOAT_VARIABLE_DELIMITER:
+                    v.decodeAsFloatType();
+                    break;
+                case LogtypeBuf.VARIABLE_ID_DELIMITER:
+                    // Do nothing
+                    break;
+                default:
+                    throw new Error("Unexpected variable delimiter in logtype.");
+            }
+
+            // Output variable
+            outputResizableBuffer.push(v.getValueUint8Array());
+        }
+        this._tokenDecoder.drainLogtype(outputResizableBuffer);
+
+        const contentUint8Array = outputResizableBuffer.getUint8Array();
+        const contentString = FourByteClpIrStreamReader.textDecoder.decode(contentUint8Array);
+
+        let contentLowerCaseString = contentString;
+        let searchLowerCaseString = searchString;
+        if (matchCase === false) {
+            contentLowerCaseString = contentLowerCaseString.toLowerCase();
+            searchLowerCaseString = searchString.toLowerCase();
+        }
+
+        let match;
+        if (isRegex) {
+            match = contentLowerCaseString.match(searchString);
+        } else if (contentLowerCaseString.includes(searchLowerCaseString)) {
+            match = searchString;
+        }
+
+        return {match, contentString};
+    }
+
     /**
      * @return {number} The Log4j verbosity index of the current log event
      * (if it can be detected)
@@ -201,8 +248,7 @@ class FourByteClpIrStreamReader {
             // FIXME: This only supports verbosity levels starting at the 2nd
             //  character of the log type
             if (uint8ArrayContains(this._logtype.getValueUint8Array(), 1,
-                verbosityUint8Array, 0))
-            {
+                verbosityUint8Array, 0)) {
                 return i;
             }
         }
