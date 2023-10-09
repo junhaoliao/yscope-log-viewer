@@ -5,6 +5,7 @@ import IRTokenDecoder from "./IRTokenDecoder";
 import LogtypeBuf from "./LogtypeBuf";
 import PROTOCOL from "./PROTOCOL";
 import {countByteOccurrencesInUtf8Uint8Array, uint8ArrayContains} from "./utils";
+import AttrBuf from "./AttrBuf";
 
 const NEWLINE_CODE_POINT = "\n".codePointAt(0);
 
@@ -28,13 +29,15 @@ class FourByteClpIrStreamReader {
     static textEncoder = new TextEncoder();
     static textDecoder = new TextDecoder();
     static VERBOSITIES = [
-        {label: "≤ TRACE", uint8Array: FourByteClpIrStreamReader.textEncoder.encode("TRACE")},
-        {label: "≤ DEBUG", uint8Array: FourByteClpIrStreamReader.textEncoder.encode("DEBUG")},
-        {label: "≤ INFO", uint8Array: FourByteClpIrStreamReader.textEncoder.encode("INFO")},
-        {label: "≤ WARN", uint8Array: FourByteClpIrStreamReader.textEncoder.encode("WARN")},
-        {label: "≤ ERROR", uint8Array: FourByteClpIrStreamReader.textEncoder.encode("ERROR")},
-        {label: "≤ FATAL", uint8Array: FourByteClpIrStreamReader.textEncoder.encode("FATAL")},
-        {label: "UNKNOWN", uint8Array: FourByteClpIrStreamReader.textEncoder.encode("UNKNOWN")},
+        {label: "UNKNOW", uint8Array: FourByteClpIrStreamReader.textEncoder.encode("UNKNOWN")},
+        {label: "≤ ?", uint8Array: FourByteClpIrStreamReader.textEncoder.encode("?")},
+        {label: "≤ V", uint8Array: FourByteClpIrStreamReader.textEncoder.encode("VERBOSE")},
+        {label: "≤ D", uint8Array: FourByteClpIrStreamReader.textEncoder.encode("DEBUG")},
+        {label: "≤ I", uint8Array: FourByteClpIrStreamReader.textEncoder.encode("INFO")},
+        {label: "≤ W", uint8Array: FourByteClpIrStreamReader.textEncoder.encode("WARN")},
+        {label: "≤ E", uint8Array: FourByteClpIrStreamReader.textEncoder.encode("ERROR")},
+        {label: "≤ F", uint8Array: FourByteClpIrStreamReader.textEncoder.encode("FATAL")},
+        {label: "≤ S", uint8Array: FourByteClpIrStreamReader.textEncoder.encode("S")},
     ];
 
     /**
@@ -55,12 +58,29 @@ class FourByteClpIrStreamReader {
         this._dataInputStream = dataInputStream;
         this._logtype = new LogtypeBuf();
         this._varPool = new BufferPool(FourByteVarBuf);
+        this._attrPool = new BufferPool(AttrBuf);
 
         this._streamProtocolDecoder = new FourByteClpIrStreamProtocolDecoder(
             dataInputStream, this._tokenDecoder
         );
 
         this._logEventContentFormatter = logEventContentFormatter;
+    }
+
+    androidPriorityToChar(priority) {
+        switch (priority) {
+            case 2: return "V";
+            case 3: return "D";
+            case 4: return "I";
+            case 5: return "W";
+            case 6: return "E";
+            case 7: return "F";
+            case 8: return "S";
+            case 0:
+            case 1:
+            default:
+                return "?";
+        }
     }
 
     /**
@@ -126,10 +146,25 @@ class FourByteClpIrStreamReader {
             }
         }
 
+
+        const attributeTable = this._streamProtocolDecoder.getAttributeTable();
+        const pid = this._attrPool.get(attributeTable.pid).get_int_val();
+        const tid = this._attrPool.get(attributeTable.tid).get_int_val();
+        const tag = this._attrPool.get(attributeTable.tag).get_str_val();
+        const priority = this._attrPool.get(attributeTable.priority).get_int_val();
+        let formattedAttribute = " ";
+        formattedAttribute += String(pid).padStart(5, " ") + " ";
+        formattedAttribute += String(tid).padStart(5, " ") + " ";
+        formattedAttribute += this.androidPriorityToChar(priority) + " ";
+        formattedAttribute += String(tag).padEnd(8, " ") + ": ";
+
         // Get the offset before we output anything to the buffer
         const beginOffset = outputResizableBuffer.getLength();
 
         this._tokenDecoder.decodeTimestamp(outputResizableBuffer, timestamp);
+        outputResizableBuffer.push(
+            FourByteClpIrStreamReader.textEncoder.encode(formattedAttribute)
+        );
 
         const contentBeginOffset = outputResizableBuffer.getLength();
 
@@ -227,15 +262,30 @@ class FourByteClpIrStreamReader {
 
         // Read variables if present in this message
         this._varPool.free();
+        this._attrPool.free();
         let numValidVars = 0;
+        let numAttributes = 0;
         const decoder = this._streamProtocolDecoder;
+        while (decoder.tryReadingAttribute(this._dataInputStream, tag, this._attrPool.getNext())) {
+            tag = decoder.readTag(this._dataInputStream);
+            ++numAttributes;
+        }
+        if (this._streamProtocolDecoder.getNumAttributes() !== numAttributes) {
+            throw new Error(
+                `Num attributes expected: ${numAttributes};
+                 Num attributes decoded: ${this._streamProtocolDecoder.getNumAttributes()}`);
+        }
         while (decoder.tryReadingVar(this._dataInputStream, tag, this._varPool.getNext())) {
             tag = decoder.readTag(this._dataInputStream);
             ++numValidVars;
         }
         // Read the logtype and timestamp present in every message
         this._streamProtocolDecoder.readLogtype(this._dataInputStream, tag, this._logtype);
-        const verbosityIx = this._getLog4jVerbosity();
+        // const verbosityIx = this._getLog4jVerbosity();
+        const verbosityIx =
+            this._attrPool
+                .get(this._streamProtocolDecoder.getAttributeTable().priority)
+                .get_int_val();
 
         const timestamp = this._streamProtocolDecoder.readTimestamp(this._dataInputStream);
 
