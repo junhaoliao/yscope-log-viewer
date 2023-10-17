@@ -29,15 +29,15 @@ class FourByteClpIrStreamReader {
     static textEncoder = new TextEncoder();
     static textDecoder = new TextDecoder();
     static VERBOSITIES = [
-        {label: "UNKNOW", uint8Array: FourByteClpIrStreamReader.textEncoder.encode("UNKNOWN")},
-        {label: "≤ ?", uint8Array: FourByteClpIrStreamReader.textEncoder.encode("?")},
-        {label: "≤ V", uint8Array: FourByteClpIrStreamReader.textEncoder.encode("VERBOSE")},
-        {label: "≤ D", uint8Array: FourByteClpIrStreamReader.textEncoder.encode("DEBUG")},
-        {label: "≤ I", uint8Array: FourByteClpIrStreamReader.textEncoder.encode("INFO")},
-        {label: "≤ W", uint8Array: FourByteClpIrStreamReader.textEncoder.encode("WARN")},
-        {label: "≤ E", uint8Array: FourByteClpIrStreamReader.textEncoder.encode("ERROR")},
-        {label: "≤ F", uint8Array: FourByteClpIrStreamReader.textEncoder.encode("FATAL")},
-        {label: "≤ S", uint8Array: FourByteClpIrStreamReader.textEncoder.encode("S")},
+        {label: "DEFAULT", uint8Array: FourByteClpIrStreamReader.textEncoder.encode("DEFAULT")},
+        {label: "≤ ? (UNKNOWN)", uint8Array: FourByteClpIrStreamReader.textEncoder.encode("? (UNKNOWN)")},
+        {label: "≤ V (VERBOSE)", uint8Array: FourByteClpIrStreamReader.textEncoder.encode("VERBOSE")},
+        {label: "≤ D (DEBUG)", uint8Array: FourByteClpIrStreamReader.textEncoder.encode("DEBUG")},
+        {label: "≤ I (INFO)", uint8Array: FourByteClpIrStreamReader.textEncoder.encode("INFO")},
+        {label: "≤ W (WARN)", uint8Array: FourByteClpIrStreamReader.textEncoder.encode("WARN")},
+        {label: "≤ E (ERROR)", uint8Array: FourByteClpIrStreamReader.textEncoder.encode("ERROR")},
+        {label: "≤ F (FATAL)", uint8Array: FourByteClpIrStreamReader.textEncoder.encode("FATAL")},
+        {label: "≤ S (SILENT)", uint8Array: FourByteClpIrStreamReader.textEncoder.encode("SILENT")},
     ];
 
     /**
