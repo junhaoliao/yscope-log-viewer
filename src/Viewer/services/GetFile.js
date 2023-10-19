@@ -53,21 +53,22 @@ function readFile (fileInfo, progressCallback) {
                     bucket: bucketName,
                     object: objectKey,
                 });
-            } else {
-                const parsedUrl = new URL(fileInfo);
-                const bucketName = parsedUrl.hostname.split(".")[0];
-                const objectKey = parsedUrl.pathname.slice(1); // Remove leading slash
-                postMessage({
-                    code: CLP_WORKER_PROTOCOL.REQ_BAIDU_PRESIGN_URL,
-                    bucket: bucketName,
-                    object: objectKey,
+                addEventListener("receiveS3Url", (event)=>{
+                    const s3Url = event.detail;
+                    console.info(`S3Url: ${s3Url}`);
+                    getFetchFilePromise(s3Url, progressCallback).then((data) => {
+                        resolve({
+                            name: name,
+                            filePath: fileInfo,
+                            data: data,
+                        });
+                    }).catch((reason) => {
+                        reject(reason);
+                    });
                 });
-            }
-
-            addEventListener("receiveS3Url", (event)=>{
-                const s3Url = event.detail;
-                console.info(`S3Url: ${s3Url}`);
-                getFetchFilePromise(s3Url, progressCallback).then((data) => {
+            } else {
+                const decodedUrl = decodeURIComponent(fileInfo);
+                getFetchFilePromise(decodedUrl, progressCallback).then((data) => {
                     resolve({
                         name: name,
                         filePath: fileInfo,
@@ -76,7 +77,7 @@ function readFile (fileInfo, progressCallback) {
                 }).catch((reason) => {
                     reject(reason);
                 });
-            });
+            }
         } else {
             reject(new Error("Invalid file"));
         }
