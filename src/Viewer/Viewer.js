@@ -17,6 +17,16 @@ import {isNumeric, modifyFileMetadata, modifyPage} from "./services/utils";
 import VerbatimURLParams from "./services/VerbatimURLParams";
 
 import "./Viewer.scss";
+import {BosClient} from '@baiducloud/sdk';
+import {accessKeyId, secretAccessKey, endpoint} from "./credential";
+
+const bosClient = new BosClient({
+    endpoint: endpoint,
+    credentials: {
+        ak: accessKeyId,
+        sk: secretAccessKey,
+    },
+});
 
 Viewer.propTypes = {
     fileInfo: oneOfType([PropTypes.object, PropTypes.string]),
@@ -221,6 +231,15 @@ export function Viewer ({fileInfo, prettifyLog, logEventNumber, timestamp}) {
                 break;
             case CLP_WORKER_PROTOCOL.UPDATE_FILE_INFO:
                 setFileMetadata(event.data.fileState);
+                break;
+            case CLP_WORKER_PROTOCOL.REQ_BAIDU_PRESIGN_URL:
+                const bucketName = event.data.bucket;
+                const objectKey = event.data.object;
+                const s3Url = bosClient.generatePresignedUrl(bucketName, objectKey);
+                clpWorker.current.postMessage({
+                    code: CLP_WORKER_PROTOCOL.REC_BAIDU_PRESIGN_URL,
+                    s3Url: s3Url,
+                });
                 break;
             default:
                 break;

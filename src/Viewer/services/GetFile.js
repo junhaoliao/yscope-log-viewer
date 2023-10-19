@@ -1,3 +1,4 @@
+import CLP_WORKER_PROTOCOL from "./CLP_WORKER_PROTOCOL";
 /**
  * Error class for HTTP requests
  */
@@ -41,15 +42,40 @@ function readFile (fileInfo, progressCallback) {
                 reject(reason);
             });
         } else if (typeof fileInfo == "string") {
-            const name = fileInfo.split("/").pop();
-            getFetchFilePromise(fileInfo, progressCallback).then((data) => {
-                resolve({
-                    name: name,
-                    filePath: fileInfo,
-                    data: data,
+            const s3Regex = /^s3:\/\/([^/]+)\/(.+)$/;
+            const match = s3Regex.exec(fileInfo);
+            if (match) {
+                const bucketName = match[1];
+                const objectKey = match[2];
+                console.debug(`${bucketName}, ${objectKey}`);
+                postMessage({
+                    code: CLP_WORKER_PROTOCOL.REQ_BAIDU_PRESIGN_URL,
+                    bucket: bucketName,
+                    object: objectKey,
                 });
-            }).catch((reason) => {
-                reject(reason);
+            } else {
+                const parsedUrl = new URL(fileInfo);
+                const bucketName = parsedUrl.hostname.split(".")[0];
+                const objectKey = parsedUrl.pathname.slice(1); // Remove leading slash
+                postMessage({
+                    code: CLP_WORKER_PROTOCOL.REQ_BAIDU_PRESIGN_URL,
+                    bucket: bucketName,
+                    object: objectKey,
+                });
+            }
+
+            addEventListener("receiveS3Url", (event)=>{
+                const s3Url = event.detail;
+                console.info(`S3Url: ${s3Url}`);
+                getFetchFilePromise(s3Url, progressCallback).then((data) => {
+                    resolve({
+                        name: name,
+                        filePath: fileInfo,
+                        data: data,
+                    });
+                }).catch((reason) => {
+                    reject(reason);
+                });
             });
         } else {
             reject(new Error("Invalid file"));
@@ -95,6 +121,7 @@ function getFetchFilePromise (fileUrl, progressCallback) {
             }
             resolve(concatenatedChunks);
         }).catch((reason) => {
+            console.debug(`Failed to fetch from url: ${fileUrl}`);
             reject(reason);
         });
     });
@@ -144,4 +171,4 @@ function readFileInputPromise (file, progressCallback) {
     });
 }
 
-export {readFile};
+export {readFile, getFetchFilePromise};

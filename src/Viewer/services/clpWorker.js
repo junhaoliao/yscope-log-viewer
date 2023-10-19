@@ -1,5 +1,6 @@
 import ActionHandler from "./ActionHandler";
 import CLP_WORKER_PROTOCOL from "./CLP_WORKER_PROTOCOL";
+import {getFetchFilePromise} from "./GetFile";
 
 /**
  * Send error to component which created worker.
@@ -78,6 +79,12 @@ onmessage = function (e) {
             }
             break;
 
+        case CLP_WORKER_PROTOCOL.REC_BAIDU_PRESIGN_URL:
+            const s3Url = e.data.s3Url;
+            console.log(`Received: ${s3Url}`);
+            const event = new CustomEvent("receiveS3Url", {detail: s3Url});
+            dispatchEvent(event);
+            break;
         default:
             break;
     }
