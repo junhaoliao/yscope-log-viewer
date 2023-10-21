@@ -15,9 +15,7 @@ import "./MonacoInstance.scss";
 // Themes for monaco editor
 const themes = {
     dark: {
-        base: "vs-dark",
-        inherit: true,
-        rules: [
+        base: "vs-dark", inherit: true, rules: [
             {token: "custom-info", foreground: "#098658"},
             {token: "custom-warn", foreground: "#ce9178"},
             {token: "custom-error", foreground: "#ce9178", fontStyle: "bold"},
@@ -25,13 +23,10 @@ const themes = {
             {token: "custom-date", foreground: "#529955"},
             {token: "custom-number", foreground: "#3f9ccb"},
             {token: "custom-exception", foreground: "#ce723b", fontStyle: "italic"},
-            {token: "comment", foreground: "#008000"},
-        ],
-        colors: {
+            {token: "comment", foreground: "#008000"}], colors: {
             "editor.lineHighlightBackground": "#3c3c3c",
         },
-    },
-    light: {
+    }, light: {
         base: "vs",
         inherit: true,
         rules: [
@@ -41,8 +36,7 @@ const themes = {
             {token: "custom-fatal", foreground: "#ac1515", fontStyle: "bold"},
             {token: "custom-date", foreground: "#008000"},
             {token: "custom-number", foreground: "#3f9ccb"},
-            {token: "custom-exception", foreground: "#ce723b", fontStyle: "italic"},
-        ],
+            {token: "custom-exception", foreground: "#ce723b", fontStyle: "italic"}],
         colors: {},
     },
 };
@@ -73,7 +67,9 @@ MonacoInstance.propTypes = {
  * @return {JSX.Element}
  * @constructor
  */
-function MonacoInstance ({logFileState, changeStateCallback, loadingLogs, logData}) {
+function MonacoInstance ({
+    logFileState, changeStateCallback, loadingLogs, logData,
+}) {
     const {theme} = useContext(ThemeContext);
     const editorRef = useRef(null);
     const monacoRef = useRef(null);
@@ -85,10 +81,10 @@ function MonacoInstance ({logFileState, changeStateCallback, loadingLogs, logDat
     loader.config({monaco});
 
     /**
-     * Called before the monaco editor is mounted.
-     *
-     * @param {object} monaco
-     */
+   * Called before the monaco editor is mounted.
+   *
+   * @param {object} monaco
+   */
     function handleEditorWillMount (monaco) {
         monaco.languages.typescript.javascriptDefaults.setEagerModelSync(true);
         monaco.editor.defineTheme("customLogLanguageDark", themes.dark);
@@ -107,21 +103,83 @@ function MonacoInstance ({logFileState, changeStateCallback, loadingLogs, logDat
                     ["FATAL", "custom-fatal"],
                     [/(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3})Z/, "custom-date"],
                     [/^[\t ]*at.*$/, "custom-exception"],
-                    [/(\d+(?:\.\d+)?([eE])([+\-])[0-9](\.[0-9])?|\d+(?:\.\d+)?)/, "custom-number"],
-                ],
+                    [
+                        /(\d+(?:\.\d+)?([eE])([+\-])[0-9](\.[0-9])?|\d+(?:\.\d+)?)/,
+                        "custom-number"]],
             },
         });
         setLanguage("logLanguage");
     }
 
+    const _registerMobileZoomHandler = (editor) => {
+        if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+            console.log(
+                "This is an iOS device. CSS style zoom will not work as "+
+                "expected; please use Safari's zoom buttons instead");
+            return;
+        } else {
+            console.log(
+                "This is not an iOS device. We will use our own zoom handler. ");
+        }
+        let touchStartDelta = null;
+        let scaleLevel = 1;
+        editor.getDomNode().ontouchend = () => {
+            // reset touches distance after current pinch ends
+            touchStartDelta = null;
+        };
+        editor.getDomNode().addEventListener("touchstart", (ev) => {
+            if (ev.touches.length === 2) {
+                // calculate touches distance
+                touchStartDelta = Math.hypot(
+                    ev.touches[0].clientX - ev.touches[1].clientX,
+                    ev.touches[0].clientY - ev.touches[1].clientY);
+            }
+        });
+
+        editor.getDomNode().addEventListener("touchmove", (ev) => {
+            if (touchStartDelta == null) {
+                // nothing to be compared against
+                return;
+            } else if (ev.touches.length !== 2) {
+                // not pinching with 2 fingers
+                touchStartDelta = null;
+                return;
+            }
+
+            // calculate current touches distance
+            const touchEndDelta = Math.hypot(
+                ev.touches[0].clientX - ev.touches[1].clientX,
+                ev.touches[0].clientY - ev.touches[1].clientY);
+
+            // compare current touches distance with the lsat one
+            if (Math.abs(touchEndDelta - touchStartDelta) > 1) {
+                // adjust zoom level
+                if (touchEndDelta > touchStartDelta) {
+                    scaleLevel += touchEndDelta / touchStartDelta / 10;
+                } else {
+                    scaleLevel -= touchStartDelta / touchEndDelta / 4;
+                }
+
+                // cap the zoom level
+                scaleLevel = Math.max(0.3, scaleLevel);
+                scaleLevel = Math.min(2, scaleLevel);
+
+                // set the zoom level
+                document.body.style.zoom = scaleLevel;
+            }
+
+            // update touchStartDelta to be used in next comparison
+            touchStartDelta = touchEndDelta;
+        }, {passive: false});
+    };
 
     /**
-     * Called when editor is finished mounting.
-     *
-     * @param {object} editor
-     * @param {object} monaco
-     */
-    const handleEditorDidMount =(editor, monaco) => {
+   * Called when editor is finished mounting.
+   *
+   * @param {object} editor
+   * @param {object} monaco
+   */
+    const handleEditorDidMount = (editor, monaco) => {
         monacoRef.current = monaco;
         editorRef.current = editor;
         editorRef.current.setValue(logData);
@@ -138,24 +196,21 @@ function MonacoInstance ({logFileState, changeStateCallback, loadingLogs, logDat
                 }
                 timeoutRef.current = setTimeout(() => {
                     changeStateCallback(STATE_CHANGE_TYPE.lineNumber, {
-                        lineNumber: e.position.lineNumber,
-                        columnNumber: e.position.column,
+                        lineNumber: e.position.lineNumber, columnNumber: e.position.column,
                     });
                 }, 50);
             }
         });
+
+        _registerMobileZoomHandler(editor);
     };
 
     useEffect(() => {
         if (editorRef && editorRef.current) {
             for (const shortcut of SHORTCUTS) {
                 editorRef.current.addAction({
-                    id: shortcut.id,
-                    label: shortcut.label,
-                    keybindings: [
-                        shortcut.keybindings,
-                    ],
-                    run: () => {
+                    id: shortcut.id, label: shortcut.label, keybindings: [
+                        shortcut.keybindings], run: () => {
                         if (!loadingLogs) {
                             changeStateCallback(shortcut.action, shortcut.actionArgs);
                         }
@@ -163,31 +218,21 @@ function MonacoInstance ({logFileState, changeStateCallback, loadingLogs, logDat
                 });
             }
             editorRef.current.addAction({
-                id: "topOfPage",
-                label: "Go To Top Of Page",
-                keybindings: [
-                    monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyU,
-                ],
-                run: () => {
+                id: "topOfPage", label: "Go To Top Of Page", keybindings: [
+                    monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyU], run: () => {
                     if (!loadingLogs) {
-                        changeStateCallback( STATE_CHANGE_TYPE.lineNumber, {
-                            lineNumber: 1,
-                            columnNumber: 1,
+                        changeStateCallback(STATE_CHANGE_TYPE.lineNumber, {
+                            lineNumber: 1, columnNumber: 1,
                         });
                     }
                 },
             });
             editorRef.current.addAction({
-                id: "endOfPage",
-                label: "Go To End Of Page",
-                keybindings: [
-                    monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyI,
-                ],
-                run: (editor) => {
+                id: "endOfPage", label: "Go To End Of Page", keybindings: [
+                    monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyI], run: (editor) => {
                     if (!loadingLogs) {
-                        changeStateCallback( STATE_CHANGE_TYPE.lineNumber, {
-                            lineNumber: editor.getModel().getLineCount(),
-                            columnNumber: 1,
+                        changeStateCallback(STATE_CHANGE_TYPE.lineNumber, {
+                            lineNumber: editor.getModel().getLineCount(), columnNumber: 1,
                         });
                     }
                 },
@@ -223,8 +268,8 @@ function MonacoInstance ({logFileState, changeStateCallback, loadingLogs, logDat
 
     useEffect(() => {
         setMonacoTheme((theme === THEME_STATES.LIGHT)
-            ?"customLogLanguageLight"
-            :"customLogLanguageDark");
+            ? "customLogLanguageLight"
+            : "customLogLanguageDark");
     }, [theme]);
 
     // Shortcut for focusing on the monaco editor and to enable
@@ -249,18 +294,17 @@ function MonacoInstance ({logFileState, changeStateCallback, loadingLogs, logDat
         "renderWhitespace": "none",
         "wordWrap": "on",
         "scrollBeyondLastLine": false,
+        "mouseWheelZoom": true,
     };
 
-    return (
-        <Editor
-            defaultValue="Loading content..."
-            theme={monacoTheme}
-            language={language}
-            beforeMount={handleEditorWillMount}
-            onMount={handleEditorDidMount}
-            options={monacoOptions}
-        />
-    );
+    return (<Editor
+        defaultValue="Loading content..."
+        theme={monacoTheme}
+        language={language}
+        beforeMount={handleEditorWillMount}
+        onMount={handleEditorDidMount}
+        options={monacoOptions}
+    />);
 }
 
 export default MonacoInstance;
