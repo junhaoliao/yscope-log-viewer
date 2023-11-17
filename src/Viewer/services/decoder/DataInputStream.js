@@ -142,6 +142,17 @@ class DataInputStream {
         this._byteIx += 4;
         return val;
     }
+
+    readBigInt () {
+        const requiredLen = this._byteIx + 8;
+        if (this._dataView.byteLength < requiredLen) {
+            this._byteIx = this._dataView.byteLength;
+            throw new DataInputStreamEOFError(this._dataView.byteLength, requiredLen);
+        }
+        const val = this._dataView.getBigInt64(this._byteIx, false);
+        this._byteIx += 4;
+        return val;
+    }
 }
 
 export {DataInputStream, DataInputStreamEOFError};

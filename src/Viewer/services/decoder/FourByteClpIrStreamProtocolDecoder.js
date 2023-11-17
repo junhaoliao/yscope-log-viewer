@@ -10,6 +10,19 @@ class FourByteClpIrStreamProtocolDecoder {
         this.initializeStream(dataInputStream, tokenDecoder);
     }
 
+    validateVersion(version) {
+        if (PROTOCOL.METADATA.VERSION_VALUE === version) {
+            return true;
+        }
+        if ("v0.0.0" === version) {
+            return true;
+        }
+        if ("0.0.1" === version) {
+            return true;
+        }
+        return false;
+    }
+
     _setTimestamp (timestamp) {
         this._timestamp = timestamp;
     }
@@ -43,7 +56,7 @@ class FourByteClpIrStreamProtocolDecoder {
     initializeStream (dataInputStream, tokenDecoder) {
         const metadata = this.readMetadata(dataInputStream);
         const version = metadata[PROTOCOL.METADATA.VERSION_KEY];
-        if (version !== PROTOCOL.METADATA.VERSION_VALUE) {
+        if (false === this.validateVersion(version)) {
             throw new Error(`Incompatible protocol version: ${version}`);
         }
         this._timestamp = BigInt(metadata[PROTOCOL.METADATA.REFERENCE_TIMESTAMP_KEY]);
@@ -117,6 +130,9 @@ class FourByteClpIrStreamProtocolDecoder {
                 break;
             case PROTOCOL.PAYLOAD.TIMESTAMP_DELTA_SIGNED_INT:
                 timestampDelta = dataInputStream.readInt();
+                break;
+            case PROTOCOL.PAYLOAD.TIMESTAMP_DELTA_SIGNED_LONG:
+                timestampDelta = dataInputStream.readBigInt();
                 break;
             case PROTOCOL.PAYLOAD.TIMESTAMP_NULL:
                 return PROTOCOL.PAYLOAD.TIMESTAMP_NULL_VAL;

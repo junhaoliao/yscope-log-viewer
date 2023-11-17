@@ -2,7 +2,7 @@ const PROTOCOL = {
     FOUR_BYTE_ENCODING_MAGIC_NUMBER: [0xFD, 0x2F, 0xB5, 0x29],
     METADATA: {
         VERSION_KEY: "VERSION",
-        VERSION_VALUE: "v0.0.0",
+        VERSION_VALUE: "0.1.0-alpha.0",
         REFERENCE_TIMESTAMP_KEY: "REFERENCE_TIMESTAMP",
         TIMESTAMP_PATTERN_KEY: "TIMESTAMP_PATTERN",
         TZ_ID_KEY: "TZ_ID",
@@ -27,6 +27,7 @@ const PROTOCOL = {
         TIMESTAMP_DELTA_SIGNED_BYTE: 0x31,
         TIMESTAMP_DELTA_SIGNED_SHORT: 0x32,
         TIMESTAMP_DELTA_SIGNED_INT: 0x33,
+        TIMESTAMP_DELTA_SIGNED_LONG: 0x34,
         TIMESTAMP_NULL: 0x3F,
         // NOTE: JavaScript only supports 53-bit numbers safely, so we have to
         //       use BigInt for 64-bit numbers.
