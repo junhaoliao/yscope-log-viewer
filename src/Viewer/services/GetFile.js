@@ -41,10 +41,10 @@ function readFile (fileInfo, progressCallback) {
                 reject(reason);
             });
         } else if (typeof fileInfo == "string") {
-            const name = fileInfo.split("/").pop();
+            // const name = fileInfo.split("/").pop();
             getFetchFilePromise(fileInfo, progressCallback).then((data) => {
                 resolve({
-                    name: name,
+                    name: "search_result",
                     filePath: fileInfo,
                     data: data,
                 });
