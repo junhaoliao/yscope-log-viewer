@@ -150,7 +150,7 @@ class DataInputStream {
             throw new DataInputStreamEOFError(this._dataView.byteLength, requiredLen);
         }
         const val = this._dataView.getBigInt64(this._byteIx, false);
-        this._byteIx += 4;
+        this._byteIx += 8;
         return val;
     }
 }
