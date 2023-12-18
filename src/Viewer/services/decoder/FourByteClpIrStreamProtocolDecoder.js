@@ -11,6 +11,19 @@ class FourByteClpIrStreamProtocolDecoder {
         this.initializeStream(dataInputStream, tokenDecoder);
     }
 
+    validateVersion (version) {
+        if (PROTOCOL.METADATA.VERSION_VALUE === version) {
+            return true;
+        }
+        if ("v0.0.0" === version) {
+            return true;
+        }
+        if ("0.0.1" === version) {
+            return true;
+        }
+        return false;
+    }
+
     _setTimestamp (timestamp) {
         this._timestamp = timestamp;
     }
@@ -151,8 +164,7 @@ class FourByteClpIrStreamProtocolDecoder {
 
     readAndValidateEncodingType (dataInputStream) {
         for (let i = 0; i < PROTOCOL.FOUR_BYTE_ENCODING_MAGIC_NUMBER.length; ++i) {
-            if (PROTOCOL.FOUR_BYTE_ENCODING_MAGIC_NUMBER[i] !== dataInputStream.readUnsignedByte())
-            {
+            if (PROTOCOL.FOUR_BYTE_ENCODING_MAGIC_NUMBER[i] !== dataInputStream.readUnsignedByte()) {
                 throw new Error("IR stream doesn't use the four-byte encoding.");
             }
         }

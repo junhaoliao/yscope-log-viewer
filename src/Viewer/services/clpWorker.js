@@ -37,6 +37,7 @@ onmessage = function (e) {
                 sendError(e);
             }
             break;
+
         case CLP_WORKER_PROTOCOL.UPDATE_SEARCH_STRING:
             try {
                 console.debug(e.data);
@@ -45,6 +46,7 @@ onmessage = function (e) {
                 sendError(e);
             }
             break;
+
         case CLP_WORKER_PROTOCOL.CHANGE_PAGE:
             try {
                 handler.changePage(e.data.page, e.data.linePos);
@@ -52,6 +54,7 @@ onmessage = function (e) {
                 sendError(e);
             }
             break;
+
         case CLP_WORKER_PROTOCOL.PRETTY_PRINT:
             try {
                 handler.changePrettify(e.data.prettify);
@@ -83,6 +86,23 @@ onmessage = function (e) {
                 sendError(e);
             }
             break;
+
+        case CLP_WORKER_PROTOCOL.START_DOWNLOAD:
+            try {
+                handler.startDecodingPagesToDatabase();
+            } catch (e) {
+                sendError(e);
+            }
+            break;
+
+        case CLP_WORKER_PROTOCOL.STOP_DOWNLOAD:
+            try {
+                handler.stopDecodingPagesToDatabase();
+            } catch (e) {
+                sendError(e);
+            }
+            break;
+
         default:
             break;
     }

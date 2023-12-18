@@ -6,11 +6,12 @@ import {ZstdCodec} from "../../../../customized-packages/zstd-codec/js";
 import CLP_WORKER_PROTOCOL from "../CLP_WORKER_PROTOCOL";
 import {readFile} from "../GetFile";
 import {binarySearchWithTimestamp} from "../utils";
+import WorkerPool from "../WorkerPool";
 import {DataInputStream, DataInputStreamEOFError} from "./DataInputStream";
 import FourByteClpIrStreamReader from "./FourByteClpIrStreamReader";
 import ResizableUint8Array from "./ResizableUint8Array";
 import SimplePrettifier from "./SimplePrettifier";
-import {formatSizeInBytes} from "./utils";
+import {combineArrayBuffers, formatSizeInBytes} from "./utils";
 
 const FILE_MANAGER_LOG_SEARCH_MAX_RESULTS = 1000;
 const FILE_MANAGER_LOG_SEARCH_CHUNK_SIZE = 10000;
@@ -20,18 +21,18 @@ const FILE_MANAGER_LOG_SEARCH_CHUNK_SIZE = 10000;
  */
 class FileManager {
     /**
-   * Initializes the class and sets the default states.
-   *
-   * @param {string} fileInfo
-   * @param {boolean} prettify
-   * @param {number} logEventIdx
-   * @param {number} initialTimestamp
-   * @param {number} pageSize
-   * @param {function} loadingMessageCallback
-   * @param {function} updateStateCallback
-   * @param {function} updateLogsCallback
-   * @param {updateFileInfoCallback} updateFileInfoCallback
-   */
+     * Initializes the class and sets the default states.
+     *
+     * @param {string} fileInfo
+     * @param {boolean} prettify
+     * @param {number} logEventIdx
+     * @param {number} initialTimestamp
+     * @param {number} pageSize
+     * @param {function} loadingMessageCallback
+     * @param {function} updateStateCallback
+     * @param {function} updateLogsCallback
+     * @param {function} updateFileInfoCallback
+     */
     constructor (fileInfo, prettify, logEventIdx, initialTimestamp, pageSize,
         loadingMessageCallback,
         updateStateCallback, updateLogsCallback, updateFileInfoCallback,
@@ -44,9 +45,10 @@ class FileManager {
         this.logEventMetadata = [];
         this._irStreamReader = null;
         this._displayedMinVerbosityIx = -1;
-        this._arrayBuffer;
+        this._arrayBuffer = null;
         this._outputResizableBuffer = null;
         this._availableVerbosityIndexes = new Set();
+        this._IRStreamHeader = null;
         this._timestampSorted = false;
 
         this._fileState = {
@@ -64,6 +66,9 @@ class FileManager {
             columnNumber: null,
             numberOfEvents: null,
             verbosity: null,
+            compressedSize: null,
+            decompressedSize: null,
+            downloadChunkSize: 10000,
         };
 
         this._logs = "";
@@ -85,6 +90,38 @@ class FileManager {
         this._PRETTIFICATION_THRESHOLD = 200;
 
         this._logSearchJobId = 0;
+
+        this._workerPool = new WorkerPool();
+    }
+
+
+    /**
+     * Sets up the variables needed for decoding of pages to database.
+     */
+    _setupDecodingPagesToDatabase () {
+        this.state.downloadChunkSize = 10000;
+        const numOfEvents = this._logEventOffsets.length;
+        this.state.downloadPageChunks = (0 === (numOfEvents % this.state.downloadChunkSize))
+            ? Math.floor(numOfEvents/this.state.downloadChunkSize)
+            : Math.floor(numOfEvents/this.state.downloadChunkSize) + 1;
+    }
+
+    /**
+     * Sends the chunks to the worker pool to be decompressed into database.
+     */
+    startDecodingPagesToDatabase () {
+        console.debug("Starting download...");
+        for (let chunk = 1; chunk <= this.state.downloadPageChunks; chunk++) {
+            this._decodePageWithWorker(chunk, this.state.downloadChunkSize);
+        }
+    }
+
+    /**
+     * Terminates all the workers in pool.
+     */
+    stopDecodingPagesToDatabase () {
+        console.debug("Stopping download...");
+        this._workerPool.clearPool();
     }
 
     /**
@@ -127,21 +164,23 @@ class FileManager {
    * timestamp for each log event.
    */
     _buildIndex () {
-    // Building log event offsets
+        // Building log event offsets
         const dataInputStream = new DataInputStream(this._arrayBuffer);
         this._outputResizableBuffer = new ResizableUint8Array(511000000);
         this._irStreamReader = new FourByteClpIrStreamReader(dataInputStream,
             this._prettify ? this._prettifyLogEventContent : null);
+        const decoder = this._irStreamReader._streamProtocolDecoder;
 
         try {
             this._timestampSorted = true;
-            let prevTimestamp = 0;
+            let prevTimestamp = decoder._metadataTimestamp;
             while (this._irStreamReader.indexNextLogEvent(this._logEventOffsets)) {
-                const timestamp = this._logEventOffsets[this._logEventOffsets.length -
-        1].timestamp;
+                const currEv = this._logEventOffsets[this._logEventOffsets.length - 1];
+                const timestamp = currEv.timestamp;
                 if (timestamp < prevTimestamp) {
                     this._timestampSorted = false;
                 }
+                currEv.prevTs = prevTimestamp;
                 prevTimestamp = timestamp;
             }
         } catch (error) {
@@ -156,6 +195,9 @@ class FileManager {
         }
 
         this.state.numberOfEvents = this._logEventOffsets.length;
+        if (this.state.numberOfEvents > 0) {
+            this._IRStreamHeader = this._arrayBuffer.slice(0, this._logEventOffsets[0].startIndex);
+        }
     };
 
     /**
@@ -216,6 +258,9 @@ class FileManager {
         // Need to cache this for repeated access
         this._arrayBuffer = decompressedIRStreamFile;
 
+        // Approximated decompressed file size
+        this.state.decompressedSize = formatSizeInBytes(this._arrayBuffer.byteLength, false);
+
         this._buildIndex();
         this.filterLogEvents(-1);
 
@@ -234,6 +279,8 @@ class FileManager {
         this.computePageNumFromLogEventIdx();
         this.decodePage();
         this.computeLineNumFromLogEventIdx();
+
+        this._setupDecodingPagesToDatabase();
 
         this._updateStateCallback(CLP_WORKER_PROTOCOL.UPDATE_STATE, this.state);
     }
@@ -432,6 +479,39 @@ class FileManager {
         }
     };
 
+
+    /**
+     * Sends page to be decoded with worker.
+     *
+     * @param {number} page Page to be decoded.
+     * @param {number} pageSize Size of the page to be decoded.
+     * @private
+     */
+    _decodePageWithWorker (page, pageSize) {
+        const numEventsAtLevel = this._logEventOffsetsFiltered.length;
+
+        // Calculate where to start decoding from and how many events to decode
+        // On final page, the numberOfEvents is likely less than pageSize
+        const targetEvent = ((page-1) * pageSize);
+        const numberOfEvents = (targetEvent + pageSize >= numEventsAtLevel)
+            ?numEventsAtLevel - targetEvent
+            :pageSize;
+
+        const pageData = this._arrayBuffer.slice(
+            this._logEventOffsets[targetEvent].startIndex,
+            this._logEventOffsets[targetEvent + numberOfEvents - 1].endIndex + 1
+        );
+        const inputStream = combineArrayBuffers(this._IRStreamHeader, pageData);
+        const logEvents = this._logEventOffsets.slice(targetEvent, targetEvent + numberOfEvents );
+
+        this._workerPool.assignTask({
+            fileName: this._fileState.name,
+            page: page,
+            logEvents: logEvents,
+            inputStream: inputStream,
+        });
+    }
+
     /**
    * Decodes the logs for the selected page (state.page).
    */
@@ -480,8 +560,7 @@ class FileManager {
                     this._outputResizableBuffer,
                     this.logEventMetadata
                 );
-                const lastEvent = this.logEventMetadata[this.logEventMetadata.length -
-        1];
+                const lastEvent = this.logEventMetadata[this.logEventMetadata.length - 1];
                 this._availableVerbosityIndexes.add(lastEvent["verbosityIx"]);
                 lastEvent.mappedIndex = event.mappedIndex;
             } catch (error) {
@@ -650,7 +729,7 @@ class FileManager {
    * Get the long event from the selected line number
    */
     computeLogEventIdxFromLineNum () {
-    // If there are no logs, return
+        // If there are no logs, return
         if (this.logEventMetadata.length === 0) {
             this.state.logEventIdx = null;
             return;
@@ -674,7 +753,7 @@ class FileManager {
     * Get the line number from the log event.
     */
     computeLineNumFromLogEventIdx () {
-    // If there are no logs, go to line 1
+        // If there are no logs, go to line 1
         if (0 === this._logEventOffsetsFiltered.length) {
             this.state.columnNumber = 1;
             this.state.lineNumber = 1;
@@ -700,9 +779,9 @@ class FileManager {
     };
 
     /**
-   * Filters the log events with the given verbosity.
-   * @param {number} desiredMinVerbosityIx
-   */
+     * Filters the log events with the given verbosity.
+     * @param {number} desiredMinVerbosityIx
+     */
     filterLogEvents (desiredMinVerbosityIx) {
         this.state.verbosity = desiredMinVerbosityIx;
         this._logEventOffsetsFiltered = [];
@@ -721,11 +800,11 @@ class FileManager {
     };
 
     /**
-   * Prettifies the given log event content, if necessary
-   * @param {Uint8Array} contentUint8Array The content as a Uint8Array
-   * @return {[boolean, (string|*)]} A tuple containing a boolean indicating
-   * whether the content was prettified, and if so, the prettified content.
-   */
+     * Prettifies the given log event content, if necessary
+     * @param {Uint8Array} contentUint8Array The content as a Uint8Array
+     * @return {[boolean, (string|*)]} A tuple containing a boolean indicating
+     * whether the content was prettified, and if so, the prettified content.
+     */
     _prettifyLogEventContent = (contentUint8Array) => {
         if (contentUint8Array.length > this._PRETTIFICATION_THRESHOLD) {
             return this._prettifier.prettify(

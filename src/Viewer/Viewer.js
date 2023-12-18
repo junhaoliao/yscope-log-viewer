@@ -217,6 +217,16 @@ export function Viewer ({fileInfo, prettifyLog, logEventNumber, timestamp}) {
             case STATE_CHANGE_TYPE.search:
                 handleStateChangeSearch(args);
                 break;
+            case STATE_CHANGE_TYPE.startDownload:
+                clpWorker.current.postMessage({
+                    code: CLP_WORKER_PROTOCOL.START_DOWNLOAD,
+                });
+                break;
+            case STATE_CHANGE_TYPE.stopDownload:
+                clpWorker.current.postMessage({
+                    code: CLP_WORKER_PROTOCOL.STOP_DOWNLOAD,
+                });
+                break;
             default:
                 break;
         }

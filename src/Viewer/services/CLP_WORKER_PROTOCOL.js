@@ -14,6 +14,8 @@ let CLP_WORKER_PROTOCOL = {
     UPDATE_FILE_INFO: enumClpWorkerProtocol++,
     UPDATE_SEARCH_STRING: enumClpWorkerProtocol++,
     UPDATE_SEARCH_RESULTS: enumClpWorkerProtocol++,
+    START_DOWNLOAD: enumClpWorkerProtocol++,
+    STOP_DOWNLOAD: enumClpWorkerProtocol++,
 };
 CLP_WORKER_PROTOCOL = Object.freeze(CLP_WORKER_PROTOCOL);
 

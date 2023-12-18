@@ -6,6 +6,8 @@ let STATE_CHANGE_TYPE = {
     prettify: "prettify",
     search: "search",
     verbosity: "verbosity",
+    startDownload: "startDownload",
+    stopDownload: "stopDownload",
 };
 STATE_CHANGE_TYPE = Object.freeze(STATE_CHANGE_TYPE);
 
