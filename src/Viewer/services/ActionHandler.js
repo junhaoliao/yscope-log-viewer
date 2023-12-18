@@ -153,6 +153,20 @@ class ActionHandler {
     }
 
     /**
+     * Start decoding pages to database for Uncompressed Log Download
+     */
+    startDecodingPagesToDatabase () {
+        this._logFile.startDecodingPagesToDatabase();
+    }
+
+    /**
+     * Stop decoding pages to database if Uncompressed Log Download is canceled
+     */
+    stopDecodingPagesToDatabase () {
+        this._logFile.stopDecodingPagesToDatabase();
+    }
+
+    /**
      * Send the newly decoded logs
      * @param {string} logs
      */

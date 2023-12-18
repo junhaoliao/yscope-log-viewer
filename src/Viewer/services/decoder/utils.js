@@ -1,3 +1,17 @@
+/**
+ * Merges two array buffers together.
+ *
+ * @param {ArrayBuffer} buffer1
+ * @param {ArrayBuffer} buffer2
+ * @return {ArrayBuffer} Merged array buffer.
+ */
+function combineArrayBuffers (buffer1, buffer2) {
+    const bufferData = new Uint8Array(buffer1.byteLength + buffer2.byteLength);
+    bufferData.set(new Uint8Array(buffer1), 0);
+    bufferData.set(new Uint8Array(buffer2), buffer1.byteLength);
+    return bufferData.buffer;
+}
+
 function javaIntegerDivide (top, bottom) {
     const integerQuotient = Math.trunc(top / bottom);
     // In Java -5 / 10 = 0 whereas in JavaScript, Math.trunc(-5 / 10) = -0, so
@@ -6,8 +20,7 @@ function javaIntegerDivide (top, bottom) {
 }
 
 function uint8ArrayContains (haystackArray, haystackArrayBeginOffset, needleArray,
-                             needleArrayBeginOffset)
-{
+    needleArrayBeginOffset) {
     const needleLength = needleArray.length - needleArrayBeginOffset;
     const haystackLength = haystackArray.length - haystackArrayBeginOffset;
     if (needleLength > haystackLength) {
@@ -16,8 +29,7 @@ function uint8ArrayContains (haystackArray, haystackArrayBeginOffset, needleArra
 
     for (let i = 0; i < needleLength; ++i) {
         if (haystackArray[haystackArrayBeginOffset + i] !==
-            needleArray[needleArrayBeginOffset + i])
-        {
+            needleArray[needleArrayBeginOffset + i]) {
             return false;
         }
     }
@@ -79,8 +91,7 @@ function formatSizeInBytes (value, useSiUnits = true, numFractionalDigits = 1) {
     // return "1000.0 kB", but it should return "1.0 MB".
     const multiplier = 10 ** numFractionalDigits;
     for (unitIdx = 0; Math.round(Math.abs(value) * multiplier) / multiplier >= divisor
-        && unitIdx < units.length; ++unitIdx)
-    {
+        && unitIdx < units.length; ++unitIdx) {
         value /= divisor;
     }
 
@@ -107,5 +118,5 @@ function isNumeric (value) {
     return (typeof value === "number");
 }
 
-export {countByteOccurrencesInUtf8Uint8Array, formatSizeInBytes,
+export {combineArrayBuffers, countByteOccurrencesInUtf8Uint8Array, formatSizeInBytes,
     isBoolean, isNumeric, javaIntegerDivide, uint8ArrayContains};

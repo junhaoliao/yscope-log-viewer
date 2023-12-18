@@ -2,11 +2,12 @@ import {ZstdCodec} from "../../../../customized-packages/zstd-codec/js";
 import CLP_WORKER_PROTOCOL from "../CLP_WORKER_PROTOCOL";
 import {readFile} from "../GetFile";
 import {binarySearchWithTimestamp} from "../utils";
+import WorkerPool from "../WorkerPool";
 import {DataInputStream, DataInputStreamEOFError} from "./DataInputStream";
 import FourByteClpIrStreamReader from "./FourByteClpIrStreamReader";
 import ResizableUint8Array from "./ResizableUint8Array";
 import SimplePrettifier from "./SimplePrettifier";
-import {formatSizeInBytes} from "./utils";
+import {combineArrayBuffers, formatSizeInBytes} from "./utils";
 
 /**
  * File manager to manage and track state of each file that is loaded.
@@ -23,7 +24,7 @@ class FileManager {
      * @param {function} loadingMessageCallback
      * @param {function} updateStateCallback
      * @param {function} updateLogsCallback
-     * @param {updateFileInfoCallback} updateFileInfoCallback
+     * @param {function} updateFileInfoCallback
      */
     constructor (fileInfo, prettify, logEventIdx, initialTimestamp, pageSize,
         loadingMessageCallback, updateStateCallback, updateLogsCallback, updateFileInfoCallback) {
@@ -35,9 +36,10 @@ class FileManager {
         this.logEventMetadata = [];
         this._irStreamReader = null;
         this._displayedMinVerbosityIx = -1;
-        this._arrayBuffer;
+        this._arrayBuffer = null;
         this._outputResizableBuffer = null;
         this._availableVerbosityIndexes = new Set();
+        this._IRStreamHeader = null;
         this._timestampSorted = false;
 
         this._fileState = {
@@ -55,6 +57,9 @@ class FileManager {
             columnNumber: null,
             numberOfEvents: null,
             verbosity: null,
+            compressedSize: null,
+            decompressedSize: null,
+            downloadChunkSize: 10000,
         };
 
         this._logs = "";
@@ -73,6 +78,38 @@ class FileManager {
         this._updateFileInfoCallback = updateFileInfoCallback;
 
         this._PRETTIFICATION_THRESHOLD = 200;
+
+        this._workerPool = new WorkerPool();
+    }
+
+
+    /**
+     * Sets up the variables needed for decoding of pages to database.
+     */
+    _setupDecodingPagesToDatabase () {
+        this.state.downloadChunkSize = 10000;
+        const numOfEvents = this._logEventOffsets.length;
+        this.state.downloadPageChunks = (0 === (numOfEvents % this.state.downloadChunkSize))
+            ? Math.floor(numOfEvents/this.state.downloadChunkSize)
+            : Math.floor(numOfEvents/this.state.downloadChunkSize) + 1;
+    }
+
+    /**
+     * Sends the chunks to the worker pool to be decompressed into database.
+     */
+    startDecodingPagesToDatabase () {
+        console.debug("Starting download...");
+        for (let chunk = 1; chunk <= this.state.downloadPageChunks; chunk++) {
+            this._decodePageWithWorker(chunk, this.state.downloadChunkSize);
+        }
+    }
+
+    /**
+     * Terminates all the workers in pool.
+     */
+    stopDecodingPagesToDatabase () {
+        console.debug("Stopping download...");
+        this._workerPool.clearPool();
     }
 
     /**
@@ -97,17 +134,6 @@ class FileManager {
     };
 
     /**
-     * Callback when file is size is received from getXMLHttpRequest.
-     * @param {event} evt
-     * @private
-     */
-    _updateFileSize = (evt) => {
-        this._loadingMessageCallback(
-            `Loading ${formatSizeInBytes(evt, false)} file from object store...`
-        );
-    };
-
-    /**
      * Decompresses and loads file. Sends updated state to viewer.
      */
     decompressAndLoadFile () {
@@ -115,17 +141,18 @@ class FileManager {
             new Promise((resolve) => {
                 ZstdCodec.run((zstd) => resolve(new zstd.Streaming()));
             }),
-            readFile(this._fileInfo, this._updateFileLoadProgress, this._updateFileSize),
+            readFile(this._fileInfo, this._updateFileLoadProgress),
         ]).then(([zstdStreaming, file]) => {
             this._fileState = file;
             this._updateFileInfoCallback(this._fileState);
 
+            this.state.compressedSize = formatSizeInBytes(file.data.byteLength, false);
             this._loadingMessageCallback(
-                `Decompressing ${formatSizeInBytes(file.data.byteLength, false)}.`
+                `Decompressing ${this.state.compressedSize}.`
             );
             this._arrayBuffer = zstdStreaming.decompress(file.data).buffer;
-            const decompressedBytes = formatSizeInBytes(this._arrayBuffer.byteLength, false);
-            this._loadingMessageCallback(`Decompressed ${decompressedBytes}.`);
+            this.state.decompressedSize = formatSizeInBytes(this._arrayBuffer.byteLength, false);
+            this._loadingMessageCallback(`Decompressed ${this.state.decompressedSize}.`);
 
             this._buildIndex();
             this.filterLogEvents(-1);
@@ -145,6 +172,7 @@ class FileManager {
             this.decodePage();
             this.computeLineNumFromLogEventIdx();
 
+            this._setupDecodingPagesToDatabase();
             this._updateStateCallback(CLP_WORKER_PROTOCOL.UPDATE_STATE, this.state);
         }).catch((reason) => {
             if (reason instanceof DataInputStreamEOFError) {
@@ -167,15 +195,18 @@ class FileManager {
         this._outputResizableBuffer = new ResizableUint8Array(511000000);
         this._irStreamReader = new FourByteClpIrStreamReader(dataInputStream,
             this._prettify ? this._prettifyLogEventContent : null);
+        const decoder = this._irStreamReader._streamProtocolDecoder;
 
         try {
             this._timestampSorted = true;
-            let prevTimestamp = 0;
+            let prevTimestamp = decoder._metadataTimestamp;
             while (this._irStreamReader.indexNextLogEvent(this._logEventOffsets)) {
-                const timestamp = this._logEventOffsets[this._logEventOffsets.length - 1].timestamp;
+                const currEv = this._logEventOffsets[this._logEventOffsets.length - 1];
+                const timestamp = currEv.timestamp;
                 if (timestamp < prevTimestamp) {
                     this._timestampSorted = false;
                 }
+                currEv.prevTs = prevTimestamp;
                 prevTimestamp = timestamp;
             }
         } catch (error) {
@@ -190,6 +221,9 @@ class FileManager {
         }
 
         this.state.numberOfEvents = this._logEventOffsets.length;
+        if (this.state.numberOfEvents > 0) {
+            this._IRStreamHeader = this._arrayBuffer.slice(0, this._logEventOffsets[0].startIndex);
+        }
     };
 
     /**
@@ -246,6 +280,39 @@ class FileManager {
             this.state.page = this.state.pages;
         }
     };
+
+
+    /**
+     * Sends page to be decoded with worker.
+     *
+     * @param {number} page Page to be decoded.
+     * @param {number} pageSize Size of the page to be decoded.
+     * @private
+     */
+    _decodePageWithWorker (page, pageSize) {
+        const numEventsAtLevel = this._logEventOffsetsFiltered.length;
+
+        // Calculate where to start decoding from and how many events to decode
+        // On final page, the numberOfEvents is likely less than pageSize
+        const targetEvent = ((page-1) * pageSize);
+        const numberOfEvents = (targetEvent + pageSize >= numEventsAtLevel)
+            ?numEventsAtLevel - targetEvent
+            :pageSize;
+
+        const pageData = this._arrayBuffer.slice(
+            this._logEventOffsets[targetEvent].startIndex,
+            this._logEventOffsets[targetEvent + numberOfEvents - 1].endIndex + 1
+        );
+        const inputStream = combineArrayBuffers(this._IRStreamHeader, pageData);
+        const logEvents = this._logEventOffsets.slice(targetEvent, targetEvent + numberOfEvents );
+
+        this._workerPool.assignTask({
+            fileName: this._fileState.name,
+            page: page,
+            logEvents: logEvents,
+            inputStream: inputStream,
+        });
+    }
 
     /**
      * Decodes the logs for the selected page (state.page).
