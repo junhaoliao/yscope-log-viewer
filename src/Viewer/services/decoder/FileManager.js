@@ -8,6 +8,7 @@ import FourByteClpIrStreamReader from "./FourByteClpIrStreamReader";
 import ResizableUint8Array from "./ResizableUint8Array";
 import SimplePrettifier from "./SimplePrettifier";
 import {combineArrayBuffers, formatSizeInBytes} from "./utils";
+import JSZip from "jszip";
 
 /**
  * File manager to manage and track state of each file that is loaded.
@@ -183,6 +184,54 @@ class FileManager {
             }
             console.error(reason);
         });
+    };
+
+    /**
+     * Decompresses first file in zip archive, sends updated state to viewer.
+     */
+    decompressZipAndLoadAllFiles () {
+        readFile(this._fileInfo, this._updateFileLoadProgress)
+            .then((zipArchive) => {
+                this._fileState = zipArchive;
+                this._fileState.name = this._fileState.filePath.split("/").pop();
+                this._updateFileInfoCallback(this._fileState);
+
+                this.state.compressedSize = formatSizeInBytes(zipArchive.data.byteLength, false);
+                this._loadingMessageCallback(`Decompressing ${this.state.compressedSize}.`);
+
+                const zip = new JSZip();
+                return zip.loadAsync(zipArchive.data);
+            })
+            .then((zip) => {
+                // Extract and concatenate all the files in a zip archive
+                const filePaths = Object.keys(zip.files);
+                if (filePaths.length > 0) {
+                    const filePathToDecompress = filePaths[0];
+                    this._fileState.name += "/" + filePathToDecompress;
+                    this._updateFileInfoCallback(this._fileState);
+                    return zip.files[filePathToDecompress].async("uint8array");
+                }
+            })
+            .then((decompressedLogFile) => {
+                // Update decompression status
+                this.state.decompressedSize =
+                    formatSizeInBytes(decompressedLogFile.byteLength, false);
+                this._loadingMessageCallback(`Decompressed ${this.state.decompressedSize}.`);
+
+                // Decode binary data to plain-text and update editor data
+                this._logs = this._textDecoder.decode(decompressedLogFile).trim();
+                this._updateLogsCallback(this._logs);
+
+                // Update state to re-render editor
+                this.state.verbosity = -1;
+                this.state.lineNumber = 1;
+                this.state.page = 1;
+                this.state.pages = 1;
+                this._updateStateCallback(CLP_WORKER_PROTOCOL.UPDATE_STATE, this.state);
+            })
+            .catch((error) => {
+                console.error("Error downloading or decompressing the zip file:", error);
+            });
     };
 
     /**

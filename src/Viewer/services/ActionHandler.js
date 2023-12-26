@@ -25,7 +25,18 @@ class ActionHandler {
         this._logFile = new FileManager(fileInfo, prettify, logEventIdx, initialTimestamp, pageSize,
             this._loadingMessageCallback, this._updateStateCallback, this._updateLogsCallback,
             this._updateFileInfoCallback);
-        this._logFile.decompressAndLoadFile();
+
+        if (fileInfo.endsWith(".clp.zst")) {
+            // Handle CLP IRStream with ZStandard compression
+            console.log("Opening IRStream file: " + fileInfo);
+            this._logFile.decompressAndLoadFile();
+        } else if (fileInfo.endsWith("zip")) {
+            // Handle zip-archive compressed log file
+            console.log("Opening zip file: " + fileInfo);
+            this._logFile.decompressZipAndLoadAllFiles();
+        } else {
+            console.error("Unsupported file type: " + fileInfo);
+        }
     }
 
     /**
