@@ -357,6 +357,7 @@ export function Viewer ({fileInfo, prettifyLog, logEventNumber, timestamp}) {
                     }}>
                         <LeftPanel
                             logFileState={logFileState}
+                            fileMetaData={fileMetadata}
                             panelWidth={leftPanelWidth}
                             setPanelWidth={setLeftPanelWidth}
                             activeTabId={leftPanelActiveTabId}

@@ -1,8 +1,8 @@
-import React, {useCallback, useContext, useRef, useState} from "react";
+import React, {useCallback, useContext, useEffect, useRef, useState} from "react";
 
 import PropTypes from "prop-types";
-import {Button, Form, Modal} from "react-bootstrap";
-import {Folder, Gear, Moon, Search, Sun} from "react-bootstrap-icons";
+import {Button, Form, Modal, ProgressBar, Row} from "react-bootstrap";
+import {CloudArrowDown, Download, Folder, Gear, Moon, Search, Sun, XCircle} from "react-bootstrap-icons";
 
 import {THEME_STATES} from "../../../ThemeContext/THEME_STATES";
 import {ThemeContext} from "../../../ThemeContext/ThemeContext";
@@ -10,6 +10,8 @@ import STATE_CHANGE_TYPE from "../../services/STATE_CHANGE_TYPE";
 import {ResizeHandle} from "../ResizeHandle/ResizeHandle";
 
 import "./LeftPanel.scss";
+import {BlobAppender, downloadBlob, downloadCompressedFile} from "./DownloadHelper";
+import DOWNLOAD_WORKER_ACTION from "./DOWNLOAD_WORKER_ACTION";
 
 const LEFT_PANEL_WIDTH_LIMIT_FACTOR = 0.8;
 const LEFT_PANEL_SNAP_WIDTH = 108;
@@ -55,6 +57,7 @@ LeftPanel.propTypes = {
 /**
  * The left panel component
  * @param {object} logFileState Current state of the log file
+ * @param {object} fileMetaData Object containing file metadata
  * @param {number} panelWidth
  * @param {SetPanelWidth} setPanelWidth
  * @param {number} activeTabId
@@ -66,6 +69,7 @@ LeftPanel.propTypes = {
  */
 export function LeftPanel ({
     logFileState,
+    fileMetaData,
     panelWidth,
     setPanelWidth,
     activeTabId,
@@ -106,6 +110,7 @@ export function LeftPanel ({
         <>
             <LeftPanelTabs
                 logFileState={logFileState}
+                fileMetaData={fileMetaData}
                 activeTabId={panelWidth > 0 ? activeTabId : -1}
                 togglePanel={togglePanel}
                 loadFileCallback={loadFileCallback}
@@ -126,6 +131,7 @@ export function LeftPanel ({
 
 LeftPanelTabs.propTypes = {
     logFileState: PropTypes.object,
+    fileMetaData: PropTypes.object,
     activeTabId: PropTypes.number,
     togglePanel: PropTypes.func,
     loadFileCallback: PropTypes.func,
@@ -164,6 +170,7 @@ LeftPanelTabs.propTypes = {
  */
 function LeftPanelTabs ({
     logFileState,
+    fileMetaData,
     activeTabId,
     togglePanel,
     loadFileCallback,
@@ -171,9 +178,15 @@ function LeftPanelTabs ({
 }) {
     const {theme, switchTheme} = useContext(ThemeContext);
 
+    const [isDownloading, setIsDownloading] = useState(false);
+    const [downloadingMessage, setDownloadingMessage] = useState("Decoding pages to database...");
+    const [progress, setProgress] = useState(0);
+
+    const [showDownload, setShowDownload] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
     const [eventsPerPage, setEventsPerPage] = useState(logFileState.pages);
     const inputFile = useRef(null);
+    const downloadWorker = useRef(null);
 
     // Search Functions
     const toggleSearchPanel = () => {
@@ -183,6 +196,10 @@ function LeftPanelTabs ({
     // Settings Functions
     const handleCloseSettings = () => setShowSettings(false);
     const handleShowSettings = () => setShowSettings(true);
+
+    // Download Functions
+    const handleCloseDownload = () => setShowDownload(false);
+    const handleShowDownload = () => setShowDownload(true);
 
     // File functions
     const openFile = () => {
@@ -216,6 +233,87 @@ function LeftPanelTabs ({
         setEventsPerPage(logFileState.pageSize);
     };
 
+    const stopUncompressedDownload = () => {
+        setDownloadingMessage("Clearing database and terminating download...");
+        changeStateCallback(STATE_CHANGE_TYPE.stopDownload, null);
+        downloadWorker.current.postMessage({
+            code: DOWNLOAD_WORKER_ACTION.clearDatabase,
+        });
+    };
+
+    const downloadUncompressedFile = async () => {
+        changeStateCallback(STATE_CHANGE_TYPE.startDownload, null);
+        setDownloadingMessage("Decoding data to database...");
+        setIsDownloading(true);
+        if (downloadWorker.current) {
+            downloadWorker.current.terminate();
+        }
+
+        const worker = new Worker(new URL("./downloadWorker.js", import.meta.url));
+        downloadWorker.current = worker;
+
+        worker.postMessage({
+            code: DOWNLOAD_WORKER_ACTION.initialize,
+            name: fileMetaData.name,
+            count: logFileState.downloadPageChunks,
+        });
+
+        let page = 1;
+        const blob = new BlobAppender();
+        worker.onmessage = (e) => {
+            const msg = e.data;
+            switch (msg.code) {
+                case DOWNLOAD_WORKER_ACTION.pageData:
+                    blob.append(msg.data + "\n");
+                    console.debug(`Added page ${msg.page} to stream.`);
+                    if (page <= logFileState.downloadPageChunks) {
+                        setProgress(90 + ((page/logFileState.downloadPageChunks) * 10));
+                        worker.postMessage({
+                            code: DOWNLOAD_WORKER_ACTION.pageData,
+                            page: page++,
+                        });
+                    } else {
+                        setIsDownloading(false);
+                        worker.postMessage({
+                            code: DOWNLOAD_WORKER_ACTION.clearDatabase,
+                        });
+                        worker.terminate();
+                        downloadBlob(blob.getBlob(), fileMetaData.name);
+                    }
+                    break;
+                case DOWNLOAD_WORKER_ACTION.progress:
+                    setProgress(msg.progress);
+                    if (msg.done) {
+                        setDownloadingMessage("Adding logs to stream...");
+                        setProgress(0);
+                        worker.postMessage({
+                            code: DOWNLOAD_WORKER_ACTION.pageData,
+                            page: page++,
+                        });
+                    }
+                    break;
+                case DOWNLOAD_WORKER_ACTION.clearDatabase:
+                    setIsDownloading(false);
+                    worker.terminate();
+                    console.error(msg.error);
+                    break;
+                case DOWNLOAD_WORKER_ACTION.error:
+                    console.error(msg.error);
+                    break;
+                default:
+                    break;
+            }
+        };
+        worker.postMessage({
+            code: DOWNLOAD_WORKER_ACTION.progress,
+        });
+    };
+
+    const hasFilePath = () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        return urlParams.get("filePath");
+    };
+
     const getThemeIcon = () => {
         if (THEME_STATES.LIGHT === theme) {
             return (
@@ -229,6 +327,25 @@ function LeftPanelTabs ({
             );
         }
     };
+
+    useEffect(() => {
+        return () => {
+            changeStateCallback(STATE_CHANGE_TYPE.stopDownload, null);
+            if (downloadWorker.current) {
+                downloadWorker.current.terminate();
+            }
+        };
+    }, []);
+
+    window.onbeforeunload = function (e) {
+        changeStateCallback(STATE_CHANGE_TYPE.stopDownload, null);
+        if (downloadWorker.current !== null) {
+            downloadWorker.current.postMessage({
+                code: DOWNLOAD_WORKER_ACTION.clearDatabase,
+            });
+        }
+    };
+
     return (
         <>
             <div className={"left-panel-tabs-container"}>
@@ -251,6 +368,9 @@ function LeftPanelTabs ({
                             onClick={toggleSearchPanel}>
                             <Search size={25} style={{transform: 'scaleX(-1)'}}/>
                         </button>
+                        <button className={"left-panel-tab"} onClick={handleShowDownload}>
+                            <CloudArrowDown size={28}/>
+                        </button>
                     </div>
                     <div>
                         <button
@@ -263,6 +383,69 @@ function LeftPanelTabs ({
             </div>
             <input type='file' id='file' onChange={loadFile} ref={inputFile}
                 style={{display: "none"}}/>
+            <Modal show={showDownload} className="border-0" onHide={handleShowDownload}
+                   contentClassName={getModalClass()}>
+                <Modal.Header className="modal-background border-0" >
+                    <div className="float-left">
+                        Download
+                    </div>
+                </Modal.Header>
+                <Modal.Body className="modal-background pt-1">
+                    <div style={{fontSize: "14px"}}>
+                        {hasFilePath() &&
+                            <Row className="m-0 mb-4 d-flex flex-column align-items-center text-center">
+                                <label style={{fontSize: "17px"}}>Compressed Log ({logFileState.compressedSize})</label>
+                                <button className="btn btn-secondary download-button m-2"
+                                        style={{fontSize: "13px", width: "200px"}} onClick={downloadCompressedFile}>
+                                    <Download className="me-3 icon-button"/>
+                                    Download File
+                                </button>
+                            </Row>
+                        }
+
+                        <Row className="m-0 d-flex flex-column align-items-center text-center">
+                            <label style={{fontSize: "17px"}}>Uncompressed Log ({logFileState.decompressedSize})</label>
+                            {!isDownloading &&
+                                <button className="btn btn-secondary download-button m-2"
+                                        style={{fontSize: "13px", width: "200px"}} onClick={downloadUncompressedFile}>
+                                    <Download className="me-3 icon-button"/>
+                                    Start Download
+                                </button>
+                            }
+                            {isDownloading &&
+                                <button className="btn btn-outline-warning download-button m-2"
+                                        style={{fontSize: "15px", width: "200px"}} onClick={stopUncompressedDownload}>
+                                    <XCircle className="me-3 icon-button"/>
+                                    Cancel Download
+                                </button>
+                            }
+                        </Row>
+
+                        <Row className="px-3 m-0 mt-3">
+                            {isDownloading &&
+                                <Row className="m-0 p-0">
+                                    <div className="p-0 m-0 mb-2" style={{fontSize: "13px"}}>
+                                        <div className="p-0" style={{float: "left"}}>
+                                            {downloadingMessage}
+                                        </div>
+                                        <div className="p-0" style={{float: "right"}}>
+                                            {progress.toFixed(2)} %
+                                        </div>
+                                    </div>
+                                    <ProgressBar animated now={progress} style={{height: "10px"}}
+                                                 className="p-0 border-0 rounded-0"/>
+                                </Row>
+                            }
+                        </Row>
+                    </div>
+                </Modal.Body>
+                <Modal.Footer className="modal-background border-0" >
+                    <Button className="btn-sm" variant="secondary" onClick={handleCloseDownload}>
+                        Close
+                    </Button>
+                </Modal.Footer>
+            </Modal>
+
             <Modal show={showSettings} className="border-0" onHide={handleCloseSettings}
                 contentClassName={getModalClass()}>
                 <Modal.Header className="modal-background border-0" >

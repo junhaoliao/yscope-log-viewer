@@ -398,6 +398,16 @@ class FileManager {
     }
 
     /**
+     * Decompress and load CLP archive with the help of server-side processing, update state to viewer
+     * @private
+     */
+    _loadClpArchive () {
+        const serverSideGatewayPrefix = "https://localhost/"
+        this._fileInfo += serverSideGatewayPrefix
+        this._loadClpIRStreamFile()
+    }
+
+    /**
      * Load log file into editor
      */
     loadLogFile () {
@@ -405,6 +415,9 @@ class FileManager {
         if (filePath.endsWith(".clp.zst")) {
             console.log("Opening CLP IRStream compressed file: " + filePath);
             this._loadClpIRStreamFile();
+        } else if (filePath.endsWith(".clp")) {
+            console.log("Opening CLP compressed archive")
+            this._loadClpArchive();
         } else if (filePath.endsWith(".zst")) {
             console.log("Opening zst compressed file: " + filePath);
             this._loadZstFile();
