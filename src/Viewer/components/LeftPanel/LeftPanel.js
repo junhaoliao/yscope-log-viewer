@@ -246,10 +246,10 @@ function LeftPanelTabs ({
                         <button
                             className={`left-panel-tab 
                             ${(LEFT_PANEL_TAB_IDS.SEARCH === activeTabId ?
-            "left-panel-tab-selected":
-            "")}`}
+                                "left-panel-tab-selected" :
+                                "")}`}
                             onClick={toggleSearchPanel}>
-                            <Search size={25}/>
+                            <Search size={25} style={{transform: 'scaleX(-1)'}}/>
                         </button>
                     </div>
                     <div>
