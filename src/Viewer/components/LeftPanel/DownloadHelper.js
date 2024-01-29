@@ -31,8 +31,8 @@ const downloadCompressedFile = () => {
     //  which avoids interruption of uncompressed logs download
     link.target = "_blank";
 
-    const urlParams = new URLSearchParams(window.location.search);
-    const filePath = urlParams.get("filePath");
+    let filePath = window.location.search.split("filePath=")[1];
+    filePath = filePath.substring(filePath.indexOf("#"));
     try {
         // this URL constructor should only succeed if "filePath"
         //  has a "protocol" scheme like "http:"

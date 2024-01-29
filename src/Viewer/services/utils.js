@@ -54,11 +54,20 @@ const modifyPage = (action, currentPage, requestedPage, pages) => {
 const getModifiedUrl = (searchParams, hashParams) => {
     const url = new URL(`${window.location.origin}${window.location.pathname}`);
 
-    const urlSearchParams = new URLSearchParams(window.location.search.substring(1));
+    let filePath = window.location.search.split("filePath=")[1];
+    filePath = (undefined === filePath) ? null : filePath.substring(filePath.indexOf("#"));
+
+    const splitLocationSearch = window.location.search.split(`filePath=${filePath}`);
+    const locationSearchWithoutFilePath = splitLocationSearch.join("");
+
+    const urlSearchParams = new URLSearchParams(locationSearchWithoutFilePath);
     const urlHashParams = new URLSearchParams(window.location.hash.substring(1));
 
     Object.entries(searchParams).forEach(([key, value]) => {
-        if (null === value) {
+        if ("filePath" === key) {
+            // to be appended as the last parameter
+            filePath = value;
+        } else if (null === value) {
             urlSearchParams.delete(key);
         } else {
             urlSearchParams.set(key, value.toString());
@@ -78,7 +87,12 @@ const getModifiedUrl = (searchParams, hashParams) => {
         // if it does not contain `%23`(`#`) or `%26`(`&`)
         urlSearchParamsAsString = decodeURIComponent(urlSearchParamsAsString);
     }
+
     url.search = urlSearchParamsAsString;
+    if (null !== filePath) {
+        url.search += ((0 === urlSearchParams.size) ? "" : "&") + `filePath=${filePath}`;
+    }
+
     url.hash = urlHashParams.toString();
 
     return url.toString();

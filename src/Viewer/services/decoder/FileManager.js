@@ -403,9 +403,10 @@ class FileManager {
      * @private
      */
     _loadClpArchive () {
-        const serverSideGatewayPrefix = "https://localhost/"
-        this._fileInfo += serverSideGatewayPrefix
-        this._loadClpIRStreamFile()
+        // FIXME: add gateway prefix here if needed
+        const serverSideGatewayPrefix = "";
+        this._fileInfo = serverSideGatewayPrefix + this._fileInfo;
+        this._loadClpIRStreamFile();
     }
 
     /**
@@ -424,7 +425,7 @@ class FileManager {
             console.log("Opening CLP IRStream compressed file: " + filePath);
             this._loadClpIRStreamFile();
         } else if (filePath.endsWith(".clp")) {
-            console.log("Opening CLP compressed archive")
+            console.log("Opening CLP compressed archive");
             this._loadClpArchive();
         } else if (filePath.endsWith(".zst")) {
             console.log("Opening zst compressed file: " + filePath);
@@ -746,7 +747,7 @@ class FileManager {
         searchChunk(0);
     };
 
-   /**
+    /**
    * Get the long event from the selected line number
    */
     computeLogEventIdxFromLineNum () {

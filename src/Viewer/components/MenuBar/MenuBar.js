@@ -159,6 +159,8 @@ export function MenuBar ({
             :<div style={{height: loadingBarHeight}} className="w-100" />;
     };
 
+    const fileName = fileMetaData.name.split("?")[0];
+
     // TODO make file icon a button to open modal with file info
     // TODO Move modals into their own component
     return (
@@ -167,9 +169,9 @@ export function MenuBar ({
                 <div style={{height: loadingBarHeight}} className="w-100" />
                 <div className="viewer-header-menu-container">
                     <div className="menu-left">
-                        <div className="menu-item" title={fileMetaData.name}>
+                        <div className="menu-item" title={fileName}>
                             <FileText className="mx-2"/>
-                            <span className="d-none d-lg-block">{fileMetaData.name}</span>
+                            <span className="d-none d-lg-block">{fileName}</span>
                         </div>
                     </div>
                     <div className="menu-right">
