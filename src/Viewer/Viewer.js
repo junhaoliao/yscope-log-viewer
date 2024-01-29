@@ -13,10 +13,10 @@ import {SearchPanel} from "./components/SearchPanel/SearchPanel";
 import {StatusBar} from "./components/StatusBar/StatusBar";
 import CLP_WORKER_PROTOCOL from "./services/CLP_WORKER_PROTOCOL";
 import FourByteClpIrStreamReader from "./services/decoder/FourByteClpIrStreamReader";
+import LOCAL_STORAGE_KEYS from "./services/LOCAL_STORAGE_KEYS";
 import MessageLogger from "./services/MessageLogger";
 import STATE_CHANGE_TYPE from "./services/STATE_CHANGE_TYPE";
-import {isNumeric, modifyFileMetadata, modifyPage} from "./services/utils";
-import VerbatimURLParams from "./services/VerbatimURLParams";
+import {getModifiedUrl, isNumeric, modifyPage} from "./services/utils";
 
 import "./Viewer.scss";
 
@@ -55,7 +55,7 @@ export function Viewer ({fileInfo, prettifyLog, logEventNumber, timestamp}) {
     const [statusMessageLogs, setStatusMessageLogs] = useState([]);
 
     // Log States
-    const lsPageSize = localStorage.getItem("pageSize");
+    const lsPageSize = localStorage.getItem(LOCAL_STORAGE_KEYS.PAGE_SIZE);
     const [logFileState, setLogFileState] = useState({
         pageSize: lsPageSize ? Number(lsPageSize) : 10000,
         pages: null,
@@ -287,12 +287,35 @@ export function Viewer ({fileInfo, prettifyLog, logEventNumber, timestamp}) {
     }, [logFileState, logData, searchQuery, shouldReloadSearch]);
 
     useEffect(() => {
-        modifyFileMetadata(fileMetadata, logFileState.logEventIdx);
+        if (null !== fileMetadata) {
+            const searchParams = {filePath: fileMetadata.filePath};
+            const hashParams = {logEventIdx: logFileState.logEventIdx};
+
+            const newUrl = getModifiedUrl(searchParams, hashParams);
+            window.history.pushState({}, null, newUrl);
+        }
     }, [fileMetadata]);
+
+    /**
+     * Unsets the cached page size in case it causes a client OOM. If it
+     * doesn't, the saved value will be restored when
+     * {@link restoreCachedPageSize} is called.
+     */
+    const unsetCachedPageSize = () => {
+        localStorage.removeItem(LOCAL_STORAGE_KEYS.PAGE_SIZE);
+    };
+
+    /**
+     * Restores the cached page size that was unset in
+     * {@link unsetCachedPageSize}.
+     */
+    const restoreCachedPageSize = useCallback(() => {
+        localStorage.setItem(LOCAL_STORAGE_KEYS.PAGE_SIZE, logFileState.pageSize.toString());
+    }, [logFileState]);
 
     // Fires when hash is changed in the window.
     window.onhashchange = () => {
-        const urlHashParams = new VerbatimURLParams(window.location.hash, "#");
+        const urlHashParams = new URLSearchParams(window.location.hash.substring(1));
         const logEventIdx = urlHashParams.get("logEventIdx");
         if (isNumeric(logEventIdx)) {
             changeState(STATE_CHANGE_TYPE.logEventIdx, {logEventIdx: Number(logEventIdx)});
@@ -393,11 +416,13 @@ export function Viewer ({fileInfo, prettifyLog, logEventNumber, timestamp}) {
                                     minHeight: 0,
                                     height: "100%",
                                 }}>
-                                    <MonacoInstance
-                                        logData={logData}
-                                        loadingLogs={loadingLogs}
-                                        changeStateCallback={changeState}
-                                        logFileState={logFileState}/>
+                                  <MonacoInstance
+                                      logData={logData}
+                                      loadingLogs={loadingLogs}
+                                      logFileState={logFileState}
+                                      onStateChange={changeState}
+                                      beforeMount={unsetCachedPageSize}
+                                      onMount={restoreCachedPageSize}/>
                                 </div>
                             </div>
                         </div>
