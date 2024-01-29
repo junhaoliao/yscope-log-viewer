@@ -747,7 +747,7 @@ class FileManager {
         searchChunk(0);
     };
 
-    /**
+   /**
    * Get the long event from the selected line number
    */
     computeLogEventIdxFromLineNum () {

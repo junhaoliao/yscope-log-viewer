@@ -416,13 +416,13 @@ export function Viewer ({fileInfo, prettifyLog, logEventNumber, timestamp}) {
                                     minHeight: 0,
                                     height: "100%",
                                 }}>
-                                  <MonacoInstance
-                                      logData={logData}
-                                      loadingLogs={loadingLogs}
-                                      logFileState={logFileState}
-                                      onStateChange={changeState}
-                                      beforeMount={unsetCachedPageSize}
-                                      onMount={restoreCachedPageSize}/>
+                                    <MonacoInstance
+                                        logData={logData}
+                                        loadingLogs={loadingLogs}
+                                        logFileState={logFileState}
+                                        onStateChange={changeState}
+                                        beforeMount={unsetCachedPageSize}
+                                        onMount={restoreCachedPageSize}/>
                                 </div>
                             </div>
                         </div>

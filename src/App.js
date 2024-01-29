@@ -5,6 +5,7 @@ import {DropFile} from "./DropFile/DropFile";
 import {THEME_STATES} from "./ThemeContext/THEME_STATES";
 import {ThemeContext} from "./ThemeContext/ThemeContext";
 import LOCAL_STORAGE_KEYS from "./Viewer/services/LOCAL_STORAGE_KEYS";
+import {getFilePathFromWindowLocation} from "./Viewer/services/utils";
 import {Viewer} from "./Viewer/Viewer";
 
 import "bootstrap/dist/css/bootstrap.min.css";
@@ -53,7 +54,7 @@ export function App () {
      * If neither are provided, we display a prompt to load a file.
      */
     const init = () => {
-        const urlSearchParams = new URLSearchParams(window.location.search);
+        const urlSearchParams = new URLSearchParams(window.location.search.substring(1));
         const urlHashParams = new URLSearchParams(window.location.hash.substring(1));
 
         // Load the initial state of the viewer from url
@@ -61,8 +62,7 @@ export function App () {
         setLogEventIdx(urlHashParams.get("logEventIdx"));
         setTimestamp(urlSearchParams.get("timestamp"));
 
-        let filePath = window.location.search.split("filePath=")[1];
-        filePath = (undefined === filePath) ? null : filePath.substring(filePath.indexOf("#"));
+        const filePath = getFilePathFromWindowLocation();
 
         if (null !== filePath) {
             setFileInfo(filePath);

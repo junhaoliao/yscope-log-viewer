@@ -44,6 +44,18 @@ const modifyPage = (action, currentPage, requestedPage, pages) => {
 };
 
 /**
+ * Parses `filePath` from the current window location's search query.
+ *
+ * @return {string|null} The parsed file path or
+ *                       null if not found.
+ */
+const getFilePathFromWindowLocation = () => {
+    const filePath = window.location.search.split("filePath=")[1];
+
+    return (undefined === filePath) ? null : filePath.substring(filePath.indexOf("#"));
+};
+
+/**
  * Get modified URL from `window.location` based on the provided search and
  * hash parameters.
  *
@@ -53,12 +65,11 @@ const modifyPage = (action, currentPage, requestedPage, pages) => {
  */
 const getModifiedUrl = (searchParams, hashParams) => {
     const url = new URL(`${window.location.origin}${window.location.pathname}`);
+    let filePath = getFilePathFromWindowLocation();
 
-    let filePath = window.location.search.split("filePath=")[1];
-    filePath = (undefined === filePath) ? null : filePath.substring(filePath.indexOf("#"));
-
-    const splitLocationSearch = window.location.search.split(`filePath=${filePath}`);
-    const locationSearchWithoutFilePath = splitLocationSearch.join("");
+    const locationSearchWithoutFilePath = window.location.search
+        .split(`filePath=${filePath}`)
+        .join("");
 
     const urlSearchParams = new URLSearchParams(locationSearchWithoutFilePath);
     const urlHashParams = new URLSearchParams(window.location.hash.substring(1));
@@ -161,4 +172,4 @@ function binarySearchWithTimestamp (timestamp, logEventMetadata) {
     return null;
 }
 
-export {binarySearchWithTimestamp, getModifiedUrl, isNumeric, modifyPage};
+export {binarySearchWithTimestamp, getFilePathFromWindowLocation, getModifiedUrl, isNumeric, modifyPage};
