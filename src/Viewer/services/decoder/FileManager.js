@@ -243,6 +243,7 @@ class FileManager {
         // Update state to re-render a single page on the editor
         this.state.verbosity = -1;
         this.state.lineNumber = 1;
+        this.state.columnNumber = 1;
         this.state.page = 1;
         this.state.pages = 1;
         this._updateStateCallback(CLP_WORKER_PROTOCOL.UPDATE_STATE, this.state);
@@ -402,21 +403,29 @@ class FileManager {
      * @private
      */
     _loadClpArchive () {
-        const serverSideGatewayPrefix = "https://localhost/"
-        this._fileInfo += serverSideGatewayPrefix
-        this._loadClpIRStreamFile()
+        // FIXME: add gateway prefix here if needed
+        const serverSideGatewayPrefix = "";
+        this._fileInfo = serverSideGatewayPrefix + this._fileInfo;
+        this._loadClpIRStreamFile();
     }
 
     /**
      * Load log file into editor
      */
     loadLogFile () {
-        const filePath = (this._fileInfo instanceof File) ? this._fileInfo.name : this._fileInfo;
+        let filePath;
+        if (this._fileInfo instanceof File) {
+            filePath = this._fileInfo.name;
+        } else {
+            const url = new URL(this._fileInfo);
+            filePath = url.pathname;
+        }
+
         if (filePath.endsWith(".clp.zst")) {
             console.log("Opening CLP IRStream compressed file: " + filePath);
             this._loadClpIRStreamFile();
         } else if (filePath.endsWith(".clp")) {
-            console.log("Opening CLP compressed archive")
+            console.log("Opening CLP compressed archive");
             this._loadClpArchive();
         } else if (filePath.endsWith(".zst")) {
             console.log("Opening zst compressed file: " + filePath);

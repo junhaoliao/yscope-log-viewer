@@ -44,27 +44,69 @@ const modifyPage = (action, currentPage, requestedPage, pages) => {
 };
 
 /**
- * Updates the URL based on the provided file metadata. If file
- * was downloaded using filePath, indicate the location in URL.
+ * Parses `filePath` from the current window location's search query.
  *
- * @param {object} fileMetadata
- * @param {number} logEventIdx
+ * @return {string|null} The parsed file path or
+ *                       null if not found.
  */
-const modifyFileMetadata = (fileMetadata, logEventIdx) => {
-    if (fileMetadata && fileMetadata.filePath) {
-        let url = `${window.location.origin}${window.location.pathname}`;
-        url += `?filePath=${fileMetadata.filePath}`;
-        if (0 !== logEventIdx) {
-            url += `#logEventIdx=${logEventIdx}`;
+const getFilePathFromWindowLocation = () => {
+    const filePath = window.location.search.split("filePath=")[1];
+
+    return (undefined === filePath) ? null : filePath.substring(filePath.indexOf("#"));
+};
+
+/**
+ * Get modified URL from `window.location` based on the provided search and
+ * hash parameters.
+ *
+ * @param {object} searchParams
+ * @param {object} hashParams
+ * @return {string} modified URL
+ */
+const getModifiedUrl = (searchParams, hashParams) => {
+    const url = new URL(`${window.location.origin}${window.location.pathname}`);
+    let filePath = getFilePathFromWindowLocation();
+
+    const locationSearchWithoutFilePath = window.location.search
+        .split(`filePath=${filePath}`)
+        .join("");
+
+    const urlSearchParams = new URLSearchParams(locationSearchWithoutFilePath);
+    const urlHashParams = new URLSearchParams(window.location.hash.substring(1));
+
+    Object.entries(searchParams).forEach(([key, value]) => {
+        if ("filePath" === key) {
+            // to be appended as the last parameter
+            filePath = value;
+        } else if (null === value) {
+            urlSearchParams.delete(key);
+        } else {
+            urlSearchParams.set(key, value.toString());
         }
-        window.history.pushState({path: url}, "", url);
-    } else if (fileMetadata && !fileMetadata.filePath) {
-        let url = `${window.location.origin}${window.location.pathname}`;
-        if (0 !== logEventIdx) {
-            url += `#logEventIdx=${logEventIdx}`;
+    });
+    Object.entries(hashParams).forEach(([key, value]) => {
+        if (null === value) {
+            urlHashParams.delete(key);
+        } else {
+            urlHashParams.set(key, value.toString());
         }
-        window.history.pushState({path: url}, "", url);
+    });
+
+    let urlSearchParamsAsString = urlSearchParams.toString();
+    if (false === /%23|%26/.test(urlSearchParamsAsString)) {
+        // avoid encoding the URL
+        // if it does not contain `%23`(`#`) or `%26`(`&`)
+        urlSearchParamsAsString = decodeURIComponent(urlSearchParamsAsString);
     }
+
+    url.search = urlSearchParamsAsString;
+    if (null !== filePath) {
+        url.search += ((0 === urlSearchParams.size) ? "" : "&") + `filePath=${filePath}`;
+    }
+
+    url.hash = urlHashParams.toString();
+
+    return url.toString();
 };
 
 /**
@@ -130,4 +172,4 @@ function binarySearchWithTimestamp (timestamp, logEventMetadata) {
     return null;
 }
 
-export {binarySearchWithTimestamp, isNumeric, modifyFileMetadata, modifyPage};
+export {binarySearchWithTimestamp, getFilePathFromWindowLocation, getModifiedUrl, isNumeric, modifyPage};

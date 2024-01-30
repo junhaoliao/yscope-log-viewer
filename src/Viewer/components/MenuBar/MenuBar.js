@@ -15,6 +15,7 @@ import {
 
 import {THEME_STATES} from "../../../ThemeContext/THEME_STATES";
 import {ThemeContext} from "../../../ThemeContext/ThemeContext";
+import LOCAL_STORAGE_KEYS from "../../services/LOCAL_STORAGE_KEYS";
 import MODIFY_PAGE_ACTION from "../../services/MODIFY_PAGE_ACTION";
 import STATE_CHANGE_TYPE from "../../services/STATE_CHANGE_TYPE";
 import {EditableInput} from "./EditableInput/EditableInput";
@@ -100,7 +101,7 @@ export function MenuBar ({
         e.preventDefault();
         handleCloseSettings();
         changeStateCallback(STATE_CHANGE_TYPE.pageSize, {pageSize: eventsPerPage});
-        localStorage.setItem("pageSize", String(eventsPerPage));
+        localStorage.setItem(LOCAL_STORAGE_KEYS.PAGE_SIZE, String(eventsPerPage));
     };
 
     const closeModal = () => {
@@ -158,6 +159,8 @@ export function MenuBar ({
             :<div style={{height: loadingBarHeight}} className="w-100" />;
     };
 
+    const fileName = fileMetaData.name.split("?")[0];
+
     // TODO make file icon a button to open modal with file info
     // TODO Move modals into their own component
     return (
@@ -166,9 +169,9 @@ export function MenuBar ({
                 <div style={{height: loadingBarHeight}} className="w-100" />
                 <div className="viewer-header-menu-container">
                     <div className="menu-left">
-                        <div className="menu-item" title={fileMetaData.name}>
+                        <div className="menu-item" title={fileName}>
                             <FileText className="mx-2"/>
-                            <span className="d-none d-lg-block">{fileMetaData.name}</span>
+                            <span className="d-none d-lg-block">{fileName}</span>
                         </div>
                     </div>
                     <div className="menu-right">

@@ -1,3 +1,5 @@
+import {getFilePathFromWindowLocation} from "../../services/utils";
+
 const downloadBlob = (blob, databaseName) => {
     const blobUrl = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -31,8 +33,7 @@ const downloadCompressedFile = () => {
     //  which avoids interruption of uncompressed logs download
     link.target = "_blank";
 
-    const urlParams = new URLSearchParams(window.location.search);
-    const filePath = urlParams.get("filePath");
+    const filePath = getFilePathFromWindowLocation();
     try {
         // this URL constructor should only succeed if "filePath"
         //  has a "protocol" scheme like "http:"
