@@ -29,10 +29,13 @@ class DataInputStream {
     /**
      * Constructor
      * @param {ArrayBufferLike} arrayBuffer The array buffer that's backing this
+     * @param {boolean} [isLittleEndian] Byte endianness
      * class
      */
-    constructor (arrayBuffer) {
+    constructor (arrayBuffer, isLittleEndian= false) {
         this._dataView = new DataView(arrayBuffer);
+        this._isLittleEndian = isLittleEndian;
+
         this._byteIx = 0;
     }
 
@@ -108,7 +111,7 @@ class DataInputStream {
             this._byteIx = this._dataView.byteLength;
             throw new DataInputStreamEOFError(this._dataView.byteLength, requiredLen);
         }
-        const val = this._dataView.getUint16(this._byteIx, false);
+        const val = this._dataView.getUint16(this._byteIx, this._isLittleEndian);
         this._byteIx += 2;
         return val;
     }
@@ -123,7 +126,7 @@ class DataInputStream {
             this._byteIx = this._dataView.byteLength;
             throw new DataInputStreamEOFError(this._dataView.byteLength, requiredLen);
         }
-        const val = this._dataView.getInt16(this._byteIx, false);
+        const val = this._dataView.getInt16(this._byteIx, this._isLittleEndian);
         this._byteIx += 2;
         return val;
     }
@@ -138,7 +141,7 @@ class DataInputStream {
             this._byteIx = this._dataView.byteLength;
             throw new DataInputStreamEOFError(this._dataView.byteLength, requiredLen);
         }
-        const val = this._dataView.getInt32(this._byteIx, false);
+        const val = this._dataView.getInt32(this._byteIx, this._isLittleEndian);
         this._byteIx += 4;
         return val;
     }
@@ -153,7 +156,22 @@ class DataInputStream {
             this._byteIx = this._dataView.byteLength;
             throw new DataInputStreamEOFError(this._dataView.byteLength, requiredLen);
         }
-        const val = this._dataView.getBigInt64(this._byteIx, false);
+        const val = this._dataView.getBigInt64(this._byteIx, this._isLittleEndian);
+        this._byteIx += 8;
+        return val;
+    }
+
+    /**
+     * Reads an unsigned long int (64 bit)
+     * @return {BigInt} The read unsigned long int
+     */
+    readUnsignedLong(){
+        const requiredLen = this._byteIx + 8;
+        if (this._dataView.byteLength < requiredLen) {
+            this._byteIx = this._dataView.byteLength;
+            throw new DataInputStreamEOFError(this._dataView.byteLength, requiredLen);
+        }
+        const val = this._dataView.getBigUint64(this._byteIx, this._isLittleEndian);
         this._byteIx += 8;
         return val;
     }
