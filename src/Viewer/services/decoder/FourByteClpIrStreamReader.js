@@ -152,6 +152,19 @@ class FourByteClpIrStreamReader {
         return true;
     }
 
+    /**
+     * Reads and decodes a log event into the provided output resizable buffer.
+     *
+     * @param {ResizableUint8Array} outputResizableBuffer where the decoded log
+     * event will be stored.
+     * @return {Object} An object containing information about the decoded log
+     * event:
+     *   - {number} verbosityIx of the log event
+     *   - {number} beginOffset of the WHOLE log event output
+     *   in outputResizableBuffer
+     *   - {number} contentBeginOffset of the log event output
+     *   in outputResizableBuffer
+     */
     readAndDecodeLogEventIntoBuffer (outputResizableBuffer) {
         let timestamp = null;
         let verbosityIx = null;

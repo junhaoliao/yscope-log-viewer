@@ -668,6 +668,13 @@ class FileManager {
         this._updateLogsCallback(this._logs);
     };
 
+    /**
+     * Searches log events for a specified string or regular expression.
+     *
+     * @param {string} searchString string or regular expression to search for
+     * @param {boolean} isRegex whether the search string is regular expression
+     * @param {boolean} matchCase whether the search should be case-sensitive
+     */
     searchLogEvents = (searchString, isRegex, matchCase) => {
         // increment job id for every new query
         //  so the last job can be interrupted by itself checking
@@ -707,9 +714,18 @@ class FileManager {
             resultsOnCurrPage: [],
             resultsByPages: [],
         };
+
         this._searchChunk(searchState, 0);
     };
 
+    /**
+     * Searches for log events within a specified range and updates the search
+     * state.
+     *
+     * @param {Object} searchState including search settings and results.
+     * @param {number} logEventsBeginIdx first log event to search from
+     * @private
+     */
     _searchChunk (searchState, logEventsBeginIdx) {
         const numEventsAtLevel = this._logEventOffsetsFiltered.length;
 
@@ -746,7 +762,7 @@ class FileManager {
 
             if (eventIdx + 1 === searchState.pageEndEventIdx) {
                 // To update progress, always send searchResults
-                //  even if it is empty
+                // even if it is empty
                 searchState.resultsByPages.push({
                     pageIdx: searchState.currPageIdx,
                     results: structuredClone(searchState.resultsOnCurrPage),
@@ -780,6 +796,13 @@ class FileManager {
         }, 0);
     }
 
+    /**
+     * Retrieves the log content from a specified log event index.
+     *
+     * @param {number} eventIdx of the log event to retrieve content from
+     * @return {string} the log content as a string
+     * @private
+     */
     _getLogContentFromEventIdx (eventIdx) {
         const event = this._logEventOffsetsFiltered[eventIdx];
         this._irStreamReader._dataInputStream.seek(event.startIndex);
@@ -792,6 +815,14 @@ class FileManager {
         );
     }
 
+    /**
+     * Sends search results for processed log pages and continues searching the
+     * next chunk if needed.
+     *
+     * @param {Object} searchState including search settings and results.
+     * @param {number} logEventsBeginIdx first log event to search from
+     * @private
+     */
     _sendSearchResultsAndSearchNextChunk (searchState, logEventsBeginIdx) {
         let lastEmptyResultPageIdx = null;
 
