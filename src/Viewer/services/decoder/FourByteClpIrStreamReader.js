@@ -113,48 +113,11 @@ class FourByteClpIrStreamReader {
      * @return {boolean} Whether an event was read and decoded
      */
     readAndDecodeLogEvent (outputResizableBuffer, logEventMetadata) {
-        let timestamp;
-        let verbosityIx;
-        let numValidVars;
-        try {
-            ({timestamp, verbosityIx, numValidVars} = this._readLogEvent());
-        } catch (error) {
-            if (error instanceof FourByteClpIrStreamReaderEOFError) {
-                return false;
-            } else {
-                throw error;
-            }
+        const {verbosityIx, beginOffset, contentBeginOffset}
+            = this.readAndDecodeLogEventIntoBuffer(outputResizableBuffer);
+        if (null === verbosityIx) {
+            return false;
         }
-
-        // Get the offset before we output anything to the buffer
-        const beginOffset = outputResizableBuffer.getLength();
-
-        this._tokenDecoder.decodeTimestamp(outputResizableBuffer, timestamp);
-
-        const contentBeginOffset = outputResizableBuffer.getLength();
-
-        // Decode logtype and variables
-        this._tokenDecoder.loadLogtype(this._logtype);
-        for (let i = 0; i < numValidVars; ++i) {
-            const v = this._varPool.get(i);
-            switch (this._tokenDecoder.decodeUpToNextVar(outputResizableBuffer)) {
-                case LogtypeBuf.INTEGER_VARIABLE_DELIMITER:
-                    v.decodeAsIntegerType();
-                    break;
-                case LogtypeBuf.FLOAT_VARIABLE_DELIMITER:
-                    v.decodeAsFloatType();
-                    break;
-                case LogtypeBuf.VARIABLE_ID_DELIMITER:
-                    // Do nothing
-                    break;
-                default:
-                    throw new Error("Unexpected variable delimiter in logtype.");
-            }
-
-            // Output variable
-            outputResizableBuffer.push(v.getValueUint8Array());
-        }
-        this._tokenDecoder.drainLogtype(outputResizableBuffer);
 
         const contentUint8Array = outputResizableBuffer.getUint8Array(contentBeginOffset);
         let numLines;
@@ -189,9 +152,27 @@ class FourByteClpIrStreamReader {
         return true;
     }
 
-    decodeAndMatchLogEvent (outputResizableBuffer, searchString, isRegex, matchCase) {
-        const {timestamp, _, numValidVars} = this._readLogEvent();
+    readAndDecodeLogEventIntoBuffer (outputResizableBuffer) {
+        let timestamp = null;
+        let verbosityIx = null;
+        let numValidVars = null;
+
+        let beginOffset = null;
+        let contentBeginOffset = null;
+
+        try {
+            ({timestamp, verbosityIx, numValidVars} = this._readLogEvent());
+        } catch (error) {
+            if (!(error instanceof FourByteClpIrStreamReaderEOFError)) {
+                throw error;
+            }
+        }
+
+        // Get the offset before we output anything to the buffer
+        beginOffset = outputResizableBuffer.getLength();
+
         this._tokenDecoder.decodeTimestamp(outputResizableBuffer, timestamp);
+        contentBeginOffset = outputResizableBuffer.getLength();
 
         // Decode logtype and variables
         this._tokenDecoder.loadLogtype(this._logtype);
@@ -214,24 +195,10 @@ class FourByteClpIrStreamReader {
             // Output variable
             outputResizableBuffer.push(v.getValueUint8Array());
         }
+
         this._tokenDecoder.drainLogtype(outputResizableBuffer);
 
-        const contentUint8Array = outputResizableBuffer.getUint8Array();
-        const contentString = FourByteClpIrStreamReader.textDecoder.decode(contentUint8Array);
-
-        let regexPattern = searchString;
-        let regexFlags = "";
-        if (!isRegex) {
-            regexPattern = searchString.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-        }
-        if (!matchCase) {
-            regexFlags = "i";
-        }
-
-        const searchRegex = new RegExp(regexPattern, regexFlags);
-        const match = contentString.match(searchRegex);
-
-        return {match, contentString};
+        return {verbosityIx, beginOffset, contentBeginOffset};
     }
 
     /**
