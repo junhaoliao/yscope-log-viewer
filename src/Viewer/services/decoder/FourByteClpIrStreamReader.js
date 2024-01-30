@@ -219,19 +219,17 @@ class FourByteClpIrStreamReader {
         const contentUint8Array = outputResizableBuffer.getUint8Array();
         const contentString = FourByteClpIrStreamReader.textDecoder.decode(contentUint8Array);
 
-        let contentLowerCaseString = contentString;
-        let searchLowerCaseString = searchString;
-        if (matchCase === false) {
-            contentLowerCaseString = contentLowerCaseString.toLowerCase();
-            searchLowerCaseString = searchString.toLowerCase();
+        let regexPattern = searchString;
+        let regexFlags = "";
+        if (!isRegex) {
+            regexPattern = searchString.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        }
+        if (!matchCase) {
+            regexFlags = "i";
         }
 
-        let match;
-        if (isRegex) {
-            match = contentLowerCaseString.match(searchString);
-        } else if (contentLowerCaseString.includes(searchLowerCaseString)) {
-            match = searchString;
-        }
+        const searchRegex = new RegExp(regexPattern, regexFlags);
+        const match = contentString.match(searchRegex);
 
         return {match, contentString};
     }
