@@ -2,6 +2,7 @@ const path = require("path");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const MonacoWebpackPlugin = require("monaco-editor-webpack-plugin");
+const CopyWebpackPlugin = require("copy-webpack-plugin");
 
 module.exports = {
     entry: path.resolve(__dirname, "src", "index.js"),
@@ -13,12 +14,23 @@ module.exports = {
         new MonacoWebpackPlugin({
             languages: ["ascii", "ini"],
         }),
+        new CopyWebpackPlugin({
+            patterns: [
+                {
+                    from: "./node_modules/sql.js/dist/sql-wasm.wasm",
+                    to: "static/js/"
+                },
+            ],
+        }),
     ],
     output: {
         path: path.join(__dirname, "dist"),
         filename: "[name].[contenthash].bundle.js",
         clean: true,
         publicPath: "auto",
+    },
+    experiments: {
+        asyncWebAssembly: true,
     },
     module: {
         rules: [
@@ -58,11 +70,11 @@ module.exports = {
     },
     resolve: {
         fallback: {
-            "crypto": require.resolve("crypto-browserify"),
-            "stream": require.resolve("stream-browserify"),
-            "buffer": require.resolve("buffer/"),
-            "path": false,
-            "fs": false,
+            buffer: require.resolve("buffer/"),
+            crypto: require.resolve("crypto-browserify"),
+            fs: require.resolve("browserify-fs"),
+            path: require.resolve("path-browserify"),
+            stream: require.resolve("stream-browserify"),
         },
         extensions: [".json", ".js", ".jsx"],
         modules: ["node_modules"],

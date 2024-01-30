@@ -7,6 +7,7 @@ import CLP_WORKER_PROTOCOL from "../CLP_WORKER_PROTOCOL";
 import {readFile} from "../GetFile";
 import {binarySearchWithTimestamp} from "../utils";
 import WorkerPool from "../WorkerPool";
+import {ClpArchiveDecoder} from "./ClpArchiveDecoder";
 import {DataInputStream, DataInputStreamEOFError} from "./DataInputStream";
 import FourByteClpIrStreamReader from "./FourByteClpIrStreamReader";
 import ResizableUint8Array from "./ResizableUint8Array";
@@ -72,6 +73,7 @@ class FileManager {
         };
 
         this._logs = "";
+        this._clpLogsArray = null; // for Single-file CLP Archive only
 
         this._loadState = {
             prevCheckTime: null,
@@ -399,14 +401,42 @@ class FileManager {
     }
 
     /**
-     * Decompress and load CLP archive with the help of server-side processing, update state to viewer
+     * Decode CLP Archive log buffer and update editor state
+     * @param {Uint8Array} decompressedLogFile buffer to
+     * decode to string and update editor
      * @private
      */
-    _loadClpArchive () {
-        // FIXME: add gateway prefix here if needed
-        const serverSideGatewayPrefix = "";
-        this._fileInfo = serverSideGatewayPrefix + this._fileInfo;
-        this._loadClpIRStreamFile();
+    async _decodeClpArchiveLogAndUpdate (decompressedLogFile) {
+        // Update decompression status
+        this.state.decompressedSize = formatSizeInBytes(decompressedLogFile.byteLength, false);
+        this._loadingMessageCallback(`Decompressed ${this.state.decompressedSize}.`);
+
+        const clpArchiveDecoder = new ClpArchiveDecoder(decompressedLogFile);
+        this._clpLogsArray = await clpArchiveDecoder.decode();
+
+        // Update state
+        this.state.verbosity = -1;
+        this.state.lineNumber = 1;
+        this.state.columnNumber = 1;
+        this.state.numberOfEvents = this._clpLogsArray.length;
+        this.createPages();
+        this._updateStateCallback(CLP_WORKER_PROTOCOL.UPDATE_STATE, this.state);
+
+        this.decodePage();
+    }
+
+    /**
+     * Decompress and load CLP Archive file, update state to viewer
+     * @private
+     */
+    _loaClpArchiveFile () {
+        readFile(this._fileInfo, this._updateFileLoadProgress, this._updateFileSize)
+            .then((file) => this._updateInputFileAndStatus(file))
+            .then((file) => this._decodeClpArchiveLogAndUpdate(file.data))
+            .catch((error) => {
+                this._loadingMessageCallback(error.message, true);
+                console.error("Error processing log file:", error);
+            });
     }
 
     /**
@@ -426,7 +456,7 @@ class FileManager {
             this._loadClpIRStreamFile();
         } else if (filePath.endsWith(".clp")) {
             console.log("Opening CLP compressed archive");
-            this._loadClpArchive();
+            this._loaClpArchiveFile();
         } else if (filePath.endsWith(".zst")) {
             console.log("Opening zst compressed file: " + filePath);
             this._loadZstFile();
@@ -471,6 +501,11 @@ class FileManager {
    * Gets the page of the current log event
    */
     computePageNumFromLogEventIdx () {
+        if (null !== this._clpLogsArray) {
+            // for Single-file CLP Archive Only
+            return;
+        }
+
         for (let index = 0; index < this._logEventOffsetsFiltered.length; index++) {
             const event = this._logEventOffsetsFiltered[index];
             const logEventIndex = event.mappedIndex + 1;
@@ -486,6 +521,17 @@ class FileManager {
    * Creates pages from the filtered log events and the page size.
    */
     createPages () {
+        if (null !== this._clpLogsArray) {
+            // for Single-file CLP Archive only
+            this.state.page = 1;
+            if (0 === this.state.numberOfEvents % this.state.pageSize) {
+                this.state.pages = Math.floor(this.state.numberOfEvents / this.state.pageSize);
+            } else {
+                this.state.pages = Math.floor(this.state.numberOfEvents / this.state.pageSize) + 1;
+            }
+            return;
+        }
+
         if (this._logEventOffsetsFiltered.length <= this.state.pageSize) {
             this.state.page = 1;
             this.state.pages = 1;
@@ -538,6 +584,16 @@ class FileManager {
    * Decodes the logs for the selected page (state.page).
    */
     decodePage () {
+        if (null !== this._clpLogsArray) {
+            // for Single-file CLP Archive only
+            this._logs = this._clpLogsArray.slice(
+                this.state.pageSize * (this.state.page - 1),
+                this.state.pageSize * (this.state.page) - 1)
+                .join("\n");
+            this._updateLogsCallback(this._logs);
+            return;
+        }
+
         const numEventsAtLevel = this._logEventOffsetsFiltered.length;
 
         // If there are no logs at this verbosity level, return
@@ -621,10 +677,10 @@ class FileManager {
 
         // If there are no logs at this verbosity level, return
         const numEventsAtLevel = this._logEventOffsetsFiltered.length;
-        if (0 === numEventsAtLevel) {
-            this._updateLogsCallback("No logs at selected verbosity level");
+        if (searchString === "") {
             return;
-        } else if (searchString === "") {
+        } else if (0 === numEventsAtLevel) {
+            this._updateLogsCallback("No logs at selected verbosity level");
             return;
         }
 
@@ -747,7 +803,7 @@ class FileManager {
         searchChunk(0);
     };
 
-   /**
+    /**
    * Get the long event from the selected line number
    */
     computeLogEventIdxFromLineNum () {
