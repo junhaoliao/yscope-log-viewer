@@ -86,7 +86,7 @@ class FileManager {
 
         this._logs = "";
         this._logsArray = null; // for Single-file CLP Archive only
-        this._logsLineOffsetsArray = [];
+        this._logsPageLineOffsetsArray = [];
 
         this._loadState = {
             prevCheckTime: null,
@@ -260,12 +260,15 @@ class FileManager {
         this.state.numberOfEvents = this._logsArray.length;
         this.computePageNumFromLogEventIdx();
         this.createPages();
-        this._updateStateCallback(CLP_WORKER_PROTOCOL.UPDATE_STATE, this.state);
 
         this.decodePage();
 
         // FIXME: dirty hack to get search working
         this._logEventOffsetsFiltered.length = this._logsArray.length;
+        this._logEventOffsets.length = this._logsArray.length;
+        this._setupDecodingPagesToDatabase();
+
+        this._updateStateCallback(CLP_WORKER_PROTOCOL.UPDATE_STATE, this.state);
     }
 
     /**
@@ -418,12 +421,13 @@ class FileManager {
      * @private
      */
     async _decodeClpArchiveLogAndUpdate (decompressedLogFile) {
-        // Update decompression status
-        this.state.decompressedHumanSize = formatSizeInBytes(decompressedLogFile.byteLength, false);
-        this._loadingMessageCallback(`Decompressed ${this.state.decompressedHumanSize}.`);
-
         const clpArchiveDecoder = new ClpArchiveDecoder(decompressedLogFile);
         this._logsArray = await clpArchiveDecoder.decode();
+
+        // Update decompression status
+        this.state.decompressedHumanSize =
+            formatSizeInBytes(this._logsArray.join("\n").length, false);
+        this._loadingMessageCallback(`Decompressed ${this.state.decompressedHumanSize}.`);
 
         // Update state
         this.state.verbosity = -1;
@@ -432,12 +436,14 @@ class FileManager {
         this.state.numberOfEvents = this._logsArray.length;
         this.computePageNumFromLogEventIdx();
         this.createPages();
-        this._updateStateCallback(CLP_WORKER_PROTOCOL.UPDATE_STATE, this.state);
-
         this.decodePage();
 
         // FIXME: dirty hack to get search working
         this._logEventOffsetsFiltered.length = this._logsArray.length;
+        this._logEventOffsets.length = this._logsArray.length;
+        this._setupDecodingPagesToDatabase();
+
+        this._updateStateCallback(CLP_WORKER_PROTOCOL.UPDATE_STATE, this.state);
     }
 
     /**
@@ -531,6 +537,17 @@ class FileManager {
             ?numEventsAtLevel - targetEvent
             :pageSize;
 
+        if (null !== this._logsArray) {
+            // FIXME: dirty hack to get download working
+            this._workerPool.assignTask({
+                fileName: this._fileInfo.name,
+                page: page,
+                pageLogs:
+                    this._logsArray?.slice(targetEvent, targetEvent + numberOfEvents).join("\n"),
+            });
+            return;
+        }
+
         const pageData = this._arrayBuffer.slice(
             this._logEventOffsets[targetEvent].startIndex,
             this._logEventOffsets[targetEvent + numberOfEvents - 1].endIndex + 1
@@ -543,6 +560,7 @@ class FileManager {
             page: page,
             logEvents: logEvents,
             inputStream: inputStream,
+            pageLogs: null, // FIXME: dirty hack to get download working
         });
     }
 
@@ -558,15 +576,12 @@ class FileManager {
                 this.state.pageSize * (this.state.page));
 
             let offset = 0;
-            this._logsLineOffsetsArray.length = 0;
+            this._logsPageLineOffsetsArray.length = 0;
             this._logs = "";
-            console.log(this._logsLineOffsetsArray);
-            console.log(this._logs);
-            console.log(startingEventIdx);
-            console.log(endingEventIdx);
+
             for (let i = startingEventIdx; i< endingEventIdx; i++) {
                 this._logs += this._logsArray[i] + "\n";
-                this._logsLineOffsetsArray.push(offset);
+                this._logsPageLineOffsetsArray.push(offset);
                 offset += this._logsArray[i].split("\n").length;
             }
 
@@ -870,7 +885,7 @@ class FileManager {
             // FIXME: dirty hack for Single-file CLP Archive
             this.state.columnNumber = 1;
             this.state.lineNumber =
-                this._logsLineOffsetsArray[
+                this._logsPageLineOffsetsArray[
                     this.state.logEventIdx - this.state.pageSize * (this.state.page - 1)
                 ];
             return;
