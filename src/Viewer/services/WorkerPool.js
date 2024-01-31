@@ -54,7 +54,12 @@ class WorkerPool {
             const worker = this.getWorker();
             if (worker) {
                 const task = this.taskQueue.shift();
-                worker.postMessage(task, [task.inputStream]);
+                if (null === task.pageLogs) {
+                    worker.postMessage(task, [task.inputStream]);
+                } else {
+                    // FIXME: dirty hack to get download working
+                    worker.postMessage(task);
+                }
                 worker.onmessage = () => {
                     this.freeWorker(worker);
                     this.processQueue();
