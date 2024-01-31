@@ -73,7 +73,8 @@ class FileManager {
         };
 
         this._logs = "";
-        this._clpLogsArray = null; // for Single-file CLP Archive only
+        this._logsArray = null; // for Single-file CLP Archive only
+        this._logsLineOffsetsArray = [];
 
         this._loadState = {
             prevCheckTime: null,
@@ -412,17 +413,21 @@ class FileManager {
         this._loadingMessageCallback(`Decompressed ${this.state.decompressedSize}.`);
 
         const clpArchiveDecoder = new ClpArchiveDecoder(decompressedLogFile);
-        this._clpLogsArray = await clpArchiveDecoder.decode();
+        this._logsArray = await clpArchiveDecoder.decode();
 
         // Update state
         this.state.verbosity = -1;
         this.state.lineNumber = 1;
         this.state.columnNumber = 1;
-        this.state.numberOfEvents = this._clpLogsArray.length;
+        this.state.numberOfEvents = this._logsArray.length;
+        this.computePageNumFromLogEventIdx();
         this.createPages();
         this._updateStateCallback(CLP_WORKER_PROTOCOL.UPDATE_STATE, this.state);
 
         this.decodePage();
+
+        // FIXME: dirty hack to get search working
+        this._logEventOffsetsFiltered.length = this._logsArray.length;
     }
 
     /**
@@ -501,8 +506,9 @@ class FileManager {
      * Gets the page of the current log event
      */
     computePageNumFromLogEventIdx () {
-        if (null !== this._clpLogsArray) {
-            // for Single-file CLP Archive Only
+        // FIXME: dirty hack for Single-file CLP Archive
+        if (null !== this._logsArray) {
+            this.state.page = Math.floor(this.state.logEventIdx / this.state.pageSize) + 1;
             return;
         }
 
@@ -521,7 +527,7 @@ class FileManager {
      * Creates pages from the filtered log events and the page size.
      */
     createPages () {
-        if (null !== this._clpLogsArray) {
+        if (null !== this._logsArray) {
             // for Single-file CLP Archive only
             this.state.page = 1;
             if (0 === this.state.numberOfEvents % this.state.pageSize) {
@@ -584,12 +590,20 @@ class FileManager {
      * Decodes the logs for the selected page (state.page).
      */
     decodePage () {
-        if (null !== this._clpLogsArray) {
+        if (null !== this._logsArray) {
             // for Single-file CLP Archive only
-            this._logs = this._clpLogsArray.slice(
-                this.state.pageSize * (this.state.page - 1),
-                this.state.pageSize * (this.state.page) - 1)
-                .join("\n");
+            const startingEventIdx = this.state.pageSize * (this.state.page - 1);
+            const endingEventIdx = this.state.pageSize * (this.state.page) - 1;
+
+            let offset = 0;
+            this._logsLineOffsetsArray.length = 0;
+            this._logs = "";
+            for (let i = startingEventIdx; i< endingEventIdx; i++) {
+                this._logs += this._logsArray[i] + "\n";
+                this._logsLineOffsetsArray.push(offset);
+                offset += this._logsArray[i].split("\n").length;
+            }
+
             this._updateLogsCallback(this._logs);
             return;
         }
@@ -689,6 +703,7 @@ class FileManager {
         } else if (0 === numEventsAtLevel) {
             return;
         }
+
         const pageEndEventIdx = Math.min(
             this.state.pageSize,
             numEventsAtLevel
@@ -700,10 +715,14 @@ class FileManager {
         const regexFlags = matchCase ? "":"i";
         const searchRegex = new RegExp(regexPattern, regexFlags);
 
-        const dataInputStream = new DataInputStream(this._arrayBuffer);
+        // FIXME: this null check was added to hack searching for
+        // Single-file CLP Archive
+        if (null !== this._arrayBuffer) {
+            const dataInputStream = new DataInputStream(this._arrayBuffer);
 
-        this._irStreamReader = new FourByteClpIrStreamReader(dataInputStream, null);
-        this._outputResizableBuffer = new ResizableUint8Array(100000);
+            this._irStreamReader = new FourByteClpIrStreamReader(dataInputStream, null);
+            this._outputResizableBuffer = new ResizableUint8Array(100000);
+        }
 
         const searchState = {
             isSearching: true,
@@ -804,6 +823,11 @@ class FileManager {
      * @private
      */
     _getLogContentFromEventIdx (eventIdx) {
+        // FIXME: hack for Single-file CLP Archive searching
+        if (null !== this._logsArray) {
+            return this._logsArray[eventIdx];
+        }
+
         const event = this._logEventOffsetsFiltered[eventIdx];
         this._irStreamReader._dataInputStream.seek(event.startIndex);
 
@@ -876,6 +900,16 @@ class FileManager {
      * Get the line number from the log event.
      */
     computeLineNumFromLogEventIdx () {
+        if (null !== this._logsArray) {
+            // FIXME: dirty hack for Single-file CLP Archive
+            this.state.columnNumber = 1;
+            this.state.lineNumber =
+                this._logsLineOffsetsArray[
+                    this.state.logEventIdx - this.state.pageSize * (this.state.page - 1)
+                ];
+            return;
+        }
+
         // If there are no logs, go to line 1
         if (0 === this._logEventOffsetsFiltered.length) {
             this.state.columnNumber = 1;
