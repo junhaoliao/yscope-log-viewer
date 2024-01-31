@@ -25,7 +25,7 @@ class ActionHandler {
         this._logFile = new FileManager(fileSrc, prettify, logEventIdx, initialTimestamp, pageSize,
             this._loadingMessageCallback, this._updateStateCallback, this._updateLogsCallback,
             this._updateFileInfoCallback, this._updateSearchResultsCallback);
-                this._logFile.loadLogFile().then(()=> {
+        this._logFile.loadLogFile().then(()=> {
             console.log(fileSrc, "File loaded successfully");
         }).catch((e) => {
             this._loadingMessageCallback(e, true);
@@ -40,6 +40,13 @@ class ActionHandler {
     changeVerbosity (desiredVerbosity) {
         if (!isNumeric(desiredVerbosity)) {
             throw (new Error("Invalid verbosity provided."));
+        }
+        if (null !== this._logFile._logsArray) {
+            // FIXME: dirty hack
+            this._logFile.verbosity = -1;
+            this._updateStateCallback(CLP_WORKER_PROTOCOL.UPDATE_STATE, this._logFile.state);
+
+            return;
         }
         this._logFile.state.verbosity = desiredVerbosity;
         this._logFile.filterLogEvents(desiredVerbosity);
