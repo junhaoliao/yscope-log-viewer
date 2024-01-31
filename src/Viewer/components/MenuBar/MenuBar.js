@@ -24,7 +24,7 @@ import "./MenuBar.scss";
 
 MenuBar.propTypes = {
     logFileState: PropTypes.object,
-    fileMetaData: PropTypes.object,
+    fileInfo: PropTypes.object,
     loadingLogs: PropTypes.bool,
     changeStateCallback: PropTypes.func,
     loadFileCallback: PropTypes.func,
@@ -40,14 +40,14 @@ MenuBar.propTypes = {
 /**
  * Menu bar used to navigate the log file.
  * @param {object} logFileState Current state of the log file
- * @param {object} fileMetaData Object containing file metadata
+ * @param {object} fileInfo Object containing file name & path
  * @param {boolean} loadingLogs Indicates if logs are being decoded and
  *                              loaded by worker.
  * @param {ChangeStateCallback} changeStateCallback
  * @return {JSX.Element}
  */
 export function MenuBar ({
-    logFileState, fileMetaData, loadingLogs, changeStateCallback, loadFileCallback,
+    logFileState, fileInfo, loadingLogs, changeStateCallback, loadFileCallback,
 }) {
     const {theme, switchTheme} = useContext(ThemeContext);
 
@@ -159,7 +159,7 @@ export function MenuBar ({
             :<div style={{height: loadingBarHeight}} className="w-100" />;
     };
 
-    const fileName = fileMetaData.name.split("?")[0];
+    const fileName = fileInfo.name.split("?")[0];
 
     // TODO make file icon a button to open modal with file info
     // TODO Move modals into their own component

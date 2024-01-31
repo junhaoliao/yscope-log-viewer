@@ -8,10 +8,10 @@ import {THEME_STATES} from "../../../ThemeContext/THEME_STATES";
 import {ThemeContext} from "../../../ThemeContext/ThemeContext";
 import STATE_CHANGE_TYPE from "../../services/STATE_CHANGE_TYPE";
 import {ResizeHandle} from "../ResizeHandle/ResizeHandle";
+import DOWNLOAD_WORKER_ACTION from "./DOWNLOAD_WORKER_ACTION";
+import {BlobAppender, downloadBlob, downloadCompressedFile} from "./DownloadHelper";
 
 import "./LeftPanel.scss";
-import {BlobAppender, downloadBlob, downloadCompressedFile} from "./DownloadHelper";
-import DOWNLOAD_WORKER_ACTION from "./DOWNLOAD_WORKER_ACTION";
 
 const LEFT_PANEL_WIDTH_LIMIT_FACTOR = 0.8;
 const LEFT_PANEL_SNAP_WIDTH = 108;
@@ -19,6 +19,7 @@ const LEFT_PANEL_DEFAULT_WIDTH_FACTOR = 0.2;
 
 LeftPanel.propTypes = {
     logFileState: PropTypes.object,
+    fileInfo: PropTypes.object,
     panelWidth: PropTypes.number,
     setPanelWidth: PropTypes.func,
     activeTabId: PropTypes.number,
@@ -57,7 +58,7 @@ LeftPanel.propTypes = {
 /**
  * The left panel component
  * @param {object} logFileState Current state of the log file
- * @param {object} fileMetaData Object containing file metadata
+ * @param {object} fileInfo Object containing file metadata
  * @param {number} panelWidth
  * @param {SetPanelWidth} setPanelWidth
  * @param {number} activeTabId
@@ -69,7 +70,7 @@ LeftPanel.propTypes = {
  */
 export function LeftPanel ({
     logFileState,
-    fileMetaData,
+    fileInfo,
     panelWidth,
     setPanelWidth,
     activeTabId,
@@ -110,7 +111,7 @@ export function LeftPanel ({
         <>
             <LeftPanelTabs
                 logFileState={logFileState}
-                fileMetaData={fileMetaData}
+                fileInfo={fileInfo}
                 activeTabId={panelWidth > 0 ? activeTabId : -1}
                 togglePanel={togglePanel}
                 loadFileCallback={loadFileCallback}
@@ -131,7 +132,7 @@ export function LeftPanel ({
 
 LeftPanelTabs.propTypes = {
     logFileState: PropTypes.object,
-    fileMetaData: PropTypes.object,
+    fileInfo: PropTypes.object,
     activeTabId: PropTypes.number,
     togglePanel: PropTypes.func,
     loadFileCallback: PropTypes.func,
@@ -170,7 +171,7 @@ LeftPanelTabs.propTypes = {
  */
 function LeftPanelTabs ({
     logFileState,
-    fileMetaData,
+    fileInfo,
     activeTabId,
     togglePanel,
     loadFileCallback,
@@ -254,7 +255,7 @@ function LeftPanelTabs ({
 
         worker.postMessage({
             code: DOWNLOAD_WORKER_ACTION.initialize,
-            name: fileMetaData.name,
+            name: fileInfo.name,
             count: logFileState.downloadPageChunks,
         });
 
@@ -278,7 +279,7 @@ function LeftPanelTabs ({
                             code: DOWNLOAD_WORKER_ACTION.clearDatabase,
                         });
                         worker.terminate();
-                        downloadBlob(blob.getBlob(), fileMetaData.name);
+                        downloadBlob(blob.getBlob(), fileInfo.name);
                     }
                     break;
                 case DOWNLOAD_WORKER_ACTION.progress:
@@ -363,10 +364,10 @@ function LeftPanelTabs ({
                         <button
                             className={`left-panel-tab 
                             ${(LEFT_PANEL_TAB_IDS.SEARCH === activeTabId ?
-                                "left-panel-tab-selected" :
-                                "")}`}
+            "left-panel-tab-selected" :
+            "")}`}
                             onClick={toggleSearchPanel}>
-                            <Search size={25} style={{transform: 'scaleX(-1)'}}/>
+                            <Search size={25} style={{transform: "scaleX(-1)"}}/>
                         </button>
                         <button className={"left-panel-tab"} onClick={handleShowDownload}>
                             <CloudArrowDown size={28}/>
@@ -384,7 +385,7 @@ function LeftPanelTabs ({
             <input type='file' id='file' onChange={loadFile} ref={inputFile}
                 style={{display: "none"}}/>
             <Modal show={showDownload} className="border-0" onHide={handleShowDownload}
-                   contentClassName={getModalClass()}>
+                contentClassName={getModalClass()}>
                 <Modal.Header className="modal-background border-0" >
                     <div className="float-left">
                         Download
@@ -394,9 +395,9 @@ function LeftPanelTabs ({
                     <div style={{fontSize: "14px"}}>
                         {hasFilePath() &&
                             <Row className="m-0 mb-4 d-flex flex-column align-items-center text-center">
-                                <label style={{fontSize: "17px"}}>Compressed Log ({logFileState.compressedSize})</label>
+                                <label style={{fontSize: "17px"}}>Compressed Log ({logFileState.compressedHumanSize})</label>
                                 <button className="btn btn-secondary download-button m-2"
-                                        style={{fontSize: "13px", width: "200px"}} onClick={downloadCompressedFile}>
+                                    style={{fontSize: "13px", width: "200px"}} onClick={downloadCompressedFile}>
                                     <Download className="me-3 icon-button"/>
                                     Download File
                                 </button>
@@ -404,17 +405,17 @@ function LeftPanelTabs ({
                         }
 
                         <Row className="m-0 d-flex flex-column align-items-center text-center">
-                            <label style={{fontSize: "17px"}}>Uncompressed Log ({logFileState.decompressedSize})</label>
+                            <label style={{fontSize: "17px"}}>Uncompressed Log ({logFileState.decompressedHumanSize})</label>
                             {!isDownloading &&
                                 <button className="btn btn-secondary download-button m-2"
-                                        style={{fontSize: "13px", width: "200px"}} onClick={downloadUncompressedFile}>
+                                    style={{fontSize: "13px", width: "200px"}} onClick={downloadUncompressedFile}>
                                     <Download className="me-3 icon-button"/>
                                     Start Download
                                 </button>
                             }
                             {isDownloading &&
                                 <button className="btn btn-outline-warning download-button m-2"
-                                        style={{fontSize: "15px", width: "200px"}} onClick={stopUncompressedDownload}>
+                                    style={{fontSize: "15px", width: "200px"}} onClick={stopUncompressedDownload}>
                                     <XCircle className="me-3 icon-button"/>
                                     Cancel Download
                                 </button>
@@ -433,7 +434,7 @@ function LeftPanelTabs ({
                                         </div>
                                     </div>
                                     <ProgressBar animated now={progress} style={{height: "10px"}}
-                                                 className="p-0 border-0 rounded-0"/>
+                                        className="p-0 border-0 rounded-0"/>
                                 </Row>
                             }
                         </Row>

@@ -21,7 +21,7 @@ import {getModifiedUrl, isNumeric, modifyPage} from "./services/utils";
 import "./Viewer.scss";
 
 Viewer.propTypes = {
-    fileInfo: oneOfType([PropTypes.object, PropTypes.string]),
+    fileSrc: oneOfType([PropTypes.object, PropTypes.string]),
     filePath: PropTypes.string,
     prettifyLog: PropTypes.bool,
     logEventNumber: PropTypes.string,
@@ -31,14 +31,14 @@ Viewer.propTypes = {
 /**
  * Contains the menu, Monaco editor, and status bar. Viewer spawns its own
  * worker to manage the file and perform CLP operations.
- * @param {File|String} fileInfo File object to read or file path to load
+ * @param {File|String} fileSrc File object to read or file path to load
  * @param {boolean} prettifyLog Whether to prettify the log file
  * @param {Number} logEventNumber The initial log event number
  * @param {Number} timestamp The initial timestamp to show. If this field is
  * valid, logEventNumber will be ignored.
  * @return {JSX.Element}
  */
-export function Viewer ({fileInfo, prettifyLog, logEventNumber, timestamp}) {
+export function Viewer ({fileSrc, prettifyLog, logEventNumber, timestamp}) {
     const {theme} = useContext(ThemeContext);
 
     // Ref hook used to reference worker used for loading and decoding
@@ -68,7 +68,7 @@ export function Viewer ({fileInfo, prettifyLog, logEventNumber, timestamp}) {
         numberOfEvents: null,
         verbosity: null,
     });
-    const [fileMetadata, setFileMetadata] = useState(null);
+    const [fileInfo, setFileInfo] = useState(null);
     const [logData, setLogData] = useState("");
 
     const [leftPanelActiveTabId, setLeftPanelActiveTabId] = useState(LEFT_PANEL_TAB_IDS.SEARCH);
@@ -89,10 +89,10 @@ export function Viewer ({fileInfo, prettifyLog, logEventNumber, timestamp}) {
     }, []);
 
     /**
-     * Reload viewer on fileInfo change
-     * @param {File|string} fileInfo
+     * Reload viewer on fileSrc change
+     * @param {File|string} fileSrc
      */
-    const loadFile = (fileInfo) => {
+    const loadFile = (fileSrc) => {
         if (clpWorker.current) {
             clpWorker.current.terminate();
         }
@@ -104,11 +104,11 @@ export function Viewer ({fileInfo, prettifyLog, logEventNumber, timestamp}) {
         // Create new worker and pass args to worker to load file
         clpWorker.current = new Worker(new URL("./services/clpWorker.js", import.meta.url));
         // If file was loaded using file dialog or drag/drop, reset logEventIdx
-        const logEvent = (typeof fileInfo === "string") ? logFileState.logEventIdx : null;
+        const logEvent = (typeof fileSrc === "string") ? logFileState.logEventIdx : null;
         const initialTimestamp = isNumeric(timestamp) ? Number(timestamp) : null;
         clpWorker.current.postMessage({
             code: CLP_WORKER_PROTOCOL.LOAD_FILE,
-            fileInfo: fileInfo,
+            fileSrc: fileSrc,
             prettify: logFileState.prettify,
             logEventIdx: logEvent,
             initialTimestamp: initialTimestamp,
@@ -118,8 +118,8 @@ export function Viewer ({fileInfo, prettifyLog, logEventNumber, timestamp}) {
 
     // Load file if file info changes (this could happen from drag and drop)
     useEffect(() => {
-        loadFile(fileInfo);
-    }, [fileInfo]);
+        loadFile(fileSrc);
+    }, [fileSrc]);
 
     // Save statusMessages to the msg logger for debugging
     useEffect(() => {
@@ -269,7 +269,7 @@ export function Viewer ({fileInfo, prettifyLog, logEventNumber, timestamp}) {
                 setStatusMessage("");
                 break;
             case CLP_WORKER_PROTOCOL.UPDATE_FILE_INFO:
-                setFileMetadata(event.data.fileState);
+                setFileInfo(event.data.fileInfo);
                 break;
             case CLP_WORKER_PROTOCOL.UPDATE_SEARCH_RESULTS:
                 setSearchResults((prevArray) => [...prevArray, {
@@ -287,14 +287,14 @@ export function Viewer ({fileInfo, prettifyLog, logEventNumber, timestamp}) {
     }, [logFileState, logData, searchQuery, shouldReloadSearch]);
 
     useEffect(() => {
-        if (null !== fileMetadata) {
-            const searchParams = {filePath: fileMetadata.filePath};
+        if (null !== fileInfo) {
+            const searchParams = {filePath: fileInfo.filePath};
             const hashParams = {logEventIdx: logFileState.logEventIdx};
 
             const newUrl = getModifiedUrl(searchParams, hashParams);
             window.history.pushState({}, null, newUrl);
         }
-    }, [fileMetadata]);
+    }, [fileInfo]);
 
     /**
      * Unsets the cached page size in case it causes a client OOM. If it
@@ -380,7 +380,7 @@ export function Viewer ({fileInfo, prettifyLog, logEventNumber, timestamp}) {
                     }}>
                         <LeftPanel
                             logFileState={logFileState}
-                            fileMetaData={fileMetadata}
+                            fileInfo={fileInfo}
                             panelWidth={leftPanelWidth}
                             setPanelWidth={setLeftPanelWidth}
                             activeTabId={leftPanelActiveTabId}
@@ -403,7 +403,7 @@ export function Viewer ({fileInfo, prettifyLog, logEventNumber, timestamp}) {
                             }}>
                                 <MenuBar
                                     loadingLogs={loadingLogs}
-                                    fileMetaData={fileMetadata}
+                                    fileInfo={fileInfo}
                                     logFileState={logFileState}
                                     changeStateCallback={changeState}
                                 />
