@@ -139,6 +139,7 @@ export function SearchPanel ({
                 </form>
                 {(progress !== null) &&
                     <ProgressBar animated={progress !== 100} now={progress}
+                        variant={progress === 100?"success":undefined}
                         style={{height: "3px"}}/>}
             </div>
             <div className={"search-results-container"}>
@@ -198,7 +199,10 @@ function SearchResultsGroup ({
     }, [collapseAll]);
 
     const resultsRows = results.searchResults.map((result) => {
-        const [prefix, postfix] = result["content"].split(result["match"]);
+        const split = result["content"].split(result["match"]);
+        const prefix = split[0];
+        const postfix = split.slice(1).join("");
+
         return (
             <button
                 className={"search-result-button"}
