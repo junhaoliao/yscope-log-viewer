@@ -194,6 +194,62 @@ function MonacoInstance ({
         }
     };
 
+    const setupMobileZoom = () => {
+        let initialDistance = null;
+        let lastFontSize = parseInt(
+            window.getComputedStyle(editorRef.current.getDomNode()).fontSize);
+        let debounceTimeout = null;
+
+        const getDistance = (touches) => {
+            const touch1 = touches[0];
+            const touch2 = touches[1];
+            return Math.sqrt(
+                Math.pow(touch2.pageX - touch1.pageX, 2) +
+                Math.pow(touch2.pageY - touch1.pageY, 2)
+            );
+        };
+
+        editorContainerRef.current.addEventListener("touchstart", (e) => {
+            if (e.touches.length === 2) {
+                e.preventDefault();
+                initialDistance = getDistance(e.touches);
+            }
+        }, {passive: false});
+
+        editorContainerRef.current.addEventListener("touchmove", (e) => {
+            if (e.touches.length === 2) {
+                e.preventDefault();
+                const newDistance = getDistance(e.touches);
+
+                if (initialDistance !== null) {
+                    if (debounceTimeout) {
+                        clearTimeout(debounceTimeout);
+                    }
+
+                    debounceTimeout = setTimeout(() => {
+                        const ratio = newDistance / initialDistance;
+                        const newFontSize = Math.max(1,
+                            Math.min(40, lastFontSize * ratio));
+
+                        editorRef.current.updateOptions(
+                            {fontSize: newFontSize});
+                        lastFontSize = newFontSize;
+                        debounceTimeout = null;
+                    }, 2);
+                }
+            }
+        }, {passive: false});
+
+        editorContainerRef.current.addEventListener("touchend", (e) => {
+            initialDistance = null;
+
+            if (debounceTimeout) {
+                clearTimeout(debounceTimeout);
+                debounceTimeout = null;
+            }
+        });
+    };
+
     const initMonacoEditor = () => {
         if (null !== editorRef.current) {
             return;
@@ -225,12 +281,15 @@ function MonacoInstance ({
         editorRef.current = monaco.editor.create(editorContainerRef.current, {
             automaticLayout: true,
             language: "logLanguage",
+            mouseWheelZoom: true,
             readOnly: true,
             renderWhitespace: "none",
             scrollBeyondLastLine: false,
             theme: getMonacoThemeName(theme),
             wordWrap: "on",
         });
+
+        setupMobileZoom();
 
         editorRef.current.setValue(logData);
         editorRef.current.revealLine(logFileState.lineNumber, 1);
