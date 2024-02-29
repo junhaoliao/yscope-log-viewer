@@ -177,6 +177,7 @@ function LeftPanelTabs ({
     loadFileCallback,
     changeStateCallback,
 }) {
+    console.log("in left panel tabs", fileInfo)
     const {theme, switchTheme} = useContext(ThemeContext);
 
     const [isDownloading, setIsDownloading] = useState(false);
@@ -255,7 +256,7 @@ function LeftPanelTabs ({
 
         worker.postMessage({
             code: DOWNLOAD_WORKER_ACTION.initialize,
-            name: fileInfo.name,
+            dbID: fileInfo.dbID,
             count: logFileState.downloadPageChunks,
         });
 

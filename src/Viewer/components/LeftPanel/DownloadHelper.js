@@ -6,13 +6,7 @@ const downloadBlob = (blob, databaseName) => {
     link.href = blobUrl;
     link.download = databaseName.split(".")[0] + ".log";
     document.body.appendChild(link);
-    link.dispatchEvent(
-        new MouseEvent("click", {
-            bubbles: true,
-            cancelable: true,
-            view: window,
-        })
-    );
+    link.click();
     document.body.removeChild(link);
 };
 
