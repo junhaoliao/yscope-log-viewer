@@ -1,6 +1,9 @@
 import CLP_WORKER_PROTOCOL from "./CLP_WORKER_PROTOCOL";
 import FileManager from "./decoder/FileManager";
-import {isBoolean, isNumeric} from "./decoder/utils";
+import {
+    isBoolean, isNumeric,
+} from "./decoder/utils";
+
 
 // TODO: Move decompressing of file from FileManager to ActionHandler.
 //  When there are multiple IRStreams in a single file, this will allow
@@ -22,15 +25,25 @@ class ActionHandler {
      * @param {Number} pageSize
      */
     constructor (fileSrc, prettify, logEventIdx, initialTimestamp, pageSize) {
-        this._logFile = new FileManager(fileSrc, prettify, logEventIdx, initialTimestamp, pageSize,
-            this._loadingMessageCallback, this._updateStateCallback, this._updateLogsCallback,
-            this._updateFileInfoCallback, this._updateSearchResultsCallback);
-        this._logFile.loadLogFile().then(()=> {
+        this._logFile = new FileManager(
+            fileSrc,
+            prettify,
+            logEventIdx,
+            initialTimestamp,
+            pageSize,
+            this._loadingMessageCallback,
+            this._updateStateCallback,
+            this._updateLogsCallback,
+            this._updateFileInfoCallback,
+            this._updateSearchResultsCallback
+        );
+        this._logFile.loadLogFile().then(() => {
             console.log(fileSrc, "File loaded successfully");
-        }).catch((e) => {
-            this._loadingMessageCallback(e, true);
-            console.error("Error processing log file:", e);
-        });
+        })
+            .catch((e) => {
+                this._loadingMessageCallback(e, true);
+                console.error("Error processing log file:", e);
+            });
     }
 
     /**
@@ -72,19 +85,18 @@ class ActionHandler {
         if (!isNumeric(page)) {
             throw (new Error("Invalid page number provided."));
         }
-        if (page <= 0 || page > this._logFile.state.pages) {
+        if (0 >= page || page > this._logFile.state.pages) {
             throw (new Error("Invalid page number provided."));
         }
         this._logFile.state.page = page;
         this._logFile.decodePage();
 
-        if (linePos === "top") {
+        if ("top" === linePos) {
             this._logFile.state.lineNumber = 1;
-        } else if (linePos === "bottom") {
-            this._logFile.state.lineNumber = this._logFile.logEventMetadata.reduce(
-                function (a, b) {
-                    return a + b.numLines;
-                }, 0);
+        } else if ("bottom" === linePos) {
+            this._logFile.state.lineNumber = this._logFile.logEventMetadata.reduce((a, b) => {
+                return a + b.numLines;
+            }, 0);
         } else {
             this._logFile.state.lineNumber = 1;
         }
@@ -128,20 +140,41 @@ class ActionHandler {
         }
         if (logEventIdx > this._logFile.state.numberOfEvents) {
             console.debug("Log event provided was larger than the number of events.");
-        } else if (logEventIdx <= 0) {
+        } else if (0 >= logEventIdx) {
             console.debug("Log event provided was less than or equal to zero.");
         } else {
             this._logFile.state.logEventIdx = logEventIdx;
         }
+        this._finalizeUpdateEvent();
+    }
+
+    /**
+     * Goes to the specified log event with the specified timestamp.
+     * Go to new page if needed.
+     * @param {number} timestamp
+     */
+    changeEventWithTimestamp (timestamp) {
+        if (!isNumeric(timestamp)) {
+            throw (new Error("Invalid timestamp provided."));
+        }
+        this._logFile.state.logEventIdx = this._logFile.getLogEventIdxFromTimestamp(timestamp);
+        this._finalizeUpdateEvent();
+    }
+
+    /**
+     * Recompute and load the page after changing the eventIdx.
+     */
+    _finalizeUpdateEvent () {
         const currentPage = this._logFile.state.page;
         this._logFile.computePageNumFromLogEventIdx();
+
         // If the new event is on a new page, decode the page
         if (currentPage !== this._logFile.state.page) {
             this._logFile.decodePage();
         }
         this._logFile.computeLineNumFromLogEventIdx();
         this._updateStateCallback(CLP_WORKER_PROTOCOL.UPDATE_STATE, this._logFile.state);
-    };
+    }
 
     /**
      * Get the log event given a line number.
@@ -156,7 +189,7 @@ class ActionHandler {
         this._logFile.state.columnNumber = columnNumber;
         this._logFile.computeLogEventIdxFromLineNum();
         this._updateStateCallback(CLP_WORKER_PROTOCOL.UPDATE_STATE, this._logFile.state);
-    };
+    }
 
     /**
      * Redraws the page with the new page size.

@@ -1,5 +1,5 @@
 let enumClpWorkerProtocol = 0;
-let CLP_WORKER_PROTOCOL = {
+const CLP_WORKER_PROTOCOL = Object.freeze({
     ERROR: enumClpWorkerProtocol++,
     LOADING_MESSAGES: enumClpWorkerProtocol++,
     LOAD_FILE: enumClpWorkerProtocol++,
@@ -16,7 +16,7 @@ let CLP_WORKER_PROTOCOL = {
     UPDATE_SEARCH_RESULTS: enumClpWorkerProtocol++,
     START_DOWNLOAD: enumClpWorkerProtocol++,
     STOP_DOWNLOAD: enumClpWorkerProtocol++,
-};
-CLP_WORKER_PROTOCOL = Object.freeze(CLP_WORKER_PROTOCOL);
+    CHANGE_TIMESTAMP: enumClpWorkerProtocol++,
+});
 
 export default CLP_WORKER_PROTOCOL;
