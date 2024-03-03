@@ -5,9 +5,7 @@ const downloadBlob = (blob, databaseName) => {
     const link = document.createElement("a");
     link.href = blobUrl;
     link.download = databaseName.split(".")[0] + ".log";
-    document.body.appendChild(link);
     link.click();
-    document.body.removeChild(link);
 };
 
 const BlobAppender = function () {
@@ -34,8 +32,6 @@ const downloadCompressedFile = () => {
         new URL(filePath);
         link.href = filePath;
     } catch (e) {
-        console.log(`Unable to construct URL object from "${filePath}": ${e}. 
-        Assuming the file is from current origin. `);
         link.href = window.location.origin + "/" + filePath;
     }
 

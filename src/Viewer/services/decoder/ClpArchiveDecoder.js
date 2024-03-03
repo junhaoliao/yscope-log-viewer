@@ -1,4 +1,3 @@
-/* eslint-disable require-jsdoc */
 import * as msgpack from "@msgpack/msgpack";
 import data from "bootstrap/js/src/dom/data";
 import initSqlJs from "sql.js";

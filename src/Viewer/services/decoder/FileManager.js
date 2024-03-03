@@ -68,7 +68,7 @@ class FileManager {
         this._fileInfo = {
             name: null,
             path: null,
-            dbID: null,
+            sessionID: null,
         };
 
         this.state = {
@@ -234,7 +234,7 @@ class FileManager {
      */
     _updateInputFileInfo (file) {
         this._fileInfo = file;
-        this._fileInfo.dbID = uuidv1();
+        this._fileInfo.sessionID = uuidv1();
         this._updateFileInfoCallback(this._fileInfo);
 
         this.state.compressedHumanSize = formatSizeInBytes(file.data.byteLength, false);
@@ -543,7 +543,7 @@ class FileManager {
         if (null !== this._logsArray) {
             // FIXME: dirty hack to get download working
             this._workerPool.assignTask({
-                dbID: this._fileInfo.dbID,
+                sessionID: this._fileInfo.sessionID,
                 page: page,
                 pageLogs:
                     this._logsArray?.slice(targetEvent, targetEvent + numberOfEvents).join("\n"),
@@ -559,7 +559,7 @@ class FileManager {
         const logEvents = this._logEventOffsets.slice(targetEvent, targetEvent + numberOfEvents );
 
         this._workerPool.assignTask({
-            dbID: this._fileInfo.dbID,
+            sessionID: this._fileInfo.sessionID,
             page: page,
             logEvents: logEvents,
             inputStream: inputStream,

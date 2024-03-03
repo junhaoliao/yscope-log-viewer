@@ -38,7 +38,7 @@ onmessage = function (e) {
 
     switch (msg.code) {
         case DOWNLOAD_WORKER_ACTION.initialize:
-            db = new Database(e.data.dbID);
+            db = new Database(e.data.sessionID);
             totalCount = e.data.count;
             isDecodingDone();
             break;
