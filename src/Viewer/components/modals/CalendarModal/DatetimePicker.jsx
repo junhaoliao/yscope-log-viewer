@@ -44,9 +44,15 @@ const DateTimePicker = ({onChange, value}) => {
                 <DateCalendar
                     {...commonProps}
                     sx={{
-                        height: "300px",
-                        minWidth: "260px",
-                        borderRight: "1px solid rgba(0, 0, 0, 0.2)",
+                        ".MuiMonthCalendar-root": {
+                            width: "100%",
+                        },
+                        ".MuiYearCalendar-root": {
+                            width: "100%",
+                        },
+                        "borderRight": "1px solid rgba(0, 0, 0, 0.2)",
+                        "height": "320px",
+                        "minWidth": "260px",
                     }}
                     views={[
                         "year",
@@ -60,7 +66,7 @@ const DateTimePicker = ({onChange, value}) => {
                     timeSteps={{hours: 1, minutes: 1, seconds: 1}}
                     sx={{
                         ".MuiMultiSectionDigitalClockSection-root": {
-                            maxHeight: "300px",
+                            maxHeight: "320px",
                             width: "72px",
                         },
                         "borderBottom": "0",
