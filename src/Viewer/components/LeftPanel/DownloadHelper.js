@@ -1,4 +1,8 @@
-import {getFilePathFromWindowLocation} from "../../services/utils";
+import {
+    getAbsoluteUrl,
+    getFilePathFromWindowLocation,
+} from "../../services/utils";
+
 
 const downloadBlob = (blob, databaseName) => {
     const blobUrl = URL.createObjectURL(blob);
@@ -26,16 +30,7 @@ const downloadCompressedFile = () => {
     link.target = "_blank";
 
     const filePath = getFilePathFromWindowLocation();
-    try {
-        // this URL constructor should only succeed if "filePath"
-        //  has a "protocol" scheme like "http:"
-        new URL(filePath);
-        link.href = filePath;
-    } catch (e) {
-        link.href = window.location.origin + "/" + filePath;
-    }
-
-    console.log(link);
+    link.href = getAbsoluteUrl(filePath);
     link.click();
 };
 

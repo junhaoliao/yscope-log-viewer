@@ -44,15 +44,41 @@ const modifyPage = (action, currentPage, requestedPage, pages) => {
 };
 
 /**
+ * Returns the absolute URL of a given path relative to the window.location,
+ * if the given path is a relative one.
+ *
+ * @param {string} path that is either absolute or relative
+ * @returns {string}
+ */
+const getAbsoluteUrl = (path) => {
+    try {
+        // This URL() constructor should only succeed if `path`
+        //  has a "protocol" scheme like "http:"
+        // eslint-disable-next-line no-new
+        new URL(path);
+    } catch (e) {
+        path = new URL(path, window.location.origin).href;
+    }
+
+    return path;
+};
+
+/**
  * Parses `filePath` from the current window location's search query.
  *
  * @return {string|null} The parsed file path or
  *                       null if not found.
  */
 const getFilePathFromWindowLocation = () => {
-    const filePath = window.location.search.split("filePath=")[1];
+    let filePath = window.location.search.split("filePath=")[1];
 
-    return (undefined === filePath) ? null : filePath.substring(filePath.indexOf("#"));
+    if (undefined === filePath) {
+        return null;
+    }
+
+    filePath = filePath.substring(filePath.indexOf("#"));
+
+    return getAbsoluteUrl(filePath);
 };
 
 /**
@@ -78,6 +104,7 @@ const getModifiedUrl = (searchParams, hashParams) => {
         if ("filePath" === key) {
             // to be appended as the last parameter
             filePath = value;
+            urlSearchParams.delete(key);
         } else if (null === value) {
             urlSearchParams.delete(key);
         } else {
@@ -172,4 +199,11 @@ function binarySearchWithTimestamp (timestamp, logEventMetadata) {
     return null;
 }
 
-export {binarySearchWithTimestamp, getFilePathFromWindowLocation, getModifiedUrl, isNumeric, modifyPage};
+export {
+    binarySearchWithTimestamp,
+    getAbsoluteUrl,
+    getFilePathFromWindowLocation,
+    getModifiedUrl,
+    isNumeric,
+    modifyPage,
+};
