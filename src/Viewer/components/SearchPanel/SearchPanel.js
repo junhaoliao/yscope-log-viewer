@@ -213,7 +213,7 @@ function SearchResultsGroup ({
             >
                 {/* Cap prefix length to be 25 characters
                      so highlighted text can be shown */}
-                <span>{prefix.slice(-25)}</span>
+                <span>{(25 < prefix.length) && "..."}{prefix.slice(-25)}</span>
                 <span
                     className={"search-result-highlight"}>{result["match"]}</span>
                 <span>{postfix}</span>
