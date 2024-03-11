@@ -1,6 +1,7 @@
 import {Tarball} from "@obsidize/tar-browserify";
 import JSZip from "jszip";
 import pako from "pako";
+import {v1 as uuidv1} from "uuid";
 
 import {ZstdCodec} from "../../../../customized-packages/zstd-codec/js";
 import CLP_WORKER_PROTOCOL from "../CLP_WORKER_PROTOCOL";
@@ -67,6 +68,7 @@ class FileManager {
         this._fileInfo = {
             name: null,
             path: null,
+            sessionID: null,
         };
 
         this.state = {
@@ -232,6 +234,7 @@ class FileManager {
      */
     _updateInputFileInfo (file) {
         this._fileInfo = file;
+        this._fileInfo.sessionID = uuidv1();
         this._updateFileInfoCallback(this._fileInfo);
 
         this.state.compressedHumanSize = formatSizeInBytes(file.data.byteLength, false);
@@ -540,7 +543,7 @@ class FileManager {
         if (null !== this._logsArray) {
             // FIXME: dirty hack to get download working
             this._workerPool.assignTask({
-                fileName: this._fileInfo.name,
+                sessionID: this._fileInfo.sessionID,
                 page: page,
                 pageLogs:
                     this._logsArray?.slice(targetEvent, targetEvent + numberOfEvents).join("\n"),
@@ -556,7 +559,7 @@ class FileManager {
         const logEvents = this._logEventOffsets.slice(targetEvent, targetEvent + numberOfEvents );
 
         this._workerPool.assignTask({
-            fileName: this._fileInfo.name,
+            sessionID: this._fileInfo.sessionID,
             page: page,
             logEvents: logEvents,
             inputStream: inputStream,
