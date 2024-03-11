@@ -7,7 +7,8 @@ import {
     ArrowsExpand,
     CaretDownFill,
     CaretRightFill,
-    Regex
+    ExclamationTriangle,
+    Regex,
 } from "react-bootstrap-icons";
 
 import "./SearchPanel.scss";
@@ -79,20 +80,21 @@ export function SearchPanel ({
 
     let resultGroups = <></>;
     let progress = null;
-    if (searchResults !== null) {
+    let hasMoreResults = false;
+    if (null !== searchResults) {
         resultGroups = searchResults.map((resultGroup, index) => (
             <SearchResultsGroup
                 key={index}
                 pageNum={resultGroup.page_num}
                 results={resultGroup}
                 collapseAll={collapseAll}
-                setCollapseAll={setCollapseAll}
                 resultClickHandler={searchResultClickHandler}
             />
         ));
         if (searchResults.length) {
             progress = (searchResults[searchResults.length - 1].page_num + 1) /
                 totalPages * 100;
+            hasMoreResults = searchResults[searchResults.length - 1].hasMoreResults;
         } else {
             // instead of 0 set progress as 5% to show something is being loaded
             progress = 5;
@@ -143,6 +145,15 @@ export function SearchPanel ({
                         style={{height: "3px"}}/>}
             </div>
             <div className={"search-results-container"}>
+                {hasMoreResults &&
+                <div>
+                    <ExclamationTriangle size={14} color={"#FFBF00"}/>
+                    &nbsp;
+                    <span>
+                        The result set only contains a subset of all matches.
+                        Be more specific in your search to narrow down the results.
+                    </span>
+                </div>}
                 {resultGroups}
             </div>
         </>
@@ -174,7 +185,6 @@ SearchResultsGroup.propTypes = {
  * @param {number} pageNum
  * @param {object} results
  * @param {boolean} collapseAll
- * @param {SetCollapseAll} setCollapseAll
  * @param {ResultClickHandler} resultClickHandler
  * @return {JSX.Element}
  */
@@ -182,7 +192,6 @@ function SearchResultsGroup ({
     pageNum,
     results,
     collapseAll,
-    setCollapseAll,
     resultClickHandler,
 }) {
     if (results.searchResults.length === 0) {
