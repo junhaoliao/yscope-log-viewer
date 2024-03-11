@@ -1,13 +1,16 @@
-import React, {useCallback, useContext, useEffect, useRef, useState} from "react";
-
 import PropTypes, {oneOfType} from "prop-types";
+import React, {
+    useCallback, useContext, useEffect, useRef, useState,
+} from "react";
 import {Row} from "react-bootstrap";
 import LoadingIcons from "react-loading-icons";
 
 import {THEME_STATES} from "../ThemeContext/THEME_STATES";
 import {ThemeContext} from "../ThemeContext/ThemeContext";
-import {LEFT_PANEL_TAB_IDS, LeftPanel} from "./components/LeftPanel/LeftPanel";
-import {MenuBar} from "./components/MenuBar/MenuBar";
+import {
+    LEFT_PANEL_TAB_IDS, LeftPanel,
+} from "./components/LeftPanel/LeftPanel";
+import MenuBar from "./components/MenuBar/MenuBar";
 import MonacoInstance from "./components/Monaco/MonacoInstance";
 import {SearchPanel} from "./components/SearchPanel/SearchPanel";
 import {StatusBar} from "./components/StatusBar/StatusBar";
@@ -16,12 +19,18 @@ import FourByteClpIrStreamReader from "./services/decoder/FourByteClpIrStreamRea
 import LOCAL_STORAGE_KEYS from "./services/LOCAL_STORAGE_KEYS";
 import MessageLogger from "./services/MessageLogger";
 import STATE_CHANGE_TYPE from "./services/STATE_CHANGE_TYPE";
-import {getModifiedUrl, isNumeric, modifyPage} from "./services/utils";
+import {
+    getModifiedUrl, isNumeric, modifyPage,
+} from "./services/utils";
 
 import "./Viewer.scss";
 
+
 Viewer.propTypes = {
-    fileSrc: oneOfType([PropTypes.object, PropTypes.string]),
+    fileSrc: oneOfType([
+        PropTypes.object,
+        PropTypes.string,
+    ]),
     filePath: PropTypes.string,
     prettifyLog: PropTypes.bool,
     logEventNumber: PropTypes.string,
@@ -57,11 +66,17 @@ export function Viewer ({fileSrc, prettifyLog, logEventNumber, timestamp}) {
     // Log States
     const lsPageSize = localStorage.getItem(LOCAL_STORAGE_KEYS.PAGE_SIZE);
     const [logFileState, setLogFileState] = useState({
-        pageSize: lsPageSize ? Number(lsPageSize) : 10000,
+        pageSize: lsPageSize ?
+            Number(lsPageSize) :
+            10000,
         pages: null,
         page: null,
-        prettify: prettifyLog ? prettifyLog : false,
-        logEventIdx: isNumeric(logEventNumber) ? Number(logEventNumber) : null,
+        prettify: prettifyLog ?
+            prettifyLog :
+            false,
+        logEventIdx: isNumeric(logEventNumber) ?
+            Number(logEventNumber) :
+            null,
         lineNumber: null,
         columnNumber: null,
         colNumber: null,
@@ -73,8 +88,7 @@ export function Viewer ({fileSrc, prettifyLog, logEventNumber, timestamp}) {
 
     const [leftPanelActiveTabId, setLeftPanelActiveTabId] = useState(LEFT_PANEL_TAB_IDS.SEARCH);
     const [leftPanelWidth, setLeftPanelWidth] = useState(0);
-    const [searchQuery, setSearchQuery] = useState({
-        searchString: "",
+    const [searchQuery, setSearchQuery] = useState({searchString: "",
         isRegex: false,
         matchCase: false});
     const [searchResults, setSearchResults] = useState(null);
@@ -103,9 +117,15 @@ export function Viewer ({fileSrc, prettifyLog, logEventNumber, timestamp}) {
 
         // Create new worker and pass args to worker to load file
         clpWorker.current = new Worker(new URL("./services/clpWorker.js", import.meta.url));
+
         // If file was loaded using file dialog or drag/drop, reset logEventIdx
-        const logEvent = (typeof fileSrc === "string") ? logFileState.logEventIdx : null;
-        const initialTimestamp = isNumeric(timestamp) ? Number(timestamp) : null;
+        const logEvent = ("string" === typeof fileSrc) ?
+            logFileState.logEventIdx :
+            null;
+        const initialTimestamp = isNumeric(timestamp) ?
+            Number(timestamp) :
+            null;
+
         clpWorker.current.postMessage({
             code: CLP_WORKER_PROTOCOL.LOAD_FILE,
             fileSrc: fileSrc,
@@ -127,7 +147,7 @@ export function Viewer ({fileSrc, prettifyLog, logEventNumber, timestamp}) {
     }, [statusMessage]);
 
     const handleStateChangeSearch = (args) => {
-        if (args.searchString === "") {
+        if ("" === args.searchString) {
             setSearchResults(null);
         } else {
             setSearchResults([]);
@@ -153,8 +173,13 @@ export function Viewer ({fileSrc, prettifyLog, logEventNumber, timestamp}) {
         }
         switch (type) {
             case STATE_CHANGE_TYPE.page:
-                const [linePos, validNewPage] = modifyPage(args.action, logFileState.page,
-                    args.requestedPage, logFileState.pages);
+                const [linePos, validNewPage] = modifyPage(
+                    args.action,
+                    logFileState.page,
+                    args.requestedPage,
+                    logFileState.pages
+                );
+
                 if (validNewPage) {
                     setLoadingLogs(true);
                     setStatusMessage(`Loading page number ${validNewPage}...`);
@@ -170,8 +195,10 @@ export function Viewer ({fileSrc, prettifyLog, logEventNumber, timestamp}) {
                     setShouldReloadSearch(true);
                     handleStateChangeSearch({searchString: ""});
                     setLoadingLogs(true);
-                    const verbosity = (args.verbosity === -1) ? "ALL"
-                        : FourByteClpIrStreamReader.VERBOSITIES[args.verbosity].label;
+                    const verbosity = (-1 === args.verbosity) ?
+                        "ALL" :
+                        FourByteClpIrStreamReader.VERBOSITIES[args.verbosity].label;
+
                     setStatusMessage(`Filtering logs with level: ${verbosity}`);
                     clpWorker.current.postMessage({
                         code: CLP_WORKER_PROTOCOL.UPDATE_VERBOSITY,
@@ -193,7 +220,9 @@ export function Viewer ({fileSrc, prettifyLog, logEventNumber, timestamp}) {
                 break;
             case STATE_CHANGE_TYPE.prettify:
                 setLoadingLogs(true);
-                setStatusMessage(args.prettify ? "Prettifying..." : "Un-prettifying...");
+                setStatusMessage(args.prettify ?
+                    "Prettifying..." :
+                    "Un-prettifying...");
                 clpWorker.current.postMessage({
                     code: CLP_WORKER_PROTOCOL.PRETTY_PRINT,
                     prettify: args.prettify,
@@ -227,10 +256,21 @@ export function Viewer ({fileSrc, prettifyLog, logEventNumber, timestamp}) {
                     code: CLP_WORKER_PROTOCOL.STOP_DOWNLOAD,
                 });
                 break;
+            case STATE_CHANGE_TYPE.timestamp:
+                setLoadingLogs(true);
+                setStatusMessage(`Jump to timestamp: ${args.timestamp}`);
+                clpWorker.current.postMessage({
+                    code: CLP_WORKER_PROTOCOL.CHANGE_TIMESTAMP,
+                    timestamp: Number(args.timestamp),
+                });
+                break;
             default:
                 break;
         }
-    }, [logFileState, loadingLogs]);
+    }, [
+        logFileState,
+        loadingLogs,
+    ]);
 
     /**
      * Handles messages sent from clpWorker and updates the
@@ -272,19 +312,33 @@ export function Viewer ({fileSrc, prettifyLog, logEventNumber, timestamp}) {
                 setFileInfo(event.data.fileInfo);
                 break;
             case CLP_WORKER_PROTOCOL.UPDATE_SEARCH_RESULTS:
-                setSearchResults((prevArray) => [...prevArray, {
-                    page_num: event.data.page_num,
-                    searchResults: event.data.searchResults,
-                }]);
+                setSearchResults((prevArray) => [
+                    ...prevArray,
+                    {
+                        page_num: event.data.page_num,
+                        searchResults: event.data.searchResults,
+                    },
+                ]);
                 break;
             default:
                 console.error("Unhandled code:", event.data);
                 break;
         }
-    }, [logFileState, logData, searchQuery, shouldReloadSearch]);
-    useEffect(()=>{
+    }, [
+        logFileState,
+        logData,
+        searchQuery,
+        shouldReloadSearch,
+    ]);
+
+    useEffect(() => {
         clpWorker.current.onmessage = handleWorkerMessage;
-    }, [logFileState, logData, searchQuery, shouldReloadSearch]);
+    }, [
+        logFileState,
+        logData,
+        searchQuery,
+        shouldReloadSearch,
+    ]);
 
     useEffect(() => {
         if (null !== fileInfo) {
@@ -338,103 +392,117 @@ export function Viewer ({fileSrc, prettifyLog, logEventNumber, timestamp}) {
         if (LEFT_PANEL_TAB_IDS.SEARCH === leftPanelActiveTabId) {
             leftPanelContent = (
                 <SearchPanel
-                    query={searchQuery} searchResults={searchResults}
-                    totalPages={logFileState.pages}
+                    query={searchQuery}
                     queryChangeHandler={searchQueryChangeHandler}
                     searchResultClickHandler={goToEventCallback}
-                />
+                    searchResults={searchResults}
+                    totalPages={logFileState.pages}/>
             );
         }
     }
 
     return (
-        <div data-theme={theme} className="viewer-container">
+        <div
+            className={"viewer-container"}
+            data-theme={theme}
+        >
             {loadingFile &&
-                <div className="viewer-loading-container">
-                    <Row className="m-0">
-                        <LoadingIcons.Oval height="5em" stroke={
-                            (THEME_STATES.LIGHT === theme) ? "black" : "white"
-                        }/>
+                <div className={"viewer-loading-container"}>
+                    <Row className={"m-0"}>
+                        <LoadingIcons.Oval
+                            height={"5em"}
+                            stroke={(THEME_STATES.LIGHT === theme) ?
+                                "black" :
+                                "white"}/>
                     </Row>
-                    <Row className="loading-container">
+                    <Row className={"loading-container"}>
                         <ul>
-                            {statusMessageLogs.map((status, index) =>
-                                <li key={index}>{status}</li>
-                            )}
+                            {statusMessageLogs.map((status, index) => (
+                                <li key={index}>
+                                    {status}
+                                </li>
+                            ))}
                         </ul>
                     </Row>
-                </div>
-            }
+                </div>}
             {false === loadingFile &&
                 <>
-                    <div style={{
-                        display: "flex",
-                        flexGrow: 1,
-                        height: "100%",
-                        // Without this, if this element's content exceeds the
-                        // size of this element's parent, flex-grow won't shrink
-                        // this element to fit within the parent.
-                        minHeight: 0,
-                        overflow: "hidden",
-                        width: "100%",
-                    }}>
+                    <div
+                        style={{
+                            display: "flex",
+                            flexGrow: 1,
+                            height: "100%",
+
+                            // Without this, if this element's content exceeds the
+                            // size of this element's parent, flex-grow won't shrink
+                            // this element to fit within the parent.
+                            minHeight: 0,
+                            overflow: "hidden",
+                            width: "100%",
+                        }}
+                    >
                         <LeftPanel
-                            logFileState={logFileState}
-                            fileInfo={fileInfo}
-                            panelWidth={leftPanelWidth}
-                            setPanelWidth={setLeftPanelWidth}
                             activeTabId={leftPanelActiveTabId}
-                            setActiveTabId={setLeftPanelActiveTabId}
-                            loadFileCallback={loadFile}
                             changeStateCallback={changeState}
+                            fileInfo={fileInfo}
+                            loadFileCallback={loadFile}
+                            logFileState={logFileState}
+                            panelWidth={leftPanelWidth}
+                            setActiveTabId={setLeftPanelActiveTabId}
+                            setPanelWidth={setLeftPanelWidth}
                         >
                             {leftPanelContent}
                         </LeftPanel>
 
-                        <div style={{
-                            flexGrow: 1,
-                            height: "100%",
-                            overflow: "hidden",
-                        }}>
-                            <div style={{
-                                display: "flex",
-                                flexDirection: "column",
+                        <div
+                            style={{
+                                flexGrow: 1,
                                 height: "100%",
-                            }}>
-                                <MenuBar
-                                    loadingLogs={loadingLogs}
-                                    fileInfo={fileInfo}
-                                    logFileState={logFileState}
-                                    changeStateCallback={changeState}
-                                />
-                                <div style={{
-                                    flexGrow: 1,
-                                    // Without this, if this element's content
-                                    // exceeds the size of this element's
-                                    // parent, flex-grow won't shrink this
-                                    // element to fit within the parent.
-                                    minHeight: 0,
+                                overflow: "hidden",
+                            }}
+                        >
+                            <div
+                                style={{
+                                    display: "flex",
+                                    flexDirection: "column",
                                     height: "100%",
-                                }}>
+                                }}
+                            >
+                                <MenuBar
+                                    fileInfo={fileInfo}
+                                    isLoading={loadingLogs}
+                                    logFileState={logFileState}
+                                    onStateChange={changeState}/>
+                                <div
+                                    style={{
+                                        flexGrow: 1,
+
+                                        // Without this, if this element's content
+                                        // exceeds the size of this element's
+                                        // parent, flex-grow won't shrink this
+                                        // element to fit within the parent.
+                                        minHeight: 0,
+                                        height: "100%",
+                                    }}
+                                >
                                     <MonacoInstance
-                                        logData={logData}
-                                        loadingLogs={loadingLogs}
-                                        logFileState={logFileState}
-                                        onStateChange={changeState}
                                         beforeMount={unsetCachedPageSize}
-                                        onMount={restoreCachedPageSize}/>
+                                        loadingLogs={loadingLogs}
+                                        logData={logData}
+                                        logFileState={logFileState}
+                                        onMount={restoreCachedPageSize}
+                                        onStateChange={changeState}/>
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     <StatusBar
-                        status={statusMessage}
-                        logFileState={logFileState}
+                        changeStateCallback={changeState}
                         loadingLogs={loadingLogs}
-                        changeStateCallback={changeState}/>
-                </>
-            }
+                        logFileState={logFileState}
+                        status={statusMessage}/>
+                </>}
         </div>
     );
 }

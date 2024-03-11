@@ -1,6 +1,7 @@
 import ActionHandler from "./ActionHandler";
 import CLP_WORKER_PROTOCOL from "./CLP_WORKER_PROTOCOL";
 
+
 /**
  * Send error to component which created worker.
  * @param {string} error
@@ -18,13 +19,18 @@ onmessage = function (e) {
     switch (e.data.code) {
         case CLP_WORKER_PROTOCOL.LOAD_FILE:
             try {
-                const fileSrc = e.data.fileSrc;
-                const prettify = e.data.prettify;
-                const logEventIdx = e.data.logEventIdx;
-                const pageSize = e.data.pageSize;
-                const initialTimestamp = e.data.initialTimestamp;
-                handler = new ActionHandler(fileSrc, prettify, logEventIdx, initialTimestamp,
-                    pageSize);
+                const {fileSrc} = e.data;
+                const {prettify} = e.data;
+                const {logEventIdx} = e.data;
+                const {pageSize} = e.data;
+                const {initialTimestamp} = e.data;
+                handler = new ActionHandler(
+                    fileSrc,
+                    prettify,
+                    logEventIdx,
+                    initialTimestamp,
+                    pageSize
+                );
             } catch (e) {
                 sendError(e);
             }
@@ -103,7 +109,16 @@ onmessage = function (e) {
             }
             break;
 
+        case CLP_WORKER_PROTOCOL.CHANGE_TIMESTAMP:
+            try {
+                handler.changeEventWithTimestamp(e.data.timestamp);
+            } catch (e) {
+                sendError(e);
+            }
+            break;
+
         default:
+            console.error(`Unexpected CLP_WORKER_PROTOCOL code: ${e.data.code}`);
             break;
     }
 };
