@@ -1,4 +1,11 @@
-import React, {useEffect, useState} from "react";
+import React, {
+    useEffect, useState,
+} from "react";
+
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+import {LocalizationProvider} from "@mui/x-date-pickers";
+import {AdapterDayjs} from "@mui/x-date-pickers/AdapterDayjs";
 
 import config from "./config.json";
 import {DropFile} from "./DropFile/DropFile";
@@ -10,6 +17,9 @@ import {Viewer} from "./Viewer/Viewer";
 
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./App.scss";
+
+
+dayjs.extend(utc);
 
 /**
  * Main component which renders viewer and scanner depending
@@ -34,7 +44,9 @@ export function App () {
     useEffect(() => {
         console.debug("Version:", config.version);
         const lsTheme = localStorage.getItem(LOCAL_STORAGE_KEYS.UI_THEME);
-        switchTheme(THEME_STATES.LIGHT === lsTheme ?THEME_STATES.LIGHT :THEME_STATES.DARK);
+        switchTheme(THEME_STATES.LIGHT === lsTheme ?
+            THEME_STATES.LIGHT :
+            THEME_STATES.DARK);
         init();
     }, []);
 
@@ -58,7 +70,7 @@ export function App () {
         const urlHashParams = new URLSearchParams(window.location.hash.substring(1));
 
         // Load the initial state of the viewer from url
-        setPrettify(urlSearchParams.get("prettify") === "true");
+        setPrettify("true" === urlSearchParams.get("prettify"));
         setLogEventIdx(urlHashParams.get("logEventIdx"));
         setTimestamp(urlSearchParams.get("timestamp"));
 
@@ -67,13 +79,11 @@ export function App () {
         if (null !== filePath) {
             setFileSrc(filePath);
             setAppMode(APP_STATE.FILE_VIEW);
+        } else if (null !== config.defaultFileUrl) {
+            setFileSrc(config.defaultFileUrl);
+            setAppMode(APP_STATE.FILE_VIEW);
         } else {
-            if (null !== config.defaultFileUrl) {
-                setFileSrc(config.defaultFileUrl);
-                setAppMode(APP_STATE.FILE_VIEW);
-            } else {
-                setAppMode(APP_STATE.FILE_PROMPT);
-            }
+            setAppMode(APP_STATE.FILE_PROMPT);
         }
     };
 
@@ -87,16 +97,18 @@ export function App () {
     };
 
     return (
-        <div id="app">
+        <div id={"app"}>
             <ThemeContext.Provider value={{theme, switchTheme}}>
-                <DropFile handleFileDrop={handleFileChange}>
-                    {(APP_STATE.FILE_VIEW === appMode) &&
-                        <Viewer logEventNumber={logEventIdx}
-                            timestamp={timestamp}
+                <LocalizationProvider dateAdapter={AdapterDayjs}>
+                    <DropFile handleFileDrop={handleFileChange}>
+                        {(APP_STATE.FILE_VIEW === appMode) &&
+                        <Viewer
+                            fileSrc={fileSrc}
+                            logEventNumber={logEventIdx}
                             prettifyLog={prettify}
-                            fileSrc={fileSrc}/>
-                    }
-                </DropFile>
+                            timestamp={timestamp}/>}
+                    </DropFile>
+                </LocalizationProvider>
             </ThemeContext.Provider>
         </div>
     );

@@ -1,4 +1,4 @@
-let STATE_CHANGE_TYPE = {
+const STATE_CHANGE_TYPE = Object.freeze({
     lineNumber: "lineNumber",
     logEventIdx: "logEventIdx",
     page: "page",
@@ -8,7 +8,7 @@ let STATE_CHANGE_TYPE = {
     verbosity: "verbosity",
     startDownload: "startDownload",
     stopDownload: "stopDownload",
-};
-STATE_CHANGE_TYPE = Object.freeze(STATE_CHANGE_TYPE);
+    timestamp: "timestamp",
+});
 
 export default STATE_CHANGE_TYPE;
