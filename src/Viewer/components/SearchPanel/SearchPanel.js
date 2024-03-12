@@ -207,24 +207,25 @@ function SearchResultsGroup ({
         setCollapsed(collapseAll);
     }, [collapseAll]);
 
-    const resultsRows = results.searchResults.map((result) => {
-        const split = result["content"].split(result["match"]);
-        const prefix = split[0];
-        const postfix = split.slice(1).join("");
+    const resultsRows = results.searchResults.map((r) => {
+        const {content, eventIndex, match} = r;
+        const split = content.split(match);
+        const [prefix] = split;
+        const postfix = split.slice(1).join(match);
 
         return (
             <button
                 className={"search-result-button"}
-                key={result.eventIndex}
+                key={eventIndex}
                 onClick={() => {
-                    resultClickHandler(result.eventIndex + 1);
+                    resultClickHandler(eventIndex + 1);
                 }}
             >
                 {/* Cap prefix length to be 25 characters
                      so highlighted text can be shown */}
                 <span>{(25 < prefix.length) && "..."}{prefix.slice(-25)}</span>
                 <span
-                    className={"search-result-highlight"}>{result["match"]}</span>
+                    className={"search-result-highlight"}>{match}</span>
                 <span>{postfix}</span>
             </button>
         );
