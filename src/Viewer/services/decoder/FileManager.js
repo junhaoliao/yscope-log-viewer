@@ -710,6 +710,7 @@ class FileManager {
 
         const searchState = {
             isSearching: true,
+            hasMoreResults: false,
             searchRegex: searchRegex,
             numTotalResults: 0,
             currPageIdx: 0,
@@ -749,12 +750,14 @@ class FileManager {
                 });
                 searchState.numTotalResults++;
 
-                if (FILE_MANAGER_LOG_SEARCH_MAX_RESULTS <= searchState.numTotalResults) {
+                if (FILE_MANAGER_LOG_SEARCH_MAX_RESULTS < searchState.numTotalResults) {
                     searchState.isSearching = false;
+                    searchState.hasMoreResults = true;
                     searchState.resultsByPages.push({
                         pageIdx: searchState.currPageIdx,
-                        results: structuredClone(searchState.resultsOnCurrPage),
+                        results: structuredClone(searchState.resultsOnCurrPage.slice(0, -1)),
                     });
+
                     searchState.resultsByPages.push({
                         pageIdx: this.state.pages - 1,
                         results: [],
@@ -840,14 +843,26 @@ class FileManager {
                 lastEmptyResultPageIdx = r.pageIdx;
             } else {
                 if (lastEmptyResultPageIdx !== null) {
-                    this._updateSearchResultsCallback(lastEmptyResultPageIdx, []);
+                    this._updateSearchResultsCallback(
+                        lastEmptyResultPageIdx,
+                        searchState.hasMoreResults,
+                        [],
+                    );
                     lastEmptyResultPageIdx = null;
                 }
-                this._updateSearchResultsCallback(r.pageIdx, r.results);
+                this._updateSearchResultsCallback(
+                    r.pageIdx,
+                    searchState.hasMoreResults,
+                    r.results,
+                );
             }
         });
         if (lastEmptyResultPageIdx !== null) {
-            this._updateSearchResultsCallback(lastEmptyResultPageIdx, []);
+            this._updateSearchResultsCallback(
+                lastEmptyResultPageIdx,
+                searchState.hasMoreResults,
+                [],
+            );
         }
 
         searchState.resultsByPages.length = 0;

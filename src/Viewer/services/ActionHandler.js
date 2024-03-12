@@ -270,10 +270,11 @@ class ActionHandler {
         });
     };
 
-    _updateSearchResultsCallback = (i, searchResults) => {
+    _updateSearchResultsCallback = (i, hasMoreResults, searchResults) => {
         postMessage({
             code: CLP_WORKER_PROTOCOL.UPDATE_SEARCH_RESULTS,
             page_num: i,
+            hasMoreResults: hasMoreResults,
             searchResults: searchResults,
         });
     };

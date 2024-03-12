@@ -316,6 +316,7 @@ export function Viewer ({fileSrc, prettifyLog, logEventNumber, timestamp}) {
                     ...prevArray,
                     {
                         page_num: event.data.page_num,
+                        hasMoreResults: event.data.hasMoreResults,
                         searchResults: event.data.searchResults,
                     },
                 ]);
