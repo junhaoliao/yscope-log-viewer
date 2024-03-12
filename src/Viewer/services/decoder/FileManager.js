@@ -542,7 +542,7 @@ class FileManager {
         if (null !== this._logsArray) {
             // FIXME: dirty hack to get download working
             this._workerPool.assignTask({
-                sessionID: this.sessionId,
+                sessionId: this.sessionId,
                 page: page,
                 f:
                     this._logsArray?.slice(targetEvent, targetEvent + numberOfEvents).join("\n"),
@@ -558,7 +558,7 @@ class FileManager {
         const logEvents = this._logEventOffsets.slice(targetEvent, targetEvent + numberOfEvents );
 
         this._workerPool.assignTask({
-            sessionID: this.sessionId,
+            sessionId: this.sessionId,
             page: page,
             logEvents: logEvents,
             inputStream: inputStream,
