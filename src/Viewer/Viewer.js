@@ -4,6 +4,7 @@ import React, {
 } from "react";
 import {Row} from "react-bootstrap";
 import LoadingIcons from "react-loading-icons";
+import {v1 as uuidv1} from "uuid";
 
 import {THEME_STATES} from "../ThemeContext/THEME_STATES";
 import {ThemeContext} from "../ThemeContext/ThemeContext";
@@ -126,8 +127,11 @@ export function Viewer ({fileSrc, prettifyLog, logEventNumber, timestamp}) {
             Number(timestamp) :
             null;
 
+        const sessionId = uuidv1();
+        window.sessionStorage.setItem("sessionId", sessionId);
         clpWorker.current.postMessage({
             code: CLP_WORKER_PROTOCOL.LOAD_FILE,
+            sessionId: sessionId,
             fileSrc: fileSrc,
             prettify: logFileState.prettify,
             logEventIdx: logEvent,
