@@ -255,7 +255,7 @@ function LeftPanelTabs ({
 
         worker.postMessage({
             code: DOWNLOAD_WORKER_ACTION.initialize,
-            sessionID: fileInfo.sessionID,
+            sessionId: window.sessionStorage.getItem("sessionId"),
             count: logFileState.downloadPageChunks,
         });
 

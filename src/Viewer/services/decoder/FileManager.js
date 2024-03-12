@@ -1,7 +1,6 @@
 import {Tarball} from "@obsidize/tar-browserify";
 import JSZip from "jszip";
 import pako from "pako";
-import {v1 as uuidv1} from "uuid";
 
 import {ZstdCodec} from "../../../../customized-packages/zstd-codec/js";
 import CLP_WORKER_PROTOCOL from "../CLP_WORKER_PROTOCOL";
@@ -47,7 +46,7 @@ class FileManager {
      * @param {function} updateFileInfoCallback
      * @param {function} updateSearchResultsCallback
      */
-    constructor (fileSrc, prettify, logEventIdx, initialTimestamp, pageSize,
+    constructor (fileSrc, sessionId, prettify, logEventIdx, initialTimestamp, pageSize,
         loadingMessageCallback,
         updateStateCallback, updateLogsCallback, updateFileInfoCallback,
         updateSearchResultsCallback) {
@@ -68,22 +67,6 @@ class FileManager {
         this._fileInfo = {
             name: null,
             path: null,
-            sessionID: null,
-        };
-
-        this.state = {
-            pageSize: pageSize,
-            pages: null,
-            page: null,
-            prettify: prettify,
-            logEventIdx: logEventIdx,
-            lineNumber: null,
-            columnNumber: null,
-            numberOfEvents: null,
-            verbosity: null,
-            compressedHumanSize: null,
-            decompressedHumanSize: null,
-            downloadChunkSize: 10000,
         };
 
         this._logs = "";
@@ -109,6 +92,23 @@ class FileManager {
         this._logSearchJobId = 0;
 
         this._workerPool = new WorkerPool();
+
+        this.state = {
+            pageSize: pageSize,
+            pages: null,
+            page: null,
+            prettify: prettify,
+            logEventIdx: logEventIdx,
+            lineNumber: null,
+            columnNumber: null,
+            numberOfEvents: null,
+            verbosity: null,
+            compressedHumanSize: null,
+            decompressedHumanSize: null,
+            downloadChunkSize: 10000,
+        };
+
+        this.sessionId = sessionId;
     }
 
 
@@ -234,7 +234,6 @@ class FileManager {
      */
     _updateInputFileInfo (file) {
         this._fileInfo = file;
-        this._fileInfo.sessionID = uuidv1();
         this._updateFileInfoCallback(this._fileInfo);
 
         this.state.compressedHumanSize = formatSizeInBytes(file.data.byteLength, false);
@@ -543,9 +542,9 @@ class FileManager {
         if (null !== this._logsArray) {
             // FIXME: dirty hack to get download working
             this._workerPool.assignTask({
-                sessionID: this._fileInfo.sessionID,
+                sessionId: this.sessionId,
                 page: page,
-                pageLogs:
+                f:
                     this._logsArray?.slice(targetEvent, targetEvent + numberOfEvents).join("\n"),
             });
             return;
@@ -559,7 +558,7 @@ class FileManager {
         const logEvents = this._logEventOffsets.slice(targetEvent, targetEvent + numberOfEvents );
 
         this._workerPool.assignTask({
-            sessionID: this._fileInfo.sessionID,
+            sessionId: this.sessionId,
             page: page,
             logEvents: logEvents,
             inputStream: inputStream,

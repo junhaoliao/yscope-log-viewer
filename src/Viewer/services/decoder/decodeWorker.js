@@ -3,7 +3,7 @@ import {DataInputStream, DataInputStreamEOFError} from "./DataInputStream";
 import FourByteClpIrStreamReader from "./FourByteClpIrStreamReader";
 import ResizableUint8Array from "./ResizableUint8Array";
 
-const decodePage = async (sessionID, logEvents, inputStream, page, pageLogs) => {
+const decodePage = async (sessionId, logEvents, inputStream, page, pageLogs) => {
     let _logs = pageLogs;
 
     if (null === _logs) {
@@ -40,7 +40,7 @@ const decodePage = async (sessionID, logEvents, inputStream, page, pageLogs) => 
         _logs = logs.trim();
     }
 
-    const db = new Database(sessionID);
+    const db = new Database(sessionId);
     db.addPage(page, _logs).then(() => {
         console.debug(`Finished decoding page ${page} to database.`);
         postMessage(true);
@@ -51,10 +51,10 @@ const decodePage = async (sessionID, logEvents, inputStream, page, pageLogs) => 
 };
 
 onmessage = (e) => {
-    const sessionID = e.data.sessionID;
+    const sessionId = e.data.sessionId;
     const logEvents = e.data.logEvents;
     const inputStream = e.data.inputStream;
     const page = e.data.page;
     const pageLogs = e.data.pageLogs;
-    decodePage(sessionID, logEvents, inputStream, page, pageLogs);
+    decodePage(sessionId, logEvents, inputStream, page, pageLogs);
 };

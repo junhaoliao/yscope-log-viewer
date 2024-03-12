@@ -20,12 +20,14 @@ onmessage = function (e) {
         case CLP_WORKER_PROTOCOL.LOAD_FILE:
             try {
                 const {fileSrc} = e.data;
+                const {sessionId} = e.data;
                 const {prettify} = e.data;
                 const {logEventIdx} = e.data;
                 const {pageSize} = e.data;
                 const {initialTimestamp} = e.data;
                 handler = new ActionHandler(
                     fileSrc,
+                    sessionId,
                     prettify,
                     logEventIdx,
                     initialTimestamp,
