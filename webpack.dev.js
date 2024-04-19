@@ -13,7 +13,7 @@ module.exports = mergeWithRules({
     },
 })(common, {
     mode: "development",
-    devtool: "cheap-module-source-map",
+    devtool: "eval-source-map",
     devServer: {
         hot: true,
         port: 3010,
