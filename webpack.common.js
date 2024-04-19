@@ -3,6 +3,7 @@ const HtmlWebpackPlugin = require("html-webpack-plugin");
 const MonacoWebpackPlugin = require("monaco-editor-webpack-plugin");
 const CopyWebpackPlugin = require("copy-webpack-plugin");
 
+
 module.exports = {
     entry: path.resolve(__dirname, "src", "index.js"),
     plugins: [
@@ -44,7 +45,7 @@ module.exports = {
             patterns: [
                 {
                     from: "./node_modules/sql.js/dist/sql-wasm.wasm",
-                    to: "static/js/"
+                    to: "static/js/",
                 },
             ],
         }),
@@ -63,29 +64,31 @@ module.exports = {
             {
                 test: /\.(js|jsx)$/,
                 include: path.resolve(__dirname, "src"),
-                exclude: /(node_modules|bower_components|build)/,
+                exclude: /node_modules/,
                 use: {
                     loader: "babel-loader",
                     options: {
-                        presets: ["@babel/" +
-                        "preset-env", "@babel/preset-react"],
+                        presets: [
+                            "@babel/preset-env",
+                            "@babel/preset-react",
+                        ],
                     },
                 },
             },
             {
-                test: /\.(js|jsx)$/,
-                exclude: /node_modules/,
-                use: {
-                    loader: "babel-loader",
-                },
-            },
-            {
                 test: /\.scss$/,
-                use: ["style-loader", "css-loader", "sass-loader"],
+                use: [
+                    "style-loader",
+                    "css-loader",
+                    "sass-loader",
+                ],
             },
             {
                 test: /\.css$/,
-                use: ["style-loader", "css-loader"],
+                use: [
+                    "style-loader",
+                    "css-loader",
+                ],
             },
             {
                 test: /\.ttf$/i,
@@ -101,8 +104,13 @@ module.exports = {
             fs: require.resolve("browserify-fs"),
             path: require.resolve("path-browserify"),
             stream: require.resolve("stream-browserify"),
+            vm: false,
         },
-        extensions: [".json", ".js", ".jsx"],
+        extensions: [
+            ".json",
+            ".js",
+            ".jsx",
+        ],
         modules: ["node_modules"],
     },
     optimization: {

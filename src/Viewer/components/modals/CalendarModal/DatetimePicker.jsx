@@ -1,6 +1,8 @@
 import PropTypes from "prop-types";
 import React from "react";
 
+import dayjs from "dayjs";
+
 import {
     DateCalendar, DateTimeField, MultiSectionDigitalClock,
 } from "@mui/x-date-pickers";
@@ -9,12 +11,13 @@ import {
 /**
  * Customized datetime picker.
  *
- * @param {function} onChange triggered when the selected date or time changes
+ * @param {Function} onChange triggered when the selected date or time changes
  * @param {object} value timestamp
- * @returns {JSX.Element}
+ * @return {JSX.Element}
  */
 const DateTimePicker = ({onChange, value}) => {
     const commonProps = {
+        autoFocus: false,
         timezone: "UTC",
         onChange: onChange,
         value: value,
@@ -43,6 +46,7 @@ const DateTimePicker = ({onChange, value}) => {
             <div style={{display: "flex"}}>
                 <DateCalendar
                     {...commonProps}
+                    disabled={false === dayjs(value).isValid()}
                     sx={{
                         ".MuiMonthCalendar-root": {
                             width: "100%",
@@ -63,6 +67,7 @@ const DateTimePicker = ({onChange, value}) => {
                 <MultiSectionDigitalClock
                     {...commonProps}
                     ampm={false}
+                    disabled={false === dayjs(value).isValid()}
                     timeSteps={{hours: 1, minutes: 1, seconds: 1}}
                     sx={{
                         ".MuiMultiSectionDigitalClockSection-root": {
