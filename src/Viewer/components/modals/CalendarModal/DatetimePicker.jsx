@@ -9,12 +9,13 @@ import {
 /**
  * Customized datetime picker.
  *
- * @param {function} onChange triggered when the selected date or time changes
+ * @param {Function} onChange triggered when the selected date or time changes
  * @param {object} value timestamp
- * @returns {JSX.Element}
+ * @return {JSX.Element}
  */
 const DateTimePicker = ({onChange, value}) => {
     const commonProps = {
+        autoFocus: false,
         timezone: "UTC",
         onChange: onChange,
         value: value,
