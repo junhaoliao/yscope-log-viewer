@@ -577,17 +577,22 @@ class FileManager {
                 this._logsArray.length,
                 this.state.pageSize * (this.state.page));
 
-            let offset = 0;
+            this.state.logEventIdx = startingEventIdx;
             this._logsPageLineOffsetsArray.length = 0;
             this._logs = "";
 
-            for (let i = startingEventIdx; i< endingEventIdx; i++) {
-                this._logs += this._logsArray[i] + "\n";
+            let offset = 0;
+            for (let i = startingEventIdx; i < endingEventIdx; i++) {
+                this._logs += this.state.prettify ?
+                    this._prettifier.prettify(this._logsArray[i])[1] :
+                    this._logsArray[i];
+                this._logs += "\n";
                 this._logsPageLineOffsetsArray.push(offset);
                 offset += this._logsArray[i].split("\n").length;
             }
 
             this._updateLogsCallback(this._logs);
+
             return;
         }
 
