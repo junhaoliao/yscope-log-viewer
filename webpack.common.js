@@ -101,6 +101,7 @@ module.exports = {
             fs: require.resolve("browserify-fs"),
             path: require.resolve("path-browserify"),
             stream: require.resolve("stream-browserify"),
+            vm: false,
         },
         extensions: [".json", ".js", ".jsx"],
         modules: ["node_modules"],
