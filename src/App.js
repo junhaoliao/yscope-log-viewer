@@ -4,6 +4,7 @@ import React, {
 
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
+
 import {LocalizationProvider} from "@mui/x-date-pickers";
 import {AdapterDayjs} from "@mui/x-date-pickers/AdapterDayjs";
 
@@ -25,8 +26,8 @@ dayjs.extend(utc);
  * Main component which renders viewer and scanner depending
  * on the state of the application.
  *
+ * @class
  * @return {JSX.Element}
- * @constructor
  */
 export function App () {
     const APP_STATE = {
@@ -39,6 +40,7 @@ export function App () {
     const [logEventIdx, setLogEventIdx] = useState(null);
     const [timestamp, setTimestamp] = useState(null);
     const [prettify, setPrettify] = useState(null);
+    const [query, setQuery] = useState({});
     const [theme, setTheme] = useState(THEME_STATES.DARK);
 
     useEffect(() => {
@@ -72,6 +74,11 @@ export function App () {
         // Load the initial state of the viewer from url
         setPrettify("true" === urlSearchParams.get("prettify"));
         setLogEventIdx(urlHashParams.get("logEventIdx"));
+        setQuery({
+            isRegex: Boolean(urlSearchParams.get("query.isRegex")) || false,
+            matchCase: Boolean(urlSearchParams.get("query.matchCase")) || false,
+            searchString: urlSearchParams.get("query.searchString") || "",
+        });
         setTimestamp(urlSearchParams.get("timestamp"));
 
         const filePath = getFilePathFromWindowLocation();
@@ -89,6 +96,7 @@ export function App () {
 
     /**
      * Handles the file being changed
+     *
      * @param {File} file
      */
     const handleFileChange = (file) => {
@@ -104,6 +112,7 @@ export function App () {
                         {(APP_STATE.FILE_VIEW === appMode) &&
                         <Viewer
                             fileSrc={fileSrc}
+                            initialQuery={query}
                             logEventNumber={logEventIdx}
                             prettifyLog={prettify}
                             timestamp={timestamp}/>}

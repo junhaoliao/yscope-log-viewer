@@ -1,5 +1,6 @@
 import MODIFY_PAGE_ACTION from "./MODIFY_PAGE_ACTION";
 
+
 /**
  * Modifies the page by performing the specified action.
  *
@@ -22,16 +23,22 @@ const modifyPage = (action, currentPage, requestedPage, pages) => {
             linePos = "bottom";
             break;
         case MODIFY_PAGE_ACTION.newPage:
-            const isValidPage = (requestedPage > 0 && requestedPage <= pages);
-            newPage = (isValidPage)?requestedPage:null;
+            const isValidPage = (0 < requestedPage && requestedPage <= pages);
+            newPage = (isValidPage) ?
+                requestedPage :
+                null;
             linePos = "top";
             break;
         case MODIFY_PAGE_ACTION.prevPage:
-            newPage = (currentPage - 1 > 0)?currentPage - 1:null;
+            newPage = (0 < currentPage - 1) ?
+                currentPage - 1 :
+                null;
             linePos = "bottom";
             break;
         case MODIFY_PAGE_ACTION.nextPage:
-            newPage = (currentPage + 1 <= pages)?currentPage + 1:null;
+            newPage = (currentPage + 1 <= pages) ?
+                currentPage + 1 :
+                null;
             linePos = "top";
             break;
         default:
@@ -40,7 +47,8 @@ const modifyPage = (action, currentPage, requestedPage, pages) => {
             break;
     }
 
-    return [linePos, newPage];
+    return [linePos,
+        newPage];
 };
 
 /**
@@ -48,7 +56,7 @@ const modifyPage = (action, currentPage, requestedPage, pages) => {
  * if the given path is a relative one.
  *
  * @param {string} path that is either absolute or relative
- * @returns {string}
+ * @return {string}
  */
 const getAbsoluteUrl = (path) => {
     try {
@@ -67,7 +75,7 @@ const getAbsoluteUrl = (path) => {
  * Parses `filePath` from the current window location's search query.
  *
  * @return {string|null} The parsed file path or
- *                       null if not found.
+ * null if not found.
  */
 const getFilePathFromWindowLocation = () => {
     let filePath = window.location.search.split("filePath=")[1];
@@ -105,7 +113,7 @@ const getModifiedUrl = (searchParams, hashParams) => {
             // to be appended as the last parameter
             filePath = value;
             urlSearchParams.delete(key);
-        } else if (null === value) {
+        } else if (null === value || false === value) {
             urlSearchParams.delete(key);
         } else {
             urlSearchParams.set(key, value.toString());
@@ -120,7 +128,7 @@ const getModifiedUrl = (searchParams, hashParams) => {
     });
 
     let urlSearchParamsAsString = urlSearchParams.toString();
-    if (false === /%23|%26/.test(urlSearchParamsAsString)) {
+    if (false === (/%23|%26/).test(urlSearchParamsAsString)) {
         // avoid encoding the URL
         // if it does not contain `%23`(`#`) or `%26`(`&`)
         urlSearchParamsAsString = decodeURIComponent(urlSearchParamsAsString);
@@ -128,7 +136,9 @@ const getModifiedUrl = (searchParams, hashParams) => {
 
     url.search = urlSearchParamsAsString;
     if (null !== filePath) {
-        url.search += ((0 === urlSearchParams.size) ? "" : "&") + `filePath=${filePath}`;
+        url.search += `${(0 === urlSearchParams.size) ?
+            "" :
+            "&"}filePath=${filePath}`;
     }
 
     url.hash = urlHashParams.toString();
@@ -143,33 +153,34 @@ const getModifiedUrl = (searchParams, hashParams) => {
  * @return {boolean}
  */
 function isNumeric (value) {
-    if (typeof value === "string") {
-        return /^-?\d+$/.test(value);
-    } else {
-        return (typeof value === "number");
+    if ("string" === typeof value) {
+        return (/^-?\d+$/).test(value);
     }
+
+    return ("number" === typeof value);
 }
 
 /**
  * Given a list of log events, finds the first log event whose timestamp is
  * greater than or equal to the given timestamp, using binary search. The given
  * list must be sorted in increasing timestamp order.
+ *
  * @param {number} timestamp The timestamp to search for as milliseconds since
  * the UNIX epoch.
- * @param {Object[]} logEventMetadata An array containing log event metadata
+ * @param {object[]} logEventMetadata An array containing log event metadata
  * objects, where the "timestamp" key in each object is the event's timestamp as
  * milliseconds since the UNIX epoch.
  * @return {number|null} Index of the log event if found, or null otherwise
-*/
+ */
 function binarySearchWithTimestamp (timestamp, logEventMetadata) {
-    const length = logEventMetadata.length;
+    const {length} = logEventMetadata;
 
     let low = 0;
     let high = length - 1;
     let mid;
 
     // Early exit
-    if (length === 0) {
+    if (0 === length) {
         return null;
     }
     if (timestamp <= logEventMetadata[low].timestamp) {
@@ -187,9 +198,8 @@ function binarySearchWithTimestamp (timestamp, logEventMetadata) {
         if (logEventMetadata[mid].timestamp >= timestamp) {
             if (logEventMetadata[mid - 1].timestamp < timestamp) {
                 return mid;
-            } else {
-                high = mid - 1;
             }
+            high = mid - 1;
         } else {
             low = mid + 1;
         }

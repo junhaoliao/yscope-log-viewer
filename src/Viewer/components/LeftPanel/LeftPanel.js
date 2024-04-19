@@ -1,17 +1,25 @@
-import React, {useCallback, useContext, useEffect, useRef, useState} from "react";
-
 import PropTypes from "prop-types";
-import {Button, Form, Modal, ProgressBar, Row} from "react-bootstrap";
-import {CloudArrowDown, Download, Folder, Gear, Moon, Search, Sun, XCircle} from "react-bootstrap-icons";
+import React, {
+    useCallback, useContext, useEffect, useRef, useState,
+} from "react";
+import {
+    Button, Form, Modal, ProgressBar, Row,
+} from "react-bootstrap";
+import {
+    CloudArrowDown, Download, Folder, Gear, Moon, Search, Sun, XCircle,
+} from "react-bootstrap-icons";
 
 import {THEME_STATES} from "../../../ThemeContext/THEME_STATES";
 import {ThemeContext} from "../../../ThemeContext/ThemeContext";
 import STATE_CHANGE_TYPE from "../../services/STATE_CHANGE_TYPE";
 import {ResizeHandle} from "../ResizeHandle/ResizeHandle";
 import DOWNLOAD_WORKER_ACTION from "./DOWNLOAD_WORKER_ACTION";
-import {BlobAppender, downloadBlob, downloadCompressedFile} from "./DownloadHelper";
+import {
+    BlobAppender, downloadBlob, downloadCompressedFile,
+} from "./DownloadHelper";
 
 import "./LeftPanel.scss";
+
 
 const LEFT_PANEL_WIDTH_LIMIT_FACTOR = 0.8;
 const LEFT_PANEL_SNAP_WIDTH = 108;
@@ -31,12 +39,14 @@ LeftPanel.propTypes = {
 
 /**
  * Callback used to set the panel's width
+ *
  * @callback SetPanelWidth
  * @param {number} width
  */
 
 /**
  * Callback used to set the ID of the active tab
+ *
  * @callback SetActiveTabId
  * @param {number} id
  */
@@ -45,11 +55,12 @@ LeftPanel.propTypes = {
  * This callback is used to load a new file.
  *
  * @callback LoadFileCallback
- * @param {File|String} fileInfo File object or file path to load.
+ * @param {File | string} fileInfo File object or file path to load.
  */
 
 /**
  * Callback used to change the parent component's state
+ *
  * @callback ChangeStateCallback
  * @param {string} type The type of state change ({@link STATE_CHANGE_TYPE})
  * @param {object} args Arguments used to update the state
@@ -57,6 +68,8 @@ LeftPanel.propTypes = {
 
 /**
  * The left panel component
+ *
+ * @param logFileState.logFileState
  * @param {object} logFileState Current state of the log file
  * @param {object} fileInfo Object containing file metadata
  * @param {number} panelWidth
@@ -66,6 +79,14 @@ LeftPanel.propTypes = {
  * @param {LoadFileCallback} loadFileCallback
  * @param {ChangeStateCallback} changeStateCallback
  * @param {JSX.Element} children
+ * @param logFileState.fileInfo
+ * @param logFileState.panelWidth
+ * @param logFileState.setPanelWidth
+ * @param logFileState.activeTabId
+ * @param logFileState.setActiveTabId
+ * @param logFileState.loadFileCallback
+ * @param logFileState.changeStateCallback
+ * @param logFileState.children
  * @return {JSX.Element}
  */
 export function LeftPanel ({
@@ -85,6 +106,7 @@ export function LeftPanel ({
             if (newWidth > window.innerWidth * LEFT_PANEL_WIDTH_LIMIT_FACTOR) {
                 return prev;
             }
+
             // get panel to snap if it gets too small
             if (newWidth < LEFT_PANEL_SNAP_WIDTH) {
                 return 0;
@@ -97,31 +119,36 @@ export function LeftPanel ({
     const togglePanel = (activeTabId) => {
         setActiveTabId(activeTabId);
         setPanelWidth((prev) => {
-            if (prev > 0) {
+            if (0 < prev) {
                 // if previously opened, hide panel
                 return 0;
-            } else {
-                // if previously not opened, open panel
-                return window.innerWidth * LEFT_PANEL_DEFAULT_WIDTH_FACTOR;
             }
+
+
+            // if previously not opened, open panel
+            return window.innerWidth * LEFT_PANEL_DEFAULT_WIDTH_FACTOR;
         });
     };
 
     return (
         <>
             <LeftPanelTabs
-                logFileState={logFileState}
-                fileInfo={fileInfo}
-                activeTabId={panelWidth > 0 ? activeTabId : -1}
-                togglePanel={togglePanel}
-                loadFileCallback={loadFileCallback}
                 changeStateCallback={changeStateCallback}
-            />
+                fileInfo={fileInfo}
+                loadFileCallback={loadFileCallback}
+                logFileState={logFileState}
+                togglePanel={togglePanel}
+                activeTabId={0 < panelWidth ?
+                    activeTabId :
+                    -1}/>
             <div className={"left-panel-container"}>
-                <div className={"left-panel-content-container"} style={{
-                    minWidth: panelWidth,
-                    width: panelWidth,
-                }}>
+                <div
+                    className={"left-panel-content-container"}
+                    style={{
+                        minWidth: panelWidth,
+                        width: panelWidth,
+                    }}
+                >
                     {children}
                 </div>
                 <ResizeHandle resizeCallback={handleLeftPanelResize}/>
@@ -141,6 +168,7 @@ LeftPanelTabs.propTypes = {
 
 /**
  * Callback used to toggle (open/close) the panel
+ *
  * @callback TogglePanel
  * @param {number} activeTabId
  */
@@ -149,11 +177,12 @@ LeftPanelTabs.propTypes = {
  * This callback is used to load a new file.
  *
  * @callback LoadFileCallback
- * @param {File|String} fileInfo File object or file path to load.
+ * @param {File | string} fileInfo File object or file path to load.
  */
 
 /**
  * Callback used to change the parent component's state
+ *
  * @callback ChangeStateCallback
  * @param {string} type The type of state change ({@link STATE_CHANGE_TYPE})
  * @param {object} args Arguments used to update the state
@@ -161,13 +190,19 @@ LeftPanelTabs.propTypes = {
 
 /**
  * The tabs of the left panel
+ *
+ * @param logFileState.logFileState
  * @param {object} logFileState Current state of the log file
  * @param {number} activeTabId
  * @param {TogglePanel} togglePanel
  * @param {LoadFileCallback} loadFileCallback
  * @param {ChangeStateCallback} changeStateCallback
+ * @param logFileState.fileInfo
+ * @param logFileState.activeTabId
+ * @param logFileState.togglePanel
+ * @param logFileState.loadFileCallback
+ * @param logFileState.changeStateCallback
  * @return {JSX.Element}
- *
  */
 function LeftPanelTabs ({
     logFileState,
@@ -213,7 +248,9 @@ function LeftPanelTabs ({
 
     // Modal Functions
     const getModalClass = () => {
-        return (THEME_STATES.LIGHT === theme)?"modal-light":"modal-dark";
+        return (THEME_STATES.LIGHT === theme) ?
+            "modal-light" :
+            "modal-dark";
     };
 
     const saveModalChanges = (e) => {
@@ -265,10 +302,10 @@ function LeftPanelTabs ({
             const msg = e.data;
             switch (msg.code) {
                 case DOWNLOAD_WORKER_ACTION.pageData:
-                    blob.append(msg.data + "\n");
+                    blob.append(`${msg.data}\n`);
                     console.debug(`Added page ${msg.page} to stream.`);
                     if (page <= logFileState.downloadPageChunks) {
-                        setProgress(90 + ((page/logFileState.downloadPageChunks) * 10));
+                        setProgress(90 + ((page / logFileState.downloadPageChunks) * 10));
                         worker.postMessage({
                             code: DOWNLOAD_WORKER_ACTION.pageData,
                             page: page++,
@@ -318,12 +355,16 @@ function LeftPanelTabs ({
     const getThemeIcon = () => {
         if (THEME_STATES.LIGHT === theme) {
             return (
-                <Moon className="cursor-pointer" title="Set Light Mode"
+                <Moon
+                    className={"cursor-pointer"}
+                    title={"Set Light Mode"}
                     onClick={() => switchTheme(THEME_STATES.DARK)}/>
             );
         } else if (THEME_STATES.DARK === theme) {
             return (
-                <Sun className="cursor-pointer" title="Set Dark Mode"
+                <Sun
+                    className={"cursor-pointer"}
+                    title={"Set Dark Mode"}
                     onClick={() => switchTheme(THEME_STATES.LIGHT)}/>
             );
         }
@@ -338,9 +379,13 @@ function LeftPanelTabs ({
         };
     }, []);
 
+    /**
+     *
+     * @param e
+     */
     window.onbeforeunload = function (e) {
         changeStateCallback(STATE_CHANGE_TYPE.stopDownload, null);
-        if (downloadWorker.current !== null) {
+        if (null !== downloadWorker.current) {
             downloadWorker.current.postMessage({
                 code: DOWNLOAD_WORKER_ACTION.clearDatabase,
             });
@@ -350,15 +395,18 @@ function LeftPanelTabs ({
     return (
         <>
             <div className={"left-panel-tabs-container"}>
-                <div style={{
-                    display: "flex",
-                    flexFlow: "column",
-                    height: "100%",
-                }}>
+                <div
+                    style={{
+                        display: "flex",
+                        flexFlow: "column",
+                        height: "100%",
+                    }}
+                >
                     <div style={{flexGrow: 1}}>
                         <button
                             className={"left-panel-tab"}
-                            onClick={openFile}>
+                            onClick={openFile}
+                        >
                             <Folder size={25}/>
                         </button>
                         <button
@@ -366,111 +414,170 @@ function LeftPanelTabs ({
                             ${(LEFT_PANEL_TAB_IDS.SEARCH === activeTabId ?
             "left-panel-tab-selected" :
             "")}`}
-                            onClick={toggleSearchPanel}>
-                            <Search size={25} style={{transform: "scaleX(-1)"}}/>
+                            onClick={toggleSearchPanel}
+                        >
+                            <Search
+                                size={25}
+                                style={{transform: "scaleX(-1)"}}/>
                         </button>
-                        <button className={"left-panel-tab"} onClick={handleShowDownload}>
+                        <button
+                            className={"left-panel-tab"}
+                            onClick={handleShowDownload}
+                        >
                             <CloudArrowDown size={28}/>
                         </button>
                     </div>
                     <div>
                         <button
                             className={"left-panel-tab"}
-                            onClick={openModal}>
+                            onClick={openModal}
+                        >
                             <Gear size={25}/>
                         </button>
                     </div>
                 </div>
             </div>
-            <input type='file' id='file' onChange={loadFile} ref={inputFile}
-                style={{display: "none"}}/>
-            <Modal show={showDownload} className="border-0" onHide={handleShowDownload}
-                contentClassName={getModalClass()}>
-                <Modal.Header className="modal-background border-0" >
-                    <div className="float-left">
+            <input
+                id={"file"}
+                ref={inputFile}
+                style={{display: "none"}}
+                type={"file"}
+                onChange={loadFile}/>
+            <Modal
+                className={"border-0"}
+                contentClassName={getModalClass()}
+                show={showDownload}
+                onHide={handleShowDownload}
+            >
+                <Modal.Header className={"modal-background border-0"}>
+                    <div className={"float-left"}>
                         Download
                     </div>
                 </Modal.Header>
-                <Modal.Body className="modal-background pt-1">
+                <Modal.Body className={"modal-background pt-1"}>
                     <div style={{fontSize: "14px"}}>
                         {hasFilePath() &&
-                            <Row className="m-0 mb-4 d-flex flex-column align-items-center text-center">
-                                <label style={{fontSize: "17px"}}>Compressed Log ({logFileState.compressedHumanSize})</label>
-                                <button className="btn btn-secondary download-button m-2"
-                                    style={{fontSize: "13px", width: "200px"}} onClick={downloadCompressedFile}>
-                                    <Download className="me-3 icon-button"/>
+                            <Row className={"m-0 mb-4 d-flex flex-column align-items-center text-center"}>
+                                <label style={{fontSize: "17px"}}>
+                                    Compressed Log (
+                                    {logFileState.compressedHumanSize}
+                                    )
+                                </label>
+                                <button
+                                    className={"btn btn-secondary download-button m-2"}
+                                    style={{fontSize: "13px", width: "200px"}}
+                                    onClick={downloadCompressedFile}
+                                >
+                                    <Download className={"me-3 icon-button"}/>
                                     Download File
                                 </button>
-                            </Row>
-                        }
+                            </Row>}
 
-                        <Row className="m-0 d-flex flex-column align-items-center text-center">
-                            <label style={{fontSize: "17px"}}>Uncompressed Log ({logFileState.decompressedHumanSize})</label>
+                        <Row className={"m-0 d-flex flex-column align-items-center text-center"}>
+                            <label style={{fontSize: "17px"}}>
+                                Uncompressed Log (
+                                {logFileState.decompressedHumanSize}
+                                )
+                            </label>
                             {!isDownloading &&
-                                <button className="btn btn-secondary download-button m-2"
-                                    style={{fontSize: "13px", width: "200px"}} onClick={downloadUncompressedFile}>
-                                    <Download className="me-3 icon-button"/>
+                                <button
+                                    className={"btn btn-secondary download-button m-2"}
+                                    style={{fontSize: "13px", width: "200px"}}
+                                    onClick={downloadUncompressedFile}
+                                >
+                                    <Download className={"me-3 icon-button"}/>
                                     Start Download
-                                </button>
-                            }
+                                </button>}
                             {isDownloading &&
-                                <button className="btn btn-outline-warning download-button m-2"
-                                    style={{fontSize: "15px", width: "200px"}} onClick={stopUncompressedDownload}>
-                                    <XCircle className="me-3 icon-button"/>
+                                <button
+                                    className={"btn btn-outline-warning download-button m-2"}
+                                    style={{fontSize: "15px", width: "200px"}}
+                                    onClick={stopUncompressedDownload}
+                                >
+                                    <XCircle className={"me-3 icon-button"}/>
                                     Cancel Download
-                                </button>
-                            }
+                                </button>}
                         </Row>
 
-                        <Row className="px-3 m-0 mt-3">
+                        <Row className={"px-3 m-0 mt-3"}>
                             {isDownloading &&
-                                <Row className="m-0 p-0">
-                                    <div className="p-0 m-0 mb-2" style={{fontSize: "13px"}}>
-                                        <div className="p-0" style={{float: "left"}}>
+                                <Row className={"m-0 p-0"}>
+                                    <div
+                                        className={"p-0 m-0 mb-2"}
+                                        style={{fontSize: "13px"}}
+                                    >
+                                        <div
+                                            className={"p-0"}
+                                            style={{float: "left"}}
+                                        >
                                             {downloadingMessage}
                                         </div>
-                                        <div className="p-0" style={{float: "right"}}>
-                                            {progress.toFixed(2)} %
+                                        <div
+                                            className={"p-0"}
+                                            style={{float: "right"}}
+                                        >
+                                            {progress.toFixed(2)}
+                                            {" "}
+                                            %
                                         </div>
                                     </div>
-                                    <ProgressBar animated now={progress} style={{height: "10px"}}
-                                        className="p-0 border-0 rounded-0"/>
-                                </Row>
-                            }
+                                    <ProgressBar
+                                        animated={true}
+                                        className={"p-0 border-0 rounded-0"}
+                                        now={progress}
+                                        style={{height: "10px"}}/>
+                                </Row>}
                         </Row>
                     </div>
                 </Modal.Body>
-                <Modal.Footer className="modal-background border-0" >
-                    <Button className="btn-sm" variant="secondary" onClick={handleCloseDownload}>
+                <Modal.Footer className={"modal-background border-0"}>
+                    <Button
+                        className={"btn-sm"}
+                        variant={"secondary"}
+                        onClick={handleCloseDownload}
+                    >
                         Close
                     </Button>
                 </Modal.Footer>
             </Modal>
 
-            <Modal show={showSettings} className="border-0" onHide={handleCloseSettings}
-                contentClassName={getModalClass()}>
-                <Modal.Header className="modal-background border-0" >
-                    <div className="float-left">
+            <Modal
+                className={"border-0"}
+                contentClassName={getModalClass()}
+                show={showSettings}
+                onHide={handleCloseSettings}
+            >
+                <Modal.Header className={"modal-background border-0"}>
+                    <div className={"float-left"}>
                         App Settings
                     </div>
-                    <div className="float-right">
+                    <div className={"float-right"}>
                         {getThemeIcon()}
                     </div>
                 </Modal.Header>
-                <Modal.Body className="modal-background p-3 pt-1" >
-                    <label className="mb-2">Log Events per Page</label>
+                <Modal.Body className={"modal-background p-3 pt-1"}>
+                    <label className={"mb-2"}>Log Events per Page</label>
                     <Form onSubmit={saveModalChanges}>
-                        <Form.Control type="number"
+                        <Form.Control
+                            className={"input-sm num-event-input"}
+                            type={"number"}
                             value={eventsPerPage}
-                            onChange={(e) => setEventsPerPage(Number(e.target.value))}
-                            className="input-sm num-event-input" />
+                            onChange={(e) => setEventsPerPage(Number(e.target.value))}/>
                     </Form>
                 </Modal.Body>
-                <Modal.Footer className="modal-background border-0" >
-                    <Button className="btn-sm" variant="success" onClick={saveModalChanges}>
+                <Modal.Footer className={"modal-background border-0"}>
+                    <Button
+                        className={"btn-sm"}
+                        variant={"success"}
+                        onClick={saveModalChanges}
+                    >
                         Save Changes
                     </Button>
-                    <Button className="btn-sm" variant="secondary" onClick={closeModal}>
+                    <Button
+                        className={"btn-sm"}
+                        variant={"secondary"}
+                        onClick={closeModal}
+                    >
                         Close
                     </Button>
                 </Modal.Footer>
@@ -482,3 +589,5 @@ function LeftPanelTabs ({
 export const LEFT_PANEL_TAB_IDS = {
     SEARCH: 0,
 };
+
+export {LEFT_PANEL_DEFAULT_WIDTH_FACTOR};
