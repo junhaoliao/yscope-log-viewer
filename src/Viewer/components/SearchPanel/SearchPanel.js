@@ -1,6 +1,7 @@
-import React, {useEffect, useState} from "react";
-
 import PropTypes from "prop-types";
+import React, {
+    useEffect, useState,
+} from "react";
 import {ProgressBar} from "react-bootstrap";
 import {
     ArrowsCollapse,
@@ -9,55 +10,77 @@ import {
     CaretRightFill,
     ExclamationTriangle,
     Regex,
+    ShareFill,
 } from "react-bootstrap-icons";
+
+import {getModifiedUrl} from "../../services/utils";
 
 import "./SearchPanel.scss";
 
-SearchPanel.propTypes = {
-    query: PropTypes.object,
-    searchResults: PropTypes.array,
-    totalPages: PropTypes.number,
-    queryChangeHandler: PropTypes.func,
-    searchResultClickHandler: PropTypes.func,
-};
 
 /**
  * Callback when the query is changed
+ *
  * @callback QueryChangeHandler
  * @param {string} query
  */
 
 /**
  * Callback when a result is clicked
+ *
  * @callback SearchResultClickHandler
  * @param {number} logEventIdx
  */
 
 /**
- * The search panel
- * @param {object} query
- * @param {array} searchResults
- * @param {number} totalPages
- * @param {QueryChangeHandler} queryChangeHandler
- * @param {SearchResultClickHandler} searchResultClickHandler
- * @return {JSX.Element}
+ * Renders a search panel for submitting and viewing queries.
+ *
+ * @param {object} props
+ * @param {object} props.query
+ * @param {QueryChangeHandler} props.queryChangeHandler
+ * @param {SearchResultClickHandler} props.searchResultClickHandler
+ * @param {Array} props.searchResults
+ * @param {number} props.totalPages
+ * @param {Function} props.onStatusMessageChange
+ * @return {React.ReactElement}
  */
-export function SearchPanel ({
+const SearchPanel = ({
     query,
-    searchResults,
-    totalPages,
     queryChangeHandler,
+    searchResults,
     searchResultClickHandler,
-}) {
-    const [collapseAll, setCollapseAll] = useState(false);
+    totalPages,
+    onStatusMessageChange,
+}) => {
+    const [isAllCollapsed, setIsAllCollapsed] = useState(false);
+
     const handleCollapseAllClick = () => {
-        setCollapseAll(!collapseAll);
+        setIsAllCollapsed(!isAllCollapsed);
+    };
+
+    const handleShareButtonClick = () => {
+        const searchParams = {
+            "query.searchString": query.searchString,
+            "query.matchCase": query.matchCase,
+            "query.isRegex": query.isRegex,
+        };
+
+        const link = getModifiedUrl(
+            searchParams,
+            {}
+        );
+
+        navigator.clipboard.writeText(link).then(() => {
+            onStatusMessageChange("Copied link to search query.");
+        }, (err) => {
+            onStatusMessageChange(`Failed to copy link to search query: ${err}`);
+        });
     };
 
     const queryInputChangeHandler = (e) => {
         // auto resize height of the input box
         e.target.style.height = 0;
-        e.target.style.height = e.target.scrollHeight + 6 + "px";
+        e.target.style.height = `${e.target.scrollHeight + 6}px`;
 
         const newQuery = e.target.value;
         queryChangeHandler({...query, searchString: newQuery});
@@ -84,12 +107,11 @@ export function SearchPanel ({
     if (null !== searchResults) {
         resultGroups = searchResults.map((resultGroup, index) => (
             <SearchResultsGroup
+                isAllCollapsed={isAllCollapsed}
                 key={index}
                 pageNum={resultGroup.page_num}
-                results={resultGroup}
-                collapseAll={collapseAll}
                 resultClickHandler={searchResultClickHandler}
-            />
+                results={resultGroup}/>
         ));
         if (searchResults.length) {
             progress = (searchResults[searchResults.length - 1].page_num + 1) /
@@ -100,54 +122,81 @@ export function SearchPanel ({
             progress = 5;
         }
     }
+
     return (
         <>
             <div style={{padding: "0 15px"}}>
                 <div className={"tab-search-header"}>
                     <div className={"tab-search-header-text"}>SEARCH</div>
-                    <button className={"tab-search-header-button"}
-                        onClick={handleCollapseAllClick}>
-                        {collapseAll ? <ArrowsExpand/> : <ArrowsCollapse/>}
+                    <button
+                        className={"tab-search-header-button"}
+                        disabled={0 === query.searchString.length}
+                        title={"Share query"}
+                        onClick={handleShareButtonClick}
+                    >
+                        <ShareFill/>
+                    </button>
+                    <button
+                        className={"tab-search-header-button"}
+                        title={"Collapse All"}
+                        onClick={handleCollapseAllClick}
+                    >
+                        {isAllCollapsed ?
+                            <ArrowsExpand/> :
+                            <ArrowsCollapse/>}
                     </button>
                 </div>
                 <form style={{display: "flex"}}>
                     <textarea
-                        style={{paddingRight: "66px"}}
                         className={"search-input"}
+                        placeholder={"Query"}
+                        style={{paddingRight: "66px"}}
+                        value={query.searchString}
                         onChange={queryInputChangeHandler}
-                        onKeyDown={(event)=>{
-                            if (event.key === "Enter" && !event.shiftKey) {
+                        onKeyDown={(event) => {
+                            if ("Enter" === event.key && !event.shiftKey) {
                                 event.preventDefault();
                             }
-                        }}
-                        placeholder={"Query"}
-                        value={query.searchString}
-                    />
+                        }}/>
                     <span style={{position: "absolute", right: "14px"}}>
-                        <button onClick={queryButtonClickHandler}
+                        <button
                             data-action={"matchCase"}
                             className={`search-input-button 
-                            ${query.matchCase ? "search-input-button-active" : ""}`}>
+                            ${query.matchCase ?
+            "search-input-button-active" :
+            ""}`}
+                            onClick={queryButtonClickHandler}
+                        >
                             {/* TODO: Replace with some icon */}
                             Aa
                         </button>
-                        <button onClick={queryButtonClickHandler}
+                        <button
                             data-action={"isRegex"}
                             className={`search-input-button 
-                            ${query.isRegex ? "search-input-button-active" : ""}`}>
+                            ${query.isRegex ?
+            "search-input-button-active" :
+            ""}`}
+                            onClick={queryButtonClickHandler}
+                        >
                             <Regex/>
                         </button>
                     </span>
                 </form>
-                {(progress !== null) &&
-                    <ProgressBar animated={progress !== 100} now={progress}
-                        variant={progress === 100?"success":undefined}
-                        style={{height: "3px"}}/>}
+                {(null !== progress) &&
+                    <ProgressBar
+                        animated={100 !== progress}
+                        now={progress}
+                        style={{height: "3px"}}
+                        variant={100 === progress ?
+                            "success" :
+                            undefined}/>}
             </div>
             <div className={"search-results-container"}>
                 {hasMoreResults &&
                 <div>
-                    <ExclamationTriangle size={14} color={"#FFBF00"}/>
+                    <ExclamationTriangle
+                        color={"#FFBF00"}
+                        size={14}/>
                     &nbsp;
                     <span>
                         The result set only contains a subset of all matches.
@@ -158,54 +207,59 @@ export function SearchPanel ({
             </div>
         </>
     );
-}
+};
 
-SearchResultsGroup.propTypes = {
-    pageNum: PropTypes.number,
-    results: PropTypes.object,
-    collapseAll: PropTypes.bool,
-    setCollapseAll: PropTypes.func,
-    resultClickHandler: PropTypes.func,
+SearchPanel.propTypes = {
+    query: PropTypes.object,
+    queryChangeHandler: PropTypes.func,
+    searchResultClickHandler: PropTypes.func,
+    searchResults: PropTypes.array,
+    totalPages: PropTypes.number,
 };
 
 /**
  * Callback used to set collapse all flag
+ *
  * @callback SetCollapseAll
  * @param {boolean} collapseAll
  */
 
 /**
  * Callback when a result is clicked
+ *
  * @callback ResultClickHandler
  * @param {number} logEventIdx
  */
 
 /**
  * The search results on a page
- * @param {number} pageNum
- * @param {object} results
- * @param {boolean} collapseAll
- * @param {ResultClickHandler} resultClickHandler
+ *
+ * @param {object} props
+ * @param {boolean} props.isAllCollapsed
+ * @param {number} props.pageNum
+ * @param {object} props.results
+ * @param {ResultClickHandler} props.resultClickHandler
  * @return {JSX.Element}
  */
-function SearchResultsGroup ({
+const SearchResultsGroup = ({
+    isAllCollapsed,
     pageNum,
     results,
-    collapseAll,
     resultClickHandler,
-}) {
-    if (results.searchResults.length === 0) {
-        return <></>;
-    }
-
+}) => {
     const [collapsed, setCollapsed] = useState(true);
+
     const onHeaderClickHandler = () => {
         setCollapsed(!collapsed);
     };
 
     useEffect(() => {
-        setCollapsed(collapseAll);
-    }, [collapseAll]);
+        setCollapsed(isAllCollapsed);
+    }, [isAllCollapsed]);
+
+    if (0 === results.searchResults.length) {
+        return <></>;
+    }
 
     const resultsRows = results.searchResults.map((r) => {
         const {content, eventIndex, match} = r;
@@ -223,23 +277,35 @@ function SearchResultsGroup ({
             >
                 {/* Cap prefix length to be 25 characters
                      so highlighted text can be shown */}
-                <span>{(25 < prefix.length) && "..."}{prefix.slice(-25)}</span>
+                <span>
+                    {(25 < prefix.length) && "..."}
+                    {prefix.slice(-25)}
+                </span>
                 <span
-                    className={"search-result-highlight"}>{match}</span>
-                <span>{postfix}</span>
+                    className={"search-result-highlight"}
+                >
+                    {match}
+                </span>
+                <span>
+                    {postfix}
+                </span>
             </button>
         );
     });
 
     return (
         <>
-            <button className={"search-results-page-header"}
-                onClick={onHeaderClickHandler}>
+            <button
+                className={"search-results-page-header"}
+                onClick={onHeaderClickHandler}
+            >
                 <div className={"search-results-page-header-page-num"}>
                     {collapsed ?
                         <CaretDownFill size={14}/> :
                         <CaretRightFill size={14}/>}
-                    &nbsp;PAGE {pageNum + 1}
+                    &nbsp;PAGE
+                    {" "}
+                    {pageNum + 1}
                 </div>
                 <div className={"search-results-page-header-result-count"}>
                     {results.searchResults.length}
@@ -250,4 +316,14 @@ function SearchResultsGroup ({
             </div>
         </>
     );
-}
+};
+
+SearchResultsGroup.propTypes = {
+    isAllCollapsed: PropTypes.bool,
+    pageNum: PropTypes.number,
+    results: PropTypes.object,
+    resultClickHandler: PropTypes.func,
+};
+
+
+export default SearchPanel;

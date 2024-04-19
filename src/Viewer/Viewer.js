@@ -4,16 +4,19 @@ import React, {
 } from "react";
 import {Row} from "react-bootstrap";
 import LoadingIcons from "react-loading-icons";
+
 import {v1 as uuidv1} from "uuid";
 
 import {THEME_STATES} from "../ThemeContext/THEME_STATES";
 import {ThemeContext} from "../ThemeContext/ThemeContext";
 import {
-    LEFT_PANEL_TAB_IDS, LeftPanel,
+    LEFT_PANEL_DEFAULT_WIDTH_FACTOR,
+    LEFT_PANEL_TAB_IDS,
+    LeftPanel,
 } from "./components/LeftPanel/LeftPanel";
 import MenuBar from "./components/MenuBar/MenuBar";
 import MonacoInstance from "./components/Monaco/MonacoInstance";
-import {SearchPanel} from "./components/SearchPanel/SearchPanel";
+import SearchPanel from "./components/SearchPanel/SearchPanel";
 import {StatusBar} from "./components/StatusBar/StatusBar";
 import CLP_WORKER_PROTOCOL from "./services/CLP_WORKER_PROTOCOL";
 import FourByteClpIrStreamReader from "./services/decoder/FourByteClpIrStreamReader";
@@ -41,14 +44,23 @@ Viewer.propTypes = {
 /**
  * Contains the menu, Monaco editor, and status bar. Viewer spawns its own
  * worker to manage the file and perform CLP operations.
- * @param {File|String} fileSrc File object to read or file path to load
- * @param {boolean} prettifyLog Whether to prettify the log file
- * @param {Number} logEventNumber The initial log event number
- * @param {Number} timestamp The initial timestamp to show. If this field is
+ *
+ * @param {object} props
+ * @param {File | string} props.fileSrc File object to read or file path to load
+ * @param {number} props.logEventNumber The initial log event number
+ * @param {boolean} props.prettifyLog Whether to prettify the log file
+ * @param {object} props.initialQuery
+ * @param {number} props.timestamp The initial timestamp to show. If this field is
  * valid, logEventNumber will be ignored.
  * @return {JSX.Element}
  */
-export function Viewer ({fileSrc, prettifyLog, logEventNumber, timestamp}) {
+export function Viewer ({
+    fileSrc,
+    prettifyLog,
+    logEventNumber,
+    initialQuery,
+    timestamp,
+}) {
     const {theme} = useContext(ThemeContext);
 
     // Ref hook used to reference worker used for loading and decoding
@@ -88,10 +100,12 @@ export function Viewer ({fileSrc, prettifyLog, logEventNumber, timestamp}) {
     const [logData, setLogData] = useState("");
 
     const [leftPanelActiveTabId, setLeftPanelActiveTabId] = useState(LEFT_PANEL_TAB_IDS.SEARCH);
-    const [leftPanelWidth, setLeftPanelWidth] = useState(0);
-    const [searchQuery, setSearchQuery] = useState({searchString: "",
-        isRegex: false,
-        matchCase: false});
+    const [leftPanelWidth, setLeftPanelWidth] = useState(
+        (0 === initialQuery.searchString.length) ?
+            0 :
+            window.innerWidth * LEFT_PANEL_DEFAULT_WIDTH_FACTOR
+    );
+    const [searchQuery, setSearchQuery] = useState(initialQuery);
     const [searchResults, setSearchResults] = useState(null);
 
     useEffect(() => {
@@ -105,6 +119,7 @@ export function Viewer ({fileSrc, prettifyLog, logEventNumber, timestamp}) {
 
     /**
      * Reload viewer on fileSrc change
+     *
      * @param {File|string} fileSrc
      */
     const loadFile = (fileSrc) => {
@@ -168,6 +183,7 @@ export function Viewer ({fileSrc, prettifyLog, logEventNumber, timestamp}) {
     /**
      * Passes state changes to the worker. Worker performs operation
      * and returns an updated state which is used to update the UI.
+     *
      * @param {string} type The type of state change to execute.
      * @param {object} args The argument used to execute state change.
      */
@@ -279,6 +295,7 @@ export function Viewer ({fileSrc, prettifyLog, logEventNumber, timestamp}) {
     /**
      * Handles messages sent from clpWorker and updates the
      * relevant component states
+     *
      * @param {object} event
      */
     const handleWorkerMessage = useCallback((event) => {
@@ -401,7 +418,8 @@ export function Viewer ({fileSrc, prettifyLog, logEventNumber, timestamp}) {
                     queryChangeHandler={searchQueryChangeHandler}
                     searchResultClickHandler={goToEventCallback}
                     searchResults={searchResults}
-                    totalPages={logFileState.pages}/>
+                    totalPages={logFileState.pages}
+                    onStatusMessageChange={setStatusMessage}/>
             );
         }
     }
