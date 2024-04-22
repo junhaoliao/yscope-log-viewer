@@ -42,11 +42,6 @@ module.exports = {
                     "css-loader",
                 ],
             },
-            {
-                test: /\.ttf$/i,
-                type: "asset/resource",
-                dependency: {not: ["url"]},
-            },
         ],
     },
     optimization: {
