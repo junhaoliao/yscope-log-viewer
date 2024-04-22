@@ -8,56 +8,6 @@ const CopyWebpackPlugin = require("copy-webpack-plugin");
 
 module.exports = {
     entry: path.resolve(__dirname, "src", "index.js"),
-    plugins: [
-        new HtmlWebpackPlugin({
-            template: path.resolve(__dirname, "src", "index.html"),
-        }),
-        new MonacoWebpackPlugin({
-            features: [
-                // Code reading related
-                "!codelens", // similar to inlayHints, displays reference counts / VCS info
-                "!gotoError", // navigation to coding errors
-                "!gotoSymbol", // navigation to symbols
-                "!hover", // hover information (like tooltips)
-                "!inlayHints", // similar to codelens, displays type / parameter info
-                "!parameterHints", // parameter hints in functions/methods
-                "!smartSelect", // expand / contract selection based on code structure and syntax
-
-                // Editing related
-                "!comment", // add / remove / toggle comments
-                "!format", // code formatting
-                "!inlineCompletions", // inline code completions
-                "!indentation", // auto indentation
-                "!inPlaceReplace", // replace code in place
-                "!linkedEditing", // simultaneously edit similar text elements (e.g. HTML)
-                "!linesOperations", // move / sort lines
-                "!multicursor", // multi-cursor simultaneous editing support
-                "!rename", // rename refactoring
-                "!snippet", // predefined code templates
-                "!suggest", // code suggestion
-
-                // Tools
-                "!colorPicker", // color picker tool
-                "!diffEditor", // diff editor view
-                "!inlineProgress", // inline loading progress
-            ],
-            languages: ["ini"],
-        }),
-        new CopyWebpackPlugin({
-            patterns: [
-                {
-                    from: "./node_modules/sql.js/dist/sql-wasm.wasm",
-                    to: "static/js/",
-                },
-            ],
-        }),
-    ],
-    output: {
-        path: path.join(__dirname, "dist"),
-        filename: "[name].[contenthash].bundle.js",
-        clean: true,
-        publicPath: "auto",
-    },
     experiments: {
         asyncWebAssembly: true,
     },
@@ -99,6 +49,108 @@ module.exports = {
             },
         ],
     },
+    optimization: {
+        moduleIds: "deterministic",
+        runtimeChunk: "single",
+        splitChunks: {
+            cacheGroups: {
+                vendor: {
+                    test: /[\\/]node_modules[\\/]/,
+                    name: "vendors",
+                    chunks: "all",
+                },
+            },
+        },
+    },
+    output: {
+        path: path.join(__dirname, "dist"),
+        filename: "[name].[contenthash].bundle.js",
+        clean: true,
+        publicPath: "auto",
+    },
+    plugins: [
+        new HtmlWebpackPlugin({
+            template: path.resolve(__dirname, "src", "index.html"),
+        }),
+        new MonacoWebpackPlugin({
+            features: [
+                /* Code reading related */
+                // similar to inlayHints, displays reference counts / VCS info
+                "!codelens",
+
+                // navigation to coding errors
+                "!gotoError",
+
+                // navigation to symbols
+                "!gotoSymbol",
+
+                // hover information (like tooltips)
+                "!hover",
+
+                // similar to codelens, displays type / parameter info
+                "!inlayHints",
+
+                // parameter hints in functions/methods
+                "!parameterHints",
+
+                // expand / contract selection based on code structure and syntax
+                "!smartSelect",
+
+                /* Editing related */
+                // add / remove / toggle comments
+                "!comment",
+
+                // code formatting
+                "!format",
+
+                // inline code completions
+                "!inlineCompletions",
+
+                // auto indentation
+                "!indentation",
+
+                // replace code in place
+                "!inPlaceReplace",
+
+                // simultaneously edit similar text elements (e.g. HTML)
+                "!linkedEditing",
+
+                // move / sort lines
+                "!linesOperations",
+
+                // multi-cursor simultaneous editing support
+                "!multicursor",
+
+                // rename refactoring
+                "!rename",
+
+                // predefined code templates
+                "!snippet",
+
+                // code suggestion
+                "!suggest",
+
+                /* Tools */
+                // color picker tool
+                "!colorPicker",
+
+                // diff editor view
+                "!diffEditor",
+
+                // inline loading progress
+                "!inlineProgress",
+            ],
+            languages: ["ini"],
+        }),
+        new CopyWebpackPlugin({
+            patterns: [
+                {
+                    from: "./node_modules/sql.js/dist/sql-wasm.wasm",
+                    to: "static/js/",
+                },
+            ],
+        }),
+    ],
     resolve: {
         fallback: {
             buffer: require.resolve("buffer/"),
@@ -114,18 +166,5 @@ module.exports = {
             ".jsx",
         ],
         modules: ["node_modules"],
-    },
-    optimization: {
-        moduleIds: "deterministic",
-        runtimeChunk: "single",
-        splitChunks: {
-            cacheGroups: {
-                vendor: {
-                    test: /[\\/]node_modules[\\/]/,
-                    name: "vendors",
-                    chunks: "all",
-                },
-            },
-        },
     },
 };
