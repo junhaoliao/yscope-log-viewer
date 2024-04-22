@@ -1,7 +1,10 @@
+/* eslint-env node */
+
 const {mergeWithRules} = require("webpack-merge");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 
 const common = require("./webpack.common.js");
+
 
 module.exports = mergeWithRules({
     module: {
@@ -20,11 +23,14 @@ module.exports = mergeWithRules({
         rules: [
             {
                 test: /\.scss$/,
-                use: [MiniCssExtractPlugin.loader, "css-loader", "sass-loader"],
+                use: [MiniCssExtractPlugin.loader,
+                    "css-loader",
+                    "sass-loader"],
             },
             {
                 test: /\.css$/,
-                use: [MiniCssExtractPlugin.loader, "css-loader"],
+                use: [MiniCssExtractPlugin.loader,
+                    "css-loader"],
             },
         ],
     },
