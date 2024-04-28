@@ -79,21 +79,20 @@ export function Viewer ({
     // Log States
     const lsPageSize = localStorage.getItem(LOCAL_STORAGE_KEYS.PAGE_SIZE);
     const [logFileState, setLogFileState] = useState({
+        columnNumber: null,
+        lineNumber: null,
+        logEventIdx: isNumeric(logEventNumber) ?
+            Number(logEventNumber) :
+            null,
+        numberOfEvents: null,
+        page: null,
         pageSize: lsPageSize ?
             Number(lsPageSize) :
             10000,
         pages: null,
-        page: null,
         prettify: prettifyLog ?
             prettifyLog :
             false,
-        logEventIdx: isNumeric(logEventNumber) ?
-            Number(logEventNumber) :
-            null,
-        lineNumber: null,
-        columnNumber: null,
-        colNumber: null,
-        numberOfEvents: null,
         verbosity: null,
     });
     const [fileInfo, setFileInfo] = useState(null);
