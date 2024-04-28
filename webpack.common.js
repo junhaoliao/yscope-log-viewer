@@ -61,6 +61,10 @@ module.exports = {
                     "css-loader",
                 ],
             },
+            {
+                test: /\.ttf$/,
+                type: "asset/resource",
+            },
         ],
     },
     optimization: {
