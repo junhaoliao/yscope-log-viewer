@@ -68,8 +68,11 @@ module.exports = {
                 ],
             },
             {
-                test: /\.ttf$/,
+                test: /\.(woff|woff2|ttf)$/i,
                 type: "asset/resource",
+                generator: {
+                    filename: "fonts/[name].[contenthash][ext]",
+                },
             },
         ],
     },
