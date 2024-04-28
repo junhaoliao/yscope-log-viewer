@@ -1,5 +1,6 @@
-import React, {
-    useEffect, useState,
+import {
+    useEffect,
+    useState,
 } from "react";
 
 import dayjs from "dayjs";
@@ -24,24 +25,24 @@ import "./App.scss";
 
 dayjs.extend(utc);
 
+enum APP_STATE {
+    FILE_PROMPT = "file_prompt",
+    FILE_VIEW = "file_view",
+}
+
 /**
  * Main component which renders viewer and scanner depending
  * on the state of the application.
  *
  * @class
- * @return {JSX.Element}
+ * @return
  */
-export function App () {
-    const APP_STATE = {
-        FILE_PROMPT: 0,
-        FILE_VIEW: 1,
-    };
-
+const App = () => {
     const [appMode, setAppMode] = useState(null);
-    const [fileSrc, setFileSrc] = useState(null);
-    const [logEventIdx, setLogEventIdx] = useState(null);
+    const [fileSrc, setFileSrc] = useState<File|string>(null);
+    const [logEventIdx, setLogEventIdx] = useState<number|null>(null);
     const [timestamp, setTimestamp] = useState(null);
-    const [prettify, setPrettify] = useState(null);
+    const [prettify, setPrettify] = useState<boolean>(false);
     const [query, setQuery] = useState({});
     const [appTheme, setAppTheme] = useState(AppThemeName.DARK);
 
@@ -75,7 +76,7 @@ export function App () {
 
         // Load the initial state of the viewer from url
         setPrettify("true" === urlSearchParams.get("prettify"));
-        setLogEventIdx(urlHashParams.get("logEventIdx"));
+        setLogEventIdx(parseInt(urlHashParams.get("logEventIdx") ?? "0", 10));
         setQuery({
             isRegex: Boolean(urlSearchParams.get("query.isRegex")) || false,
             matchCase: Boolean(urlSearchParams.get("query.matchCase")) || false,
@@ -99,9 +100,9 @@ export function App () {
     /**
      * Handles the file being changed
      *
-     * @param {File} file
+     * @param file
      */
-    const handleFileChange = (file) => {
+    const handleFileChange = (file: File) => {
         setFileSrc(file);
         setAppMode(APP_STATE.FILE_VIEW);
     };
@@ -123,4 +124,6 @@ export function App () {
             </ThemeContext.Provider>
         </div>
     );
-}
+};
+
+export default App;

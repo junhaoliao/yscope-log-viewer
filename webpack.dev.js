@@ -14,13 +14,13 @@ module.exports = mergeWithRules({
         },
     },
 })(common, {
-    mode: "development",
-    devtool: "eval-source-map",
     devServer: {
         hot: true,
+        open: true,
         port: 3010,
-        static: "./dist",
     },
+    devtool: "eval-source-map",
+    mode: "development",
     module: {
         rules: [
             {
@@ -54,6 +54,12 @@ module.exports = mergeWithRules({
                     options: {
                         presets: [
                             "@babel/preset-env",
+                            [
+                                "@babel/preset-react",
+                                {
+                                    runtime: "automatic",
+                                },
+                            ],
                             "@babel/preset-typescript",
                         ],
                         plugins: [

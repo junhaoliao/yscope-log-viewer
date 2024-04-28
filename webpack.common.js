@@ -7,7 +7,7 @@ const CopyWebpackPlugin = require("copy-webpack-plugin");
 
 
 module.exports = {
-    entry: path.resolve(__dirname, "src", "index.js"),
+    entry: path.resolve(__dirname, "src", "index.tsx"),
     experiments: {
         asyncWebAssembly: true,
     },
@@ -41,6 +41,12 @@ module.exports = {
                     options: {
                         presets: [
                             "@babel/preset-env",
+                            [
+                                "@babel/preset-react",
+                                {
+                                    runtime: "automatic",
+                                },
+                            ],
                             "@babel/preset-typescript",
                         ],
                     },
@@ -88,7 +94,7 @@ module.exports = {
     },
     plugins: [
         new HtmlWebpackPlugin({
-            template: path.resolve(__dirname, "src", "index.html"),
+            template: path.resolve(__dirname, "public", "index.html"),
         }),
         new MonacoWebpackPlugin({
             features: [
