@@ -5,18 +5,20 @@ enum APP_THEME {
     LIGHT = "light",
     DARK = "dark",
 }
+const APP_THEME_DEFAULT = APP_THEME.DARK;
 
 interface ThemeContextType {
     appTheme: APP_THEME;
-    setAppTheme: null | ((theme: string) => void);
+    switchTheme: null | ((theme: APP_THEME) => void);
 }
 
 const ThemeContext = createContext<ThemeContextType>({
     appTheme: APP_THEME.DARK,
-    setAppTheme: null,
+    switchTheme: null,
 });
 
 export {
     APP_THEME,
+    APP_THEME_DEFAULT,
     ThemeContext,
 };

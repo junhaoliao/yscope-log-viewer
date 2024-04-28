@@ -1,4 +1,5 @@
 import {
+    useCallback,
     useEffect,
     useState,
 } from "react";
@@ -10,9 +11,10 @@ import {LocalizationProvider} from "@mui/x-date-pickers";
 import {AdapterDayjs} from "@mui/x-date-pickers/AdapterDayjs";
 
 import config from "./config.json";
-import {DropFile} from "./DropFile/DropFile";
+import DropFile from "./DropFile/DropFile";
 import {
     APP_THEME,
+    APP_THEME_DEFAULT,
     ThemeContext,
 } from "./ThemeContext/ThemeContext";
 import LOCAL_STORAGE_KEYS from "./Viewer/services/LOCAL_STORAGE_KEYS";
@@ -38,28 +40,19 @@ enum APP_STATE {
  * @return
  */
 const App = () => {
-    const [appMode, setAppMode] = useState(null);
-    const [fileSrc, setFileSrc] = useState<File|string>(null);
+    const [appMode, setAppMode] = useState<APP_STATE>();
+    const [fileSrc, setFileSrc] = useState<File|string|null>(null);
     const [logEventIdx, setLogEventIdx] = useState<number|null>(null);
-    const [timestamp, setTimestamp] = useState(null);
+    const [timestamp, setTimestamp] = useState<number|null>(null);
     const [prettify, setPrettify] = useState<boolean>(false);
     const [query, setQuery] = useState({});
     const [appTheme, setAppTheme] = useState(APP_THEME.DARK);
 
-    useEffect(() => {
-        console.debug("Version:", config.version);
-        const lsTheme = localStorage.getItem(LOCAL_STORAGE_KEYS.UI_THEME);
-        switchTheme(APP_THEME.LIGHT === lsTheme ?
-            APP_THEME.LIGHT :
-            APP_THEME.DARK);
-        init();
-    }, []);
-
-    const switchTheme = (theme) => {
+    const switchTheme = useCallback((theme: APP_THEME) => {
         localStorage.setItem(LOCAL_STORAGE_KEYS.UI_THEME, theme);
-        document.getElementById("app").setAttribute("data-theme", theme);
+        document.getElementById("app")?.setAttribute("data-theme", theme);
         setAppTheme(theme);
-    };
+    }, [setAppTheme]);
 
     /**
      * Initializes the application's state. The file to load is set based on
@@ -76,20 +69,29 @@ const App = () => {
 
         // Load the initial state of the viewer from url
         setPrettify("true" === urlSearchParams.get("prettify"));
-        setLogEventIdx(parseInt(urlHashParams.get("logEventIdx") ?? "0", 10));
         setQuery({
             isRegex: Boolean(urlSearchParams.get("query.isRegex")) || false,
             matchCase: Boolean(urlSearchParams.get("query.matchCase")) || false,
-            searchString: urlSearchParams.get("query.searchString") || "",
+            searchString: urlSearchParams.get("query.searchString") ?? "",
         });
-        setTimestamp(urlSearchParams.get("timestamp"));
+        const logEventIdxParam = urlHashParams.get("logEventIdx");
+        if (null !== logEventIdxParam) {
+            setLogEventIdx(parseInt(logEventIdxParam, 10));
+        }
+        const timestampParam = urlSearchParams.get("timestamp");
+        if (null !== timestampParam) {
+            setTimestamp(parseInt(timestampParam, 10));
+        }
 
         const filePath = getFilePathFromWindowLocation();
 
         if (null !== filePath) {
             setFileSrc(filePath);
             setAppMode(APP_STATE.FILE_VIEW);
-        } else if (null !== config.defaultFileUrl) {
+        } else if (
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+            null === config.defaultFileUrl
+        ) {
             setFileSrc(config.defaultFileUrl);
             setAppMode(APP_STATE.FILE_VIEW);
         } else {
@@ -106,6 +108,13 @@ const App = () => {
         setFileSrc(file);
         setAppMode(APP_STATE.FILE_VIEW);
     };
+
+    useEffect(() => {
+        console.debug("Version:", config.version);
+        const lsTheme = localStorage.getItem(LOCAL_STORAGE_KEYS.UI_THEME) ?? APP_THEME_DEFAULT;
+        switchTheme(lsTheme as APP_THEME);
+        init();
+    }, [switchTheme]);
 
     return (
         <div id={"app"}>

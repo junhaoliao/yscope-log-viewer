@@ -11,29 +11,19 @@ import {ThemeContext} from "../ThemeContext/ThemeContext";
 import "./DropFile.scss";
 
 
-DropFile.propTypes = {
-    children: oneOfType([PropTypes.array,
-        PropTypes.bool,
-        PropTypes.object]),
-    handleFileDrop: PropTypes.func,
-};
-
-/**
- * Callback for when a file is dropped on the element
- *
- * @callback FileDropCallback
- * @param {File} file
- */
+interface DropFileProps {
+    children: false | JSX.Element | JSX.Element[],
+    handleFileDrop: (file: File) => void
+}
 
 /**
  * A container element to add drag & drop functionality to the child elements.
  *
- * @param {JSX.Element[]} children Child elements
- * @param {FileDropCallback} handleFileDrop Handler for a file being dropped on
- * the child elements.
- * @return {JSX.Element}
+ * @param props
+ * @param props.children
+ * @param props.handleFileDrop
  */
-export function DropFile ({children, handleFileDrop}) {
+const DropFile : React.FC<DropFileProps> = ({children, handleFileDrop}) => {
     const {appTheme} = useContext(ThemeContext);
 
     const [hasChildren, setHasChildren] = useState(false);
@@ -50,7 +40,7 @@ export function DropFile ({children, handleFileDrop}) {
     /**
      * Handler for a drag event
      *
-     * @param {DragEvent} e
+     * @param e
      */
     const handleDrag = function (e) {
         e.preventDefault();
@@ -66,7 +56,7 @@ export function DropFile ({children, handleFileDrop}) {
      * Handler for a drop event. handleFileDrop callback is used
      * to load the dropped file into the viewer.
      *
-     * @param {DragEvent} e
+     * @param e
      */
     const handleDrop = function (e) {
         e.preventDefault();
@@ -87,7 +77,7 @@ export function DropFile ({children, handleFileDrop}) {
     /**
      * Callback once file is selected from file input dialog
      *
-     * @param {File} e
+     * @param e
      */
     const loadFile = (e) => {
         handleFileDrop(e.target.files[0]);
@@ -98,7 +88,7 @@ export function DropFile ({children, handleFileDrop}) {
      * Returns JSX to be rendered if there are no child components to allow
      * the user to load a file.
      *
-     * @return {JSX.Element}
+     * @return
      */
     const getLoadFileJSX = () => {
         return (
@@ -159,4 +149,6 @@ export function DropFile ({children, handleFileDrop}) {
                 </>}
         </div>
     );
-}
+};
+
+export default DropFile;
