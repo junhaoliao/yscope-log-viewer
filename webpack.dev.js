@@ -32,7 +32,29 @@ module.exports = mergeWithRules({
                     options: {
                         presets: [
                             "@babel/preset-env",
-                            "@babel/preset-react",
+                            [
+                                "@babel/preset-react",
+                                {
+                                    runtime: "automatic",
+                                },
+                            ],
+                        ],
+                        plugins: [
+                            require.resolve("react-refresh/babel"),
+                        ],
+                    },
+                },
+            },
+            {
+                test: /\.(ts|tsx)$/,
+                include: path.resolve(__dirname, "src"),
+                exclude: /node_modules/,
+                use: {
+                    loader: "babel-loader",
+                    options: {
+                        presets: [
+                            "@babel/preset-env",
+                            "@babel/preset-typescript",
                         ],
                         plugins: [
                             require.resolve("react-refresh/babel"),

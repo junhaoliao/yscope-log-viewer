@@ -45,14 +45,14 @@ Viewer.propTypes = {
  * Contains the menu, Monaco editor, and status bar. Viewer spawns its own
  * worker to manage the file and perform CLP operations.
  *
- * @param {object} props
- * @param {File | string} props.fileSrc File object to read or file path to load
- * @param {number} props.logEventNumber The initial log event number
- * @param {boolean} props.prettifyLog Whether to prettify the log file
- * @param {object} props.initialQuery
- * @param {number} props.timestamp The initial timestamp to show. If this field is
+ * @param props
+ * @param props.fileSrc File object to read or file path to load
+ * @param props.logEventNumber The initial log event number
+ * @param props.prettifyLog Whether to prettify the log file
+ * @param props.initialQuery
+ * @param props.timestamp The initial timestamp to show. If this field is
  * valid, logEventNumber will be ignored.
- * @return {JSX.Element}
+ * @return
  */
 export function Viewer ({
     fileSrc,
@@ -97,7 +97,7 @@ export function Viewer ({
         verbosity: null,
     });
     const [fileInfo, setFileInfo] = useState(null);
-    const [logData, setLogData] = useState("");
+    const [logData, setLogData] = useState(null);
 
     const [leftPanelActiveTabId, setLeftPanelActiveTabId] = useState(LEFT_PANEL_TAB_IDS.SEARCH);
     const [leftPanelWidth, setLeftPanelWidth] = useState(
@@ -120,7 +120,7 @@ export function Viewer ({
     /**
      * Reload viewer on fileSrc change
      *
-     * @param {File|string} fileSrc
+     * @param fileSrc
      */
     const loadFile = (fileSrc) => {
         if (clpWorker.current) {
@@ -448,7 +448,7 @@ export function Viewer ({
                         </ul>
                     </Row>
                 </div>}
-            {false === loadingFile &&
+            {!loadingFile &&
                 <>
                     <div
                         style={{

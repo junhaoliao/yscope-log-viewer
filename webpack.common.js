@@ -22,7 +22,26 @@ module.exports = {
                     options: {
                         presets: [
                             "@babel/preset-env",
-                            "@babel/preset-react",
+                            [
+                                "@babel/preset-react",
+                                {
+                                    runtime: "automatic",
+                                },
+                            ],
+                        ],
+                    },
+                },
+            },
+            {
+                test: /\.(ts|tsx)$/,
+                include: path.resolve(__dirname, "src"),
+                exclude: /node_modules/,
+                use: {
+                    loader: "babel-loader",
+                    options: {
+                        presets: [
+                            "@babel/preset-env",
+                            "@babel/preset-typescript",
                         ],
                     },
                 },
@@ -156,9 +175,11 @@ module.exports = {
             vm: false,
         },
         extensions: [
-            ".json",
             ".js",
+            ".json",
             ".jsx",
+            ".ts",
+            ".tsx",
         ],
         modules: ["node_modules"],
     },
