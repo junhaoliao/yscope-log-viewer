@@ -9,8 +9,9 @@ import {
     CloudArrowDown, Download, Folder, Gear, Moon, Search, Sun, XCircle,
 } from "react-bootstrap-icons";
 
-import {THEME_STATES} from "../../../ThemeContext/THEME_STATES";
-import {ThemeContext} from "../../../ThemeContext/ThemeContext";
+import {
+    AppThemeName, ThemeContext,
+} from "../../../ThemeContext/ThemeContext";
 import STATE_CHANGE_TYPE from "../../services/STATE_CHANGE_TYPE";
 import {ResizeHandle} from "../ResizeHandle/ResizeHandle";
 import DOWNLOAD_WORKER_ACTION from "./DOWNLOAD_WORKER_ACTION";
@@ -248,7 +249,7 @@ function LeftPanelTabs ({
 
     // Modal Functions
     const getModalClass = () => {
-        return (THEME_STATES.LIGHT === appTheme) ?
+        return (AppThemeName.LIGHT === appTheme) ?
             "modal-light" :
             "modal-dark";
     };
@@ -353,19 +354,19 @@ function LeftPanelTabs ({
     };
 
     const getThemeIcon = () => {
-        if (THEME_STATES.LIGHT === appTheme) {
+        if (AppThemeName.LIGHT === appTheme) {
             return (
                 <Moon
                     className={"cursor-pointer"}
                     title={"Set Light Mode"}
-                    onClick={() => switchTheme(THEME_STATES.DARK)}/>
+                    onClick={() => switchTheme(AppThemeName.DARK)}/>
             );
-        } else if (THEME_STATES.DARK === appTheme) {
+        } else if (AppThemeName.DARK === appTheme) {
             return (
                 <Sun
                     className={"cursor-pointer"}
                     title={"Set Dark Mode"}
-                    onClick={() => switchTheme(THEME_STATES.LIGHT)}/>
+                    onClick={() => switchTheme(AppThemeName.LIGHT)}/>
             );
         }
     };

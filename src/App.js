@@ -10,8 +10,10 @@ import {AdapterDayjs} from "@mui/x-date-pickers/AdapterDayjs";
 
 import config from "./config.json";
 import {DropFile} from "./DropFile/DropFile";
-import {THEME_STATES} from "./ThemeContext/THEME_STATES";
-import {ThemeContext} from "./ThemeContext/ThemeContext";
+import {
+    AppThemeName,
+    ThemeContext,
+} from "./ThemeContext/ThemeContext";
 import LOCAL_STORAGE_KEYS from "./Viewer/services/LOCAL_STORAGE_KEYS";
 import {getFilePathFromWindowLocation} from "./Viewer/services/utils";
 import {Viewer} from "./Viewer/Viewer";
@@ -41,14 +43,14 @@ export function App () {
     const [timestamp, setTimestamp] = useState(null);
     const [prettify, setPrettify] = useState(null);
     const [query, setQuery] = useState({});
-    const [appTheme, setAppTheme] = useState(THEME_STATES.DARK);
+    const [appTheme, setAppTheme] = useState(AppThemeName.DARK);
 
     useEffect(() => {
         console.debug("Version:", config.version);
         const lsTheme = localStorage.getItem(LOCAL_STORAGE_KEYS.UI_THEME);
-        switchTheme(THEME_STATES.LIGHT === lsTheme ?
-            THEME_STATES.LIGHT :
-            THEME_STATES.DARK);
+        switchTheme(AppThemeName.LIGHT === lsTheme ?
+            AppThemeName.LIGHT :
+            AppThemeName.DARK);
         init();
     }, []);
 

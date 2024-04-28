@@ -1,6 +1,7 @@
-import {Tarball} from "@obsidize/tar-browserify";
 import JSZip from "jszip";
 import pako from "pako";
+
+import {Tarball} from "@obsidize/tar-browserify";
 
 import {ZstdCodec} from "../../../../customized-packages/zstd-codec/js";
 import CLP_WORKER_PROTOCOL from "../CLP_WORKER_PROTOCOL";
@@ -8,11 +9,16 @@ import {readFile} from "../GetFile";
 import {binarySearchWithTimestamp} from "../utils";
 import WorkerPool from "../WorkerPool";
 import {ClpArchiveDecoder} from "./ClpArchiveDecoder";
-import {DataInputStream, DataInputStreamEOFError} from "./DataInputStream";
+import {
+    DataInputStream, DataInputStreamEOFError,
+} from "./DataInputStream";
 import FourByteClpIrStreamReader from "./FourByteClpIrStreamReader";
 import ResizableUint8Array from "./ResizableUint8Array";
 import SimplePrettifier from "./SimplePrettifier";
-import {combineArrayBuffers, formatSizeInBytes} from "./utils";
+import {
+    combineArrayBuffers, formatSizeInBytes,
+} from "./utils";
+
 
 const FILE_MANAGER_LOG_SEARCH_MAX_RESULTS = 1000;
 const FILE_MANAGER_LOG_SEARCH_CHUNK_SIZE = 10000;
@@ -36,20 +42,30 @@ class FileManager {
      * Initializes the class and sets the default states.
      *
      * @param {string} fileSrc
+     * @param sessionId
      * @param {boolean} prettify
      * @param {number} logEventIdx
      * @param {number} initialTimestamp
      * @param {number} pageSize
-     * @param {function} loadingMessageCallback
-     * @param {function} updateStateCallback
-     * @param {function} updateLogsCallback
-     * @param {function} updateFileInfoCallback
-     * @param {function} updateSearchResultsCallback
+     * @param {Function} loadingMessageCallback
+     * @param {Function} updateStateCallback
+     * @param {Function} updateLogsCallback
+     * @param {Function} updateFileInfoCallback
+     * @param {Function} updateSearchResultsCallback
      */
-    constructor (fileSrc, sessionId, prettify, logEventIdx, initialTimestamp, pageSize,
+    constructor (
+        fileSrc,
+        sessionId,
+        prettify,
+        logEventIdx,
+        initialTimestamp,
+        pageSize,
         loadingMessageCallback,
-        updateStateCallback, updateLogsCallback, updateFileInfoCallback,
-        updateSearchResultsCallback) {
+        updateStateCallback,
+        updateLogsCallback,
+        updateFileInfoCallback,
+        updateSearchResultsCallback
+    ) {
         this._fileSrc = fileSrc;
         this._prettify = prettify;
         this._initialTimestamp = initialTimestamp;
@@ -118,9 +134,9 @@ class FileManager {
     _setupDecodingPagesToDatabase () {
         this.state.downloadChunkSize = 10000;
         const numOfEvents = this._logEventOffsets.length;
-        this.state.downloadPageChunks = (0 === (numOfEvents % this.state.downloadChunkSize))
-            ? Math.floor(numOfEvents/this.state.downloadChunkSize)
-            : Math.floor(numOfEvents/this.state.downloadChunkSize) + 1;
+        this.state.downloadPageChunks = (0 === (numOfEvents % this.state.downloadChunkSize)) ?
+            Math.floor(numOfEvents / this.state.downloadChunkSize) :
+            Math.floor(numOfEvents / this.state.downloadChunkSize) + 1;
     }
 
     /**
@@ -143,30 +159,37 @@ class FileManager {
 
     /**
      * Callback when progress is updated in file getXMLHttpRequest.
+     *
      * @param {number} numBytesDownloaded Number of bytes downloaded
      * @param {number} fileSizeBytes Total file size
      * @private
      */
     _updateFileLoadProgress = (numBytesDownloaded, fileSizeBytes) => {
         const percentComplete = (numBytesDownloaded / fileSizeBytes) * 100;
-        if (this._loadState.prevCheckTime != null) {
+        if (null != this._loadState.prevCheckTime) {
             const loadedTime = performance.now() - this._loadState.prevCheckTime;
             const downloadSpeed =
-                `${formatSizeInBytes(numBytesDownloaded / (loadedTime / 1000),
-                    false)}/s`;
+                `${formatSizeInBytes(
+                    numBytesDownloaded / (loadedTime / 1000),
+                    false
+                )}/s`;
+
             this._loadingMessageCallback(
                 `Download Progress: ${percentComplete.toFixed(
-                    2)}% at ${downloadSpeed}`
+                    2
+                )}% at ${downloadSpeed}`
             );
         } else {
             this._loadingMessageCallback(
-                `Download Progress: ${percentComplete.toFixed(2)}%`);
+                `Download Progress: ${percentComplete.toFixed(2)}%`
+            );
             this._loadState.prevCheckTime = performance.now();
         }
     };
 
     /**
      * Callback when file is size is received from getXMLHttpRequest.
+     *
      * @param {event} evt
      * @private
      */
@@ -184,8 +207,12 @@ class FileManager {
         // Building log event offsets
         const dataInputStream = new DataInputStream(this._arrayBuffer);
         this._outputResizableBuffer = new ResizableUint8Array(511000000);
-        this._irStreamReader = new FourByteClpIrStreamReader(dataInputStream,
-            this._prettify ? this._prettifyLogEventContent : null);
+        this._irStreamReader = new FourByteClpIrStreamReader(
+            dataInputStream,
+            this._prettify ?
+                this._prettifyLogEventContent :
+                null
+        );
         const decoder = this._irStreamReader._streamProtocolDecoder;
 
         try {
@@ -193,7 +220,7 @@ class FileManager {
             let prevTimestamp = decoder._metadataTimestamp;
             while (this._irStreamReader.indexNextLogEvent(this._logEventOffsets)) {
                 const currEv = this._logEventOffsets[this._logEventOffsets.length - 1];
-                const timestamp = currEv.timestamp;
+                const {timestamp} = currEv;
                 if (timestamp < prevTimestamp) {
                     this._timestampSorted = false;
                 }
@@ -212,13 +239,14 @@ class FileManager {
         }
 
         this.state.numberOfEvents = this._logEventOffsets.length;
-        if (this.state.numberOfEvents > 0) {
+        if (0 < this.state.numberOfEvents) {
             this._IRStreamHeader = this._arrayBuffer.slice(0, this._logEventOffsets[0].startIndex);
         }
-    };
+    }
 
     /**
      * Append token to the end of this._fileInfo.name
+     *
      * @param {string} token to append
      * @private
      */
@@ -229,6 +257,7 @@ class FileManager {
 
     /**
      * Update input file and status
+     *
      * @param {object} file to use as input
      * @private
      */
@@ -244,6 +273,7 @@ class FileManager {
 
     /**
      * Decode plain-text log buffer and update editor state
+     *
      * @param {Uint8Array} decompressedLogFile buffer to
      * decode to string and update editor
      * @private
@@ -275,6 +305,7 @@ class FileManager {
 
     /**
      * Decode IRStream log buffer and update editor state
+     *
      * @param {Uint8Array} decompressedIRStreamFile buffer to
      * decode to log events and update editor
      * @private
@@ -294,9 +325,9 @@ class FileManager {
             this.state.logEventIdx = this.getLogEventIdxFromTimestamp(this._initialTimestamp);
             console.debug(`Initial Timestamp: ${this._initialTimestamp}`);
             console.debug(`logEventIdx: ${this.state.logEventIdx}`);
-        } else if (null === this.state.logEventIdx
-            || this.state.logEventIdx > numberOfEvents
-            || this.state.logEventIdx <= 0) {
+        } else if (null === this.state.logEventIdx ||
+            this.state.logEventIdx > numberOfEvents ||
+            0 >= this.state.logEventIdx) {
             this.state.logEventIdx = numberOfEvents;
         }
 
@@ -334,7 +365,7 @@ class FileManager {
     async _getZipFirstFileContent () {
         const zipArchive = await new JSZip().loadAsync(this._fileInfo.data);
         const [filePathToDecompress] = Object.keys(zipArchive.files);
-        this._appendToFileInfoName("/" + filePathToDecompress);
+        this._appendToFileInfoName(`/${filePathToDecompress}`);
 
         return zipArchive.files[filePathToDecompress].async("uint8array");
     }
@@ -350,7 +381,7 @@ class FileManager {
     _getTarGzipFirstFileContent () {
         const tarArchive = pako.inflate(this._fileInfo.data, {to: "Uint8Array"});
         const [entry] = Tarball.extract(tarArchive).filter((entry) => entry.isFile());
-        this._appendToFileInfoName("/" + entry.fileName);
+        this._appendToFileInfoName(`/${entry.fileName}`);
 
         return entry.content;
     }
@@ -366,30 +397,37 @@ class FileManager {
         const fileExtensionHandlers = {
             ".clp": async () => {
                 console.log("Opening CLP compressed archive");
+
                 return this._decodeClpArchiveLogAndUpdate(fileInfo.data);
             },
             ".clp.zst": async () => {
-                console.log("Opening CLP IRStream compressed file: " + fileName);
+                console.log(`Opening CLP IRStream compressed file: ${fileName}`);
+
                 return FileManager.#decompressZstd(fileInfo.data);
             },
             ".zst": async () => {
-                console.log("Opening zst compressed file: " + fileName);
+                console.log(`Opening zst compressed file: ${fileName}`);
+
                 return FileManager.#decompressZstd(fileInfo.data);
             },
             ".zip": async () => {
-                console.log("Opening zip compressed archive: " + fileName);
+                console.log(`Opening zip compressed archive: ${fileName}`);
+
                 return this._getZipFirstFileContent();
             },
             ".tar.gz": async () => {
-                console.log("Opening tar.gz compressed archive: " + fileName);
+                console.log(`Opening tar.gz compressed archive: ${fileName}`);
+
                 return this._getTarGzipFirstFileContent();
             },
             ".gz": async () => {
-                console.log("Opening gzip compressed file: " + fileName);
+                console.log(`Opening gzip compressed file: ${fileName}`);
+
                 return pako.inflate(fileInfo.data, {to: "Uint8Array"});
             },
             ".gzip": async () => {
-                console.log("Opening gzip compressed file: " + fileName);
+                console.log(`Opening gzip compressed file: ${fileName}`);
+
                 return pako.inflate(fileInfo.data, {to: "Uint8Array"});
             },
         };
@@ -411,13 +449,14 @@ class FileManager {
         }
 
         if (isPlainTextFile) {
-            console.log("Opening plain-text file: " + fileName);
+            console.log(`Opening plain-text file: ${fileName}`);
             this._decodePlainTextLogAndUpdate(fileInfo.data);
         }
     }
 
     /**
      * Decode CLP Archive log buffer and update editor state
+     *
      * @param {Uint8Array} decompressedLogFile buffer to
      * decode to string and update editor
      * @private
@@ -457,17 +496,22 @@ class FileManager {
     getLogEventIdxFromTimestamp (timestamp) {
         const numberOfEvents = this._logEventOffsets.length;
         if (this._timestampSorted) {
-            const targetIdx = binarySearchWithTimestamp(timestamp,
-                this._logEventOffsets);
-            return null === targetIdx ? numberOfEvents : targetIdx + 1;
-        } else {
-            for (let idx = 0; idx < numberOfEvents; idx++) {
-                if (this._logEventOffsets[idx].timestamp >= timestamp) {
-                    return idx + 1;
-                }
-            }
-            return numberOfEvents;
+            const targetIdx = binarySearchWithTimestamp(
+                timestamp,
+                this._logEventOffsets
+            );
+
+            return null === targetIdx ?
+                numberOfEvents :
+                targetIdx + 1;
         }
+        for (let idx = 0; idx < numberOfEvents; idx++) {
+            if (this._logEventOffsets[idx].timestamp >= timestamp) {
+                return idx + 1;
+            }
+        }
+
+        return numberOfEvents;
     }
 
     /**
@@ -477,6 +521,7 @@ class FileManager {
         // FIXME: dirty hack for Single-file CLP Archive
         if (null !== this._logsArray) {
             this.state.page = Math.floor(this.state.logEventIdx / this.state.pageSize) + 1;
+
             return;
         }
 
@@ -485,11 +530,12 @@ class FileManager {
             const logEventIndex = event.mappedIndex + 1;
             if (logEventIndex >= this.state.logEventIdx) {
                 this.state.page = Math.floor(index / this.state.pageSize) + 1;
+
                 return;
             }
         }
         this.state.page = this.state.pages;
-    };
+    }
 
     /**
      * Creates pages from the filtered log events and the page size.
@@ -503,6 +549,7 @@ class FileManager {
             } else {
                 this.state.pages = Math.floor(this.state.numberOfEvents / this.state.pageSize) + 1;
             }
+
             return;
         }
 
@@ -519,7 +566,7 @@ class FileManager {
 
             this.state.page = this.state.pages;
         }
-    };
+    }
 
 
     /**
@@ -534,10 +581,10 @@ class FileManager {
 
         // Calculate where to start decoding from and how many events to decode
         // On final page, the numberOfEvents is likely less than pageSize
-        const targetEvent = ((page-1) * pageSize);
-        const numberOfEvents = (targetEvent + pageSize >= numEventsAtLevel)
-            ?numEventsAtLevel - targetEvent
-            :pageSize;
+        const targetEvent = ((page - 1) * pageSize);
+        const numberOfEvents = (targetEvent + pageSize >= numEventsAtLevel) ?
+            numEventsAtLevel - targetEvent :
+            pageSize;
 
         if (null !== this._logsArray) {
             // FIXME: dirty hack to get download working
@@ -547,6 +594,7 @@ class FileManager {
                 f:
                     this._logsArray?.slice(targetEvent, targetEvent + numberOfEvents).join("\n"),
             });
+
             return;
         }
 
@@ -555,7 +603,7 @@ class FileManager {
             this._logEventOffsets[targetEvent + numberOfEvents - 1].endIndex + 1
         );
         const inputStream = combineArrayBuffers(this._IRStreamHeader, pageData);
-        const logEvents = this._logEventOffsets.slice(targetEvent, targetEvent + numberOfEvents );
+        const logEvents = this._logEventOffsets.slice(targetEvent, targetEvent + numberOfEvents);
 
         this._workerPool.assignTask({
             sessionId: this.sessionId,
@@ -575,7 +623,8 @@ class FileManager {
             const startingEventIdx = this.state.pageSize * (this.state.page - 1);
             const endingEventIdx = Math.min(
                 this._logsArray.length,
-                this.state.pageSize * (this.state.page));
+                this.state.pageSize * (this.state.page)
+            );
 
             this.state.logEventIdx = startingEventIdx;
             this._logsPageLineOffsetsArray.length = 0;
@@ -601,19 +650,26 @@ class FileManager {
         // If there are no logs at this verbosity level, return
         if (0 === numEventsAtLevel) {
             this._updateLogsCallback("No logs at selected verbosity level");
+
             return;
         }
 
         // Calculate where to start decoding from and how many events to decode
         // On final page, the numberOfEvents is likely less than pageSize
         const logEventsBeginIdx = ((this.state.page - 1) * this.state.pageSize);
-        const numOfEvents = Math.min(this.state.pageSize,
-            numEventsAtLevel - logEventsBeginIdx);
+        const numOfEvents = Math.min(
+            this.state.pageSize,
+            numEventsAtLevel - logEventsBeginIdx
+        );
 
         // Create IRStream Reader with the input stream
         const dataInputStream = new DataInputStream(this._arrayBuffer);
-        this._irStreamReader = new FourByteClpIrStreamReader(dataInputStream,
-            this.state.prettify ? this._prettifyLogEventContent : null);
+        this._irStreamReader = new FourByteClpIrStreamReader(
+            dataInputStream,
+            this.state.prettify ?
+                this._prettifyLogEventContent :
+                null
+        );
 
         // Create variables to store output from reader
         this._outputResizableBuffer = new ResizableUint8Array(511000000);
@@ -628,11 +684,12 @@ class FileManager {
 
             // Set the timestamp before decoding the message.
             // If it is first message, use timestamp in metadata.
-            if (event.mappedIndex === 0) {
+            if (0 === event.mappedIndex) {
                 decoder._reset();
             } else {
                 decoder._setTimestamp(
-                    this._logEventOffsets[event.mappedIndex - 1].timestamp);
+                    this._logEventOffsets[event.mappedIndex - 1].timestamp
+                );
             }
 
             try {
@@ -641,7 +698,7 @@ class FileManager {
                     this.logEventMetadata
                 );
                 const lastEvent = this.logEventMetadata[this.logEventMetadata.length - 1];
-                this._availableVerbosityIndexes.add(lastEvent["verbosityIx"]);
+                this._availableVerbosityIndexes.add(lastEvent.verbosityIx);
                 lastEvent.mappedIndex = event.mappedIndex;
             } catch (error) {
                 // Ignore EOF errors since we should still be able
@@ -658,7 +715,8 @@ class FileManager {
 
         // Decode the text and set the available verbosities
         const logs = this._textDecoder.decode(
-            this._outputResizableBuffer.getUint8Array());
+            this._outputResizableBuffer.getUint8Array()
+        );
 
         for (const verbosityIx of this._availableVerbosityIndexes) {
             if (verbosityIx < this._minAvailableVerbosityIx) {
@@ -668,7 +726,7 @@ class FileManager {
         this._displayedMinVerbosityIx = this._minAvailableVerbosityIx;
         this._logs = logs.trim();
         this._updateLogsCallback(this._logs);
-    };
+    }
 
     /**
      * Searches log events for a specified string or regular expression.
@@ -686,7 +744,7 @@ class FileManager {
         // If the search string is empty,
         // or there are no logs at this verbosity level, return
         const numEventsAtLevel = this._logEventOffsetsFiltered.length;
-        if (searchString === "") {
+        if ("" === searchString) {
             return;
         } else if (0 === numEventsAtLevel) {
             return;
@@ -698,9 +756,12 @@ class FileManager {
         );
 
         // construct search RegExp
-        const regexPattern = isRegex ? searchString :
+        const regexPattern = isRegex ?
+            searchString :
             searchString.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-        const regexFlags = matchCase ? "":"i";
+        const regexFlags = matchCase ?
+            "" :
+            "i";
         const searchRegex = new RegExp(regexPattern, regexFlags);
 
         // FIXME: this null check was added to hack searching for
@@ -730,7 +791,7 @@ class FileManager {
      * Searches for log events within a specified range and updates the search
      * state.
      *
-     * @param {Object} searchState including search settings and results.
+     * @param {object} searchState including search settings and results.
      * @param {number} logEventsBeginIdx first log event to search from
      * @private
      */
@@ -799,10 +860,12 @@ class FileManager {
             if (currentLogSearchJobId !== this._logSearchJobId) {
                 return;
             }
+
             // schedule the iterations one-by-one to avoid clogging up
             this._sendSearchResultsAndSearchNextChunk(
                 searchState,
-                logEventsEndIdx);
+                logEventsEndIdx
+            );
         }, 0);
     }
 
@@ -834,7 +897,7 @@ class FileManager {
      * Sends search results for processed log pages and continues searching the
      * next chunk if needed.
      *
-     * @param {Object} searchState including search settings and results.
+     * @param {object} searchState including search settings and results.
      * @param {number} logEventsBeginIdx first log event to search from
      * @private
      */
@@ -842,11 +905,11 @@ class FileManager {
         let lastEmptyResultPageIdx = null;
 
         searchState.resultsByPages.forEach((r) => {
-            if (r.results.length === 0) {
+            if (0 === r.results.length) {
                 // avoid sending consecutive pages with no result
                 lastEmptyResultPageIdx = r.pageIdx;
             } else {
-                if (lastEmptyResultPageIdx !== null) {
+                if (null !== lastEmptyResultPageIdx) {
                     this._updateSearchResultsCallback(
                         lastEmptyResultPageIdx,
                         searchState.hasMoreResults,
@@ -861,7 +924,7 @@ class FileManager {
                 );
             }
         });
-        if (lastEmptyResultPageIdx !== null) {
+        if (null !== lastEmptyResultPageIdx) {
             this._updateSearchResultsCallback(
                 lastEmptyResultPageIdx,
                 searchState.hasMoreResults,
@@ -880,8 +943,9 @@ class FileManager {
      */
     computeLogEventIdxFromLineNum () {
         // If there are no logs, return
-        if (this.logEventMetadata.length === 0) {
+        if (0 === this.logEventMetadata.length) {
             this.state.logEventIdx = null;
+
             return;
         }
         let trackedLineNumber = this.state.lineNumber;
@@ -897,7 +961,7 @@ class FileManager {
                 }
             }
         }
-    };
+    }
 
     /**
      * Get the line number from the log event.
@@ -910,6 +974,7 @@ class FileManager {
                 this._logsPageLineOffsetsArray[
                     this.state.logEventIdx - this.state.pageSize * (this.state.page - 1)
                 ];
+
             return;
         }
 
@@ -936,10 +1001,11 @@ class FileManager {
 
         this.state.columnNumber = 1;
         this.state.lineNumber = lineNumberFound;
-    };
+    }
 
     /**
      * Filters the log events with the given verbosity.
+     *
      * @param {number} desiredMinVerbosityIx
      */
     filterLogEvents (desiredMinVerbosityIx) {
@@ -957,10 +1023,11 @@ class FileManager {
                 this._logEventOffsetsFiltered.push(this._logEventOffsets[i]);
             }
         }
-    };
+    }
 
     /**
      * Prettifies the given log event content, if necessary
+     *
      * @param {Uint8Array} contentUint8Array The content as a Uint8Array
      * @return {[boolean, (string|*)]} A tuple containing a boolean indicating
      * whether the content was prettified, and if so, the prettified content.
@@ -968,10 +1035,12 @@ class FileManager {
     _prettifyLogEventContent = (contentUint8Array) => {
         if (contentUint8Array.length > this._PRETTIFICATION_THRESHOLD) {
             return this._prettifier.prettify(
-                this._textDecoder.decode(contentUint8Array));
-        } else {
-            return [false, null];
+                this._textDecoder.decode(contentUint8Array)
+            );
         }
+
+        return [false,
+            null];
     };
 }
 

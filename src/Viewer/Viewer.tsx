@@ -7,8 +7,9 @@ import LoadingIcons from "react-loading-icons";
 
 import {v1 as uuidv1} from "uuid";
 
-import {THEME_STATES} from "../ThemeContext/THEME_STATES";
-import {ThemeContext} from "../ThemeContext/ThemeContext";
+import {
+    AppThemeName, ThemeContext,
+} from "../ThemeContext/ThemeContext";
 import {
     LEFT_PANEL_DEFAULT_WIDTH_FACTOR,
     LEFT_PANEL_TAB_IDS,
@@ -433,7 +434,7 @@ export function Viewer ({
                     <Row className={"m-0"}>
                         <LoadingIcons.Oval
                             height={"5em"}
-                            stroke={(THEME_STATES.LIGHT === appTheme) ?
+                            stroke={(AppThemeName.LIGHT === appTheme) ?
                                 "black" :
                                 "white"}/>
                     </Row>

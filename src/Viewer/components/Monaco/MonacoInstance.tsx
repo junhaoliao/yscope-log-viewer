@@ -18,8 +18,8 @@ import "./MonacoInstance.scss";
 
 interface LogFileState {
     columnNumber: number,
-    currPage: number,
-    currEvent: number,
+    pageIdx: number,
+    logEventIdx: number,
     lineNumber: number,
     maxNumEventPerPage: number,
     numPages: number,

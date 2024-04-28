@@ -15,8 +15,9 @@ import {
     Keyboard,
 } from "react-bootstrap-icons";
 
-import {THEME_STATES} from "../../../ThemeContext/THEME_STATES";
-import {ThemeContext} from "../../../ThemeContext/ThemeContext";
+import {
+    AppThemeName, ThemeContext,
+} from "../../../ThemeContext/ThemeContext";
 import MODIFY_PAGE_ACTION from "../../services/MODIFY_PAGE_ACTION";
 import STATE_CHANGE_TYPE from "../../services/STATE_CHANGE_TYPE";
 import CalendarModal from "../modals/CalendarModal/CalendarModal";
@@ -83,7 +84,7 @@ const MenuBar = ({
 
     // Modal Functions
     const getModalClass = () => {
-        return (THEME_STATES.LIGHT === appTheme) ?
+        return (AppThemeName.LIGHT === appTheme) ?
             "modal-light" :
             "modal-dark";
     };
