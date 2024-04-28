@@ -12,7 +12,7 @@ import {AdapterDayjs} from "@mui/x-date-pickers/AdapterDayjs";
 import config from "./config.json";
 import {DropFile} from "./DropFile/DropFile";
 import {
-    AppThemeName,
+    APP_THEME,
     ThemeContext,
 } from "./ThemeContext/ThemeContext";
 import LOCAL_STORAGE_KEYS from "./Viewer/services/LOCAL_STORAGE_KEYS";
@@ -44,14 +44,14 @@ const App = () => {
     const [timestamp, setTimestamp] = useState(null);
     const [prettify, setPrettify] = useState<boolean>(false);
     const [query, setQuery] = useState({});
-    const [appTheme, setAppTheme] = useState(AppThemeName.DARK);
+    const [appTheme, setAppTheme] = useState(APP_THEME.DARK);
 
     useEffect(() => {
         console.debug("Version:", config.version);
         const lsTheme = localStorage.getItem(LOCAL_STORAGE_KEYS.UI_THEME);
-        switchTheme(AppThemeName.LIGHT === lsTheme ?
-            AppThemeName.LIGHT :
-            AppThemeName.DARK);
+        switchTheme(APP_THEME.LIGHT === lsTheme ?
+            APP_THEME.LIGHT :
+            APP_THEME.DARK);
         init();
     }, []);
 

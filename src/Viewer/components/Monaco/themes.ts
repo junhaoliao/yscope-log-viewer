@@ -1,6 +1,6 @@
 import * as monaco from "monaco-editor";
 
-import {AppThemeName} from "../../../ThemeContext/ThemeContext";
+import {APP_THEME} from "../../../ThemeContext/ThemeContext";
 
 
 enum MonacoCustomThemeName {
@@ -11,10 +11,10 @@ enum MonacoCustomThemeName {
 /**
  * Mappings between app appTheme to monaco appTheme
  */
-const APP_THEME_TO_MONACO_THEME_MAP: Readonly<Record<AppThemeName, MonacoCustomThemeName>> =
+const APP_THEME_TO_MONACO_THEME_MAP: Readonly<Record<APP_THEME, MonacoCustomThemeName>> =
     Object.freeze({
-        [AppThemeName.DARK]: MonacoCustomThemeName.LOG_LANGUAGE_DARK,
-        [AppThemeName.LIGHT]: MonacoCustomThemeName.LOG_LANGUAGE_LIGHT,
+        [APP_THEME.DARK]: MonacoCustomThemeName.LOG_LANGUAGE_DARK,
+        [APP_THEME.LIGHT]: MonacoCustomThemeName.LOG_LANGUAGE_LIGHT,
     });
 
 /**

@@ -10,7 +10,7 @@ import {
 } from "react-bootstrap-icons";
 
 import {
-    AppThemeName, ThemeContext,
+    APP_THEME, ThemeContext,
 } from "../../../ThemeContext/ThemeContext";
 import STATE_CHANGE_TYPE from "../../services/STATE_CHANGE_TYPE";
 import {ResizeHandle} from "../ResizeHandle/ResizeHandle";
@@ -249,7 +249,7 @@ function LeftPanelTabs ({
 
     // Modal Functions
     const getModalClass = () => {
-        return (AppThemeName.LIGHT === appTheme) ?
+        return (APP_THEME.LIGHT === appTheme) ?
             "modal-light" :
             "modal-dark";
     };
@@ -354,19 +354,19 @@ function LeftPanelTabs ({
     };
 
     const getThemeIcon = () => {
-        if (AppThemeName.LIGHT === appTheme) {
+        if (APP_THEME.LIGHT === appTheme) {
             return (
                 <Moon
                     className={"cursor-pointer"}
                     title={"Set Light Mode"}
-                    onClick={() => switchTheme(AppThemeName.DARK)}/>
+                    onClick={() => switchTheme(APP_THEME.DARK)}/>
             );
-        } else if (AppThemeName.DARK === appTheme) {
+        } else if (APP_THEME.DARK === appTheme) {
             return (
                 <Sun
                     className={"cursor-pointer"}
                     title={"Set Dark Mode"}
-                    onClick={() => switchTheme(AppThemeName.LIGHT)}/>
+                    onClick={() => switchTheme(APP_THEME.LIGHT)}/>
             );
         }
     };
