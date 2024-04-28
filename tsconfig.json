@@ -1,9 +1,11 @@
 {
   "include": [
-    "./src/**/*"
+    "./src/**/*.ts",
+    "./src/**/*.tsx",
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "customized-packages"
   ],
   "compilerOptions": {
     /* Visit https://aka.ms/tsconfig to read more about this file */
