@@ -32,6 +32,13 @@ interface LogFileState {
     decompressedSize: number,
 }
 
+interface MonacoInstanceProps {
+    logFileState: LogFileState;
+    logData: string | null;
+    onStateChange: (type: string, args: object) => void;
+    beforeMount: ()=>void;
+    onMount: ()=>void;
+}
 
 /**
  * Contains the monaco editor used to display the log data. When user
@@ -51,13 +58,7 @@ const MonacoInstance = ({
     onStateChange,
     beforeMount,
     onMount,
-}: {
-    logFileState: LogFileState;
-    logData: string | null;
-    onStateChange: (type: string, args: object) => void;
-    beforeMount: ()=>void;
-    onMount: ()=>void;
-}): React.ReactElement => {
+}: MonacoInstanceProps): React.ReactElement => {
     const {appTheme} = useContext(ThemeContext);
     const editorRef = useRef<null|monaco.editor.IStandaloneCodeEditor>(null);
     const editorContainerRef = useRef<HTMLDivElement>(null);
