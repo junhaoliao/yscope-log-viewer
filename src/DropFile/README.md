@@ -27,7 +27,7 @@ const App = () => {
 
     return (
         <div id="app">
-            <DropFile handleFileDrop={handleFileChange}>
+            <DropFile onFileDrop={handleFileChange}>
                 <CustomComponent fileSrc={fileSrc}>
             </DropFile>
         </div>

@@ -38,8 +38,8 @@ Viewer.propTypes = {
     ]),
     filePath: PropTypes.string,
     prettifyLog: PropTypes.bool,
-    logEventNumber: PropTypes.string,
-    timestamp: PropTypes.string,
+    logEventNumber: PropTypes.number,
+    timestamp: PropTypes.number,
 };
 
 /**

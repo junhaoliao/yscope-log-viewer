@@ -1,10 +1,9 @@
-import PropTypes, {oneOfType} from "prop-types";
 import React, {
-    useContext, useEffect, useRef, useState,
+    useContext,
+    useState,
 } from "react";
 import {Row} from "react-bootstrap";
 import {FileEarmarkText} from "react-bootstrap-icons";
-import ReactDOMServer from "react-dom/server";
 
 import {ThemeContext} from "../ThemeContext/ThemeContext";
 
@@ -12,8 +11,8 @@ import "./DropFile.scss";
 
 
 interface DropFileProps {
-    children: false | JSX.Element | JSX.Element[],
-    handleFileDrop: (file: File) => void
+    children: React.ReactNode,
+    onFileDrop: (file: File) => void
 }
 
 /**
@@ -21,49 +20,55 @@ interface DropFileProps {
  *
  * @param props
  * @param props.children
- * @param props.handleFileDrop
+ * @param props.onFileDrop
  */
-const DropFile : React.FC<DropFileProps> = ({children, handleFileDrop}) => {
+const DropFile : React.FC<DropFileProps> = ({children, onFileDrop}) => {
     const {appTheme} = useContext(ThemeContext);
-
-    const [hasChildren, setHasChildren] = useState(false);
     const [dragging, setDragging] = useState(false);
-
-    const selectFileEl = useRef();
-
-    useEffect(() => {
-        // Indicates if this component has any children
-        // TODO Check if the child element is a Viewer component
-        setHasChildren(Boolean(ReactDOMServer.renderToStaticMarkup(children)));
-    }, [children]);
 
     /**
      * Handler for a drag event
      *
-     * @param e
+     * @param ev
      */
-    const handleDrag = function (e) {
-        e.preventDefault();
-        e.stopPropagation();
-        if ("dragenter" === e.type || "dragover" === e.type) {
+    const handleDrag = (ev:React.DragEvent) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        if ("dragenter" === ev.type || "dragover" === ev.type) {
             setDragging(true);
-        } else if ("dragleave" === e.type) {
+        } else if ("dragleave" === ev.type) {
             setDragging(false);
         }
     };
 
     /**
-     * Handler for a drop event. handleFileDrop callback is used
+     * Handler for a drop event. onFileDrop callback is used
      * to load the dropped file into the viewer.
      *
-     * @param e
+     * @param ev
      */
-    const handleDrop = function (e) {
-        e.preventDefault();
-        e.stopPropagation();
+    const handleDrop = function (ev:React.DragEvent) {
+        ev.preventDefault();
+        ev.stopPropagation();
         setDragging(false);
-        if (0 < e.dataTransfer.files.length && e.dataTransfer.files[0]) {
-            handleFileDrop(e.dataTransfer.files[0]);
+
+        const [file] = ev.dataTransfer.files;
+        if ("undefined" !== typeof file) {
+            onFileDrop(file);
+        }
+    };
+
+    /**
+     * Callback once file is selected from file input dialog
+     *
+     * @param ev
+     */
+    const loadFile = (ev: React.ChangeEvent<HTMLInputElement>) => {
+        if (null !== ev.target.files) {
+            const [file] = ev.target.files;
+            if ("undefined" !== typeof file) {
+                onFileDrop(file);
+            }
         }
     };
 
@@ -71,55 +76,10 @@ const DropFile : React.FC<DropFileProps> = ({children, handleFileDrop}) => {
      * Triggers the file input dialog when selectFileEl is clicked
      */
     const openFile = () => {
-        selectFileEl.current.click();
-    };
-
-    /**
-     * Callback once file is selected from file input dialog
-     *
-     * @param e
-     */
-    const loadFile = (e) => {
-        handleFileDrop(e.target.files[0]);
-    };
-
-
-    /**
-     * Returns JSX to be rendered if there are no child components to allow
-     * the user to load a file.
-     *
-     * @return
-     */
-    const getLoadFileJSX = () => {
-        return (
-            <div
-                className={"upload-wrapper"}
-                data-theme={appTheme}
-            >
-                <h3 className={"heading"}>Log Viewer</h3>
-                <div className={"upload-container"}>
-                    <FileEarmarkText
-                        className={"pb-4"}
-                        size={"100px"}/>
-                    <Row className={"text-center d-flex flex-column"}>
-                        <input
-                            className={"visually-hidden"}
-                            ref={selectFileEl}
-                            type={"file"}
-                            onChange={loadFile}/>
-                        <a
-                            className={"text-center"}
-                            href={"#"}
-                            onClick={openFile}
-                        >
-                            Select Log File
-                        </a>
-                        <span>or</span>
-                        <span>Drag and Drop File</span>
-                    </Row>
-                </div>
-            </div>
-        );
+        const input = document.createElement("input");
+        input.type = "file";
+        input.onchange = loadFile as unknown as (ev:Event)=>void;
+        input.click();
     };
 
     return (
@@ -140,13 +100,30 @@ const DropFile : React.FC<DropFileProps> = ({children, handleFileDrop}) => {
                         onDragOver={handleDrag}
                         onDrop={handleDrop}/>
                 </>}
-            {hasChildren ?
-                <>
-                    {children}
-                </> :
-                <>
-                    {getLoadFileJSX()}
-                </>}
+            {(false !== children) ?
+                children :
+                <div
+                    className={"upload-wrapper"}
+                    data-theme={appTheme}
+                >
+                    <h3 className={"heading"}>Log Viewer</h3>
+                    <div className={"upload-container"}>
+                        <FileEarmarkText
+                            className={"pb-4"}
+                            size={"100px"}/>
+                        <Row className={"text-center d-flex flex-column"}>
+                            <a
+                                className={"text-center"}
+                                href={"#"}
+                                onClick={openFile}
+                            >
+                                Select Log File
+                            </a>
+                            <span>or</span>
+                            <span>Drag and Drop File</span>
+                        </Row>
+                    </div>
+                </div>}
         </div>
     );
 };

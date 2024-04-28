@@ -48,7 +48,7 @@ const App = () => {
     return (
         <div id="app">
             <ThemeContext.Provider value={{appTheme, switchTheme}}>
-                <DropFile handleFileDrop={handleFileChange}>
+                <DropFile onFileDrop={handleFileChange}>
                     {appMode === APP_STATE.VIEWER &&
                         <Viewer logEventNumber={333}
                             prettifyLog={true}

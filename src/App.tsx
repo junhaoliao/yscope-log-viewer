@@ -40,7 +40,7 @@ enum APP_STATE {
  * @return
  */
 const App = () => {
-    const [appMode, setAppMode] = useState<APP_STATE>();
+    const [appMode, setAppMode] = useState<APP_STATE>(APP_STATE.FILE_PROMPT);
     const [fileSrc, setFileSrc] = useState<File|string|null>(null);
     const [logEventIdx, setLogEventIdx] = useState<number|null>(null);
     const [timestamp, setTimestamp] = useState<number|null>(null);
@@ -90,7 +90,7 @@ const App = () => {
             setAppMode(APP_STATE.FILE_VIEW);
         } else if (
             // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-            null === config.defaultFileUrl
+            null !== config.defaultFileUrl
         ) {
             setFileSrc(config.defaultFileUrl);
             setAppMode(APP_STATE.FILE_VIEW);
@@ -120,7 +120,7 @@ const App = () => {
         <div id={"app"}>
             <ThemeContext.Provider value={{appTheme, switchTheme}}>
                 <LocalizationProvider dateAdapter={AdapterDayjs}>
-                    <DropFile handleFileDrop={handleFileChange}>
+                    <DropFile onFileDrop={handleFileChange}>
                         {(APP_STATE.FILE_VIEW === appMode) &&
                         <Viewer
                             fileSrc={fileSrc}
