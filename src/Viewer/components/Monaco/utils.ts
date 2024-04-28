@@ -51,6 +51,7 @@ const initMonacoEditor = (
             // FIXME: add custom observer debounce automatic layout
             automaticLayout: true,
             language: LOG_LANGUAGE_NAME,
+            maxTokenizationLineLength: 30_000,
             mouseWheelZoom: true,
             readOnly: true,
             renderWhitespace: "none",
