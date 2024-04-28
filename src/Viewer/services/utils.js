@@ -78,9 +78,9 @@ const getAbsoluteUrl = (path) => {
  * null if not found.
  */
 const getFilePathFromWindowLocation = () => {
-    let filePath = window.location.search.split("filePath=")[1];
+    let [, filePath] = window.location.search.split("filePath=");
 
-    if (undefined === filePath) {
+    if ("undefined" === typeof filePath) {
         return null;
     }
 
