@@ -24,13 +24,13 @@ const App = () => {
     };
 
     const [fileSrc, setfileSrc] = useState(null);
-    const [theme, setTheme] = useState(THEME_STATES.DARK);
+    const [appTheme, setAppTheme] = useState(THEME_STATES.DARK);
     const [appMode, setAppMode] = useState();
 
-    const switchTheme = (theme) => {
-        localStorage.setItem(LOCAL_STORAGE_KEYS.UI_THEME, theme);
-        document.getElementById("app").setAttribute("data-theme", theme);
-        setTheme(theme);
+    const switchTheme = (appTheme) => {
+        localStorage.setItem(LOCAL_STORAGE_KEYS.UI_THEME, appTheme);
+        document.getElementById("app").setAttribute("data-appTheme", appTheme);
+        setAppTheme(appTheme);
     };
 
     const handleFileChange = (file) => {
@@ -47,7 +47,7 @@ const App = () => {
 
     return (
         <div id="app">
-            <ThemeContext.Provider value={{theme, switchTheme}}>
+            <ThemeContext.Provider value={{appTheme, switchTheme}}>
                 <DropFile handleFileDrop={handleFileChange}>
                     {appMode === APP_STATE.VIEWER &&
                         <Viewer logEventNumber={333}

@@ -58,7 +58,7 @@ const MonacoInstance = ({
     beforeMount: ()=>void;
     onMount: ()=>void;
 }): React.ReactElement => {
-    const {theme} = useContext(ThemeContext);
+    const {appTheme} = useContext(ThemeContext);
     const editorRef = useRef<null|monaco.editor.IStandaloneCodeEditor>(null);
     const editorContainerRef = useRef<HTMLDivElement>(null);
 
@@ -93,8 +93,8 @@ const MonacoInstance = ({
     );
 
     useEffect(() => {
-        monaco.editor.setTheme(APP_THEME_TO_MONACO_THEME_MAP[theme]);
-    }, [theme]);
+        monaco.editor.setTheme(APP_THEME_TO_MONACO_THEME_MAP[appTheme]);
+    }, [appTheme]);
 
     useEffect(
         () => {

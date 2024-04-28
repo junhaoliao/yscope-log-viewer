@@ -212,7 +212,7 @@ function LeftPanelTabs ({
     loadFileCallback,
     changeStateCallback,
 }) {
-    const {theme, switchTheme} = useContext(ThemeContext);
+    const {appTheme, switchTheme} = useContext(ThemeContext);
 
     const [isDownloading, setIsDownloading] = useState(false);
     const [downloadingMessage, setDownloadingMessage] = useState("Decoding pages to database...");
@@ -248,7 +248,7 @@ function LeftPanelTabs ({
 
     // Modal Functions
     const getModalClass = () => {
-        return (THEME_STATES.LIGHT === theme) ?
+        return (THEME_STATES.LIGHT === appTheme) ?
             "modal-light" :
             "modal-dark";
     };
@@ -353,14 +353,14 @@ function LeftPanelTabs ({
     };
 
     const getThemeIcon = () => {
-        if (THEME_STATES.LIGHT === theme) {
+        if (THEME_STATES.LIGHT === appTheme) {
             return (
                 <Moon
                     className={"cursor-pointer"}
                     title={"Set Light Mode"}
                     onClick={() => switchTheme(THEME_STATES.DARK)}/>
             );
-        } else if (THEME_STATES.DARK === theme) {
+        } else if (THEME_STATES.DARK === appTheme) {
             return (
                 <Sun
                     className={"cursor-pointer"}

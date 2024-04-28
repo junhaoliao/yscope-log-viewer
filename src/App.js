@@ -41,7 +41,7 @@ export function App () {
     const [timestamp, setTimestamp] = useState(null);
     const [prettify, setPrettify] = useState(null);
     const [query, setQuery] = useState({});
-    const [theme, setTheme] = useState(THEME_STATES.DARK);
+    const [appTheme, setAppTheme] = useState(THEME_STATES.DARK);
 
     useEffect(() => {
         console.debug("Version:", config.version);
@@ -55,7 +55,7 @@ export function App () {
     const switchTheme = (theme) => {
         localStorage.setItem(LOCAL_STORAGE_KEYS.UI_THEME, theme);
         document.getElementById("app").setAttribute("data-theme", theme);
-        setTheme(theme);
+        setAppTheme(theme);
     };
 
     /**
@@ -106,7 +106,7 @@ export function App () {
 
     return (
         <div id={"app"}>
-            <ThemeContext.Provider value={{theme, switchTheme}}>
+            <ThemeContext.Provider value={{appTheme, switchTheme}}>
                 <LocalizationProvider dateAdapter={AdapterDayjs}>
                     <DropFile handleFileDrop={handleFileChange}>
                         {(APP_STATE.FILE_VIEW === appMode) &&

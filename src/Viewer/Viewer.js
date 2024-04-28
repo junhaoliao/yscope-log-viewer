@@ -61,7 +61,7 @@ export function Viewer ({
     initialQuery,
     timestamp,
 }) {
-    const {theme} = useContext(ThemeContext);
+    const {appTheme} = useContext(ThemeContext);
 
     // Ref hook used to reference worker used for loading and decoding
     const clpWorker = useRef(null);
@@ -427,14 +427,14 @@ export function Viewer ({
     return (
         <div
             className={"viewer-container"}
-            data-theme={theme}
+            data-theme={appTheme}
         >
             {loadingFile &&
                 <div className={"viewer-loading-container"}>
                     <Row className={"m-0"}>
                         <LoadingIcons.Oval
                             height={"5em"}
-                            stroke={(THEME_STATES.LIGHT === theme) ?
+                            stroke={(THEME_STATES.LIGHT === appTheme) ?
                                 "black" :
                                 "white"}/>
                     </Row>

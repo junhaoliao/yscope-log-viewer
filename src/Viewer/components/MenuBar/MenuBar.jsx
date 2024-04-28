@@ -27,16 +27,21 @@ import "./MenuBar.scss";
 
 /**
  * Menu bar used to navigate the log file.
+ *
+ * @param logFileState.logFileState
  * @param {object} logFileState Current state of the log file
  * @param {object} fileInfo Object containing file name & path
  * @param {boolean} isLoading whether logs / actions are being loaded
  * @param {ChangeStateCallback} onStateChange
+ * @param logFileState.fileInfo
+ * @param logFileState.isLoading
+ * @param logFileState.onStateChange
  * @return {JSX.Element}
  */
 const MenuBar = ({
     logFileState, fileInfo, isLoading, onStateChange,
 }) => {
-    const {theme} = useContext(ThemeContext);
+    const {appTheme} = useContext(ThemeContext);
 
 
     const [showCalendar, setShowCalendar] = useState(false);
@@ -78,7 +83,7 @@ const MenuBar = ({
 
     // Modal Functions
     const getModalClass = () => {
-        return (THEME_STATES.LIGHT === theme) ?
+        return (THEME_STATES.LIGHT === appTheme) ?
             "modal-light" :
             "modal-dark";
     };
@@ -146,7 +151,7 @@ const MenuBar = ({
         <>
             <div
                 className={"viewer-header"}
-                data-theme={theme}
+                data-theme={appTheme}
             >
                 <div
                     className={"w-100"}
@@ -195,7 +200,7 @@ const MenuBar = ({
             <Modal
                 className={"help-modal border-0"}
                 contentClassName={getModalClass()}
-                data-theme={theme}
+                data-theme={appTheme}
                 show={showHelp}
                 onHide={handleCloseHelp}
             >

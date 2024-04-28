@@ -39,7 +39,7 @@ const App = () => {
     const [fileInfo, setFileInfo] = useState(null);
     const [logEventIdx, setLogEventIdx] = useState(null);
     const [prettify, setPrettify] = useState(null);
-    const [theme, setTheme] = useState(THEME_STATES.DARK);
+    const [appTheme, setAppTheme] = useState(THEME_STATES.DARK);
 
     useEffect(() => {
         console.debug("Version:", config.version);
@@ -48,10 +48,10 @@ const App = () => {
         init();
     }, []);
 
-    const switchTheme = (theme) => {
-        localStorage.setItem(LOCAL_STORAGE_KEYS.UI_THEME, theme);
-        document.getElementById("app").setAttribute("data-theme", theme);
-        setTheme(theme);
+    const switchTheme = (appTheme) => {
+        localStorage.setItem(LOCAL_STORAGE_KEYS.UI_THEME, appTheme);
+        document.getElementById("app").setAttribute("data-appTheme", appTheme);
+        setAppTheme(appTheme);
     };
 
     /**
@@ -97,7 +97,7 @@ const App = () => {
 
     return (
         <div id="app">
-            <ThemeContext.Provider value={{theme, switchTheme}}>
+            <ThemeContext.Provider value={{appTheme, switchTheme}}>
                 <DropFile handleFileDrop={handleFileChange}>
                     {(APP_STATE.FILE_VIEW === appMode) &&
                         <Viewer logEventNumber={logEventIdx}

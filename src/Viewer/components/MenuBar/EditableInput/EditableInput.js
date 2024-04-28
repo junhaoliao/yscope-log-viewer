@@ -1,11 +1,13 @@
-import React, {useContext, useEffect, useRef, useState} from "react";
-
 import PropTypes from "prop-types";
+import React, {
+    useContext, useEffect, useRef, useState,
+} from "react";
 import {Form} from "react-bootstrap";
 
 import {ThemeContext} from "../../../../ThemeContext/ThemeContext";
 
 import "./EditableInput.scss";
+
 
 EditableInput.propTypes = {
     value: PropTypes.number,
@@ -16,6 +18,7 @@ EditableInput.propTypes = {
 
 /**
  * This callback function accepts the validated value as an input.
+ *
  * @callback OnChangeCallback
  * @param {number} page Passes the new value into the callback function.
  */
@@ -33,7 +36,7 @@ EditableInput.propTypes = {
  * @return {JSX.Element}
  */
 export function EditableInput ({value, minValue, maxValue, onChangeCallback}) {
-    const {theme} = useContext(ThemeContext);
+    const {appTheme} = useContext(ThemeContext);
 
     // TODO: Make width of input element grow with inputted text. Currently in
     //  edit mode, the input has a fixed width.
@@ -83,8 +86,8 @@ export function EditableInput ({value, minValue, maxValue, onChangeCallback}) {
     };
 
     const onInputChange = (e) => {
-        const isNumber = /^\d+$/.test(e.target.value);
-        if (e.target.value === "") {
+        const isNumber = (/^\d+$/).test(e.target.value);
+        if ("" === e.target.value) {
             setLocalValueInput("");
         } else if (isNumber) {
             setLocalValueInput(e.target.value);
@@ -92,19 +95,25 @@ export function EditableInput ({value, minValue, maxValue, onChangeCallback}) {
     };
 
     return (
-        <div data-theme={theme}>
+        <div data-theme={appTheme}>
             {!editing &&
-                <span className="editable-value" onClick={onClick}
-                    title="Click to edit page number">
+                <span
+                    className={"editable-value"}
+                    title={"Click to edit page number"}
+                    onClick={onClick}
+                >
                     {localValue}
-                </span>
-            }
+                </span>}
             {editing &&
                 <Form onSubmit={onSubmit}>
-                    <input ref={inputEl} className="editable-input" type={"text"}
-                        value={localValueInput} onBlur={onSubmit} onChange={onInputChange}/>
-                </Form>
-            }
+                    <input
+                        className={"editable-input"}
+                        ref={inputEl}
+                        type={"text"}
+                        value={localValueInput}
+                        onBlur={onSubmit}
+                        onChange={onInputChange}/>
+                </Form>}
         </div>
     );
 }

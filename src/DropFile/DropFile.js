@@ -1,6 +1,7 @@
-import React, {useContext, useEffect, useRef, useState} from "react";
-
 import PropTypes, {oneOfType} from "prop-types";
+import React, {
+    useContext, useEffect, useRef, useState,
+} from "react";
 import {Row} from "react-bootstrap";
 import {FileEarmarkText} from "react-bootstrap-icons";
 import ReactDOMServer from "react-dom/server";
@@ -9,26 +10,31 @@ import {ThemeContext} from "../ThemeContext/ThemeContext";
 
 import "./DropFile.scss";
 
+
 DropFile.propTypes = {
-    children: oneOfType([PropTypes.array, PropTypes.bool, PropTypes.object]),
+    children: oneOfType([PropTypes.array,
+        PropTypes.bool,
+        PropTypes.object]),
     handleFileDrop: PropTypes.func,
 };
 
 /**
  * Callback for when a file is dropped on the element
+ *
  * @callback FileDropCallback
  * @param {File} file
  */
 
 /**
  * A container element to add drag & drop functionality to the child elements.
+ *
  * @param {JSX.Element[]} children Child elements
  * @param {FileDropCallback} handleFileDrop Handler for a file being dropped on
  * the child elements.
  * @return {JSX.Element}
  */
 export function DropFile ({children, handleFileDrop}) {
-    const {theme} = useContext(ThemeContext);
+    const {appTheme} = useContext(ThemeContext);
 
     const [hasChildren, setHasChildren] = useState(false);
     const [dragging, setDragging] = useState(false);
@@ -66,7 +72,7 @@ export function DropFile ({children, handleFileDrop}) {
         e.preventDefault();
         e.stopPropagation();
         setDragging(false);
-        if (e.dataTransfer.files.length > 0 && e.dataTransfer.files[0]) {
+        if (0 < e.dataTransfer.files.length && e.dataTransfer.files[0]) {
             handleFileDrop(e.dataTransfer.files[0]);
         }
     };
@@ -80,6 +86,7 @@ export function DropFile ({children, handleFileDrop}) {
 
     /**
      * Callback once file is selected from file input dialog
+     *
      * @param {File} e
      */
     const loadFile = (e) => {
@@ -95,14 +102,26 @@ export function DropFile ({children, handleFileDrop}) {
      */
     const getLoadFileJSX = () => {
         return (
-            <div data-theme={theme} className="upload-wrapper">
-                <h3 className="heading">Log Viewer</h3>
-                <div className="upload-container">
-                    <FileEarmarkText size={"100px"} className="pb-4"/>
-                    <Row className="text-center d-flex flex-column">
-                        <input ref={selectFileEl} type="file" onChange={loadFile}
-                            className="visually-hidden"/>
-                        <a onClick={openFile} className="text-center" href="#">
+            <div
+                className={"upload-wrapper"}
+                data-theme={appTheme}
+            >
+                <h3 className={"heading"}>Log Viewer</h3>
+                <div className={"upload-container"}>
+                    <FileEarmarkText
+                        className={"pb-4"}
+                        size={"100px"}/>
+                    <Row className={"text-center d-flex flex-column"}>
+                        <input
+                            className={"visually-hidden"}
+                            ref={selectFileEl}
+                            type={"file"}
+                            onChange={loadFile}/>
+                        <a
+                            className={"text-center"}
+                            href={"#"}
+                            onClick={openFile}
+                        >
                             Select Log File
                         </a>
                         <span>or</span>
@@ -114,26 +133,30 @@ export function DropFile ({children, handleFileDrop}) {
     };
 
     return (
-        <div className="drag-container" onDragEnter={handleDrag}>
+        <div
+            className={"drag-container"}
+            onDragEnter={handleDrag}
+        >
             {dragging &&
                 <>
-                    <div className="drag-wrapper">
+                    <div className={"drag-wrapper"}>
                         <FileEarmarkText size={"50px"}/>
-                        <h3 className="ms-3">Drop File to View</h3>
+                        <h3 className={"ms-3"}>Drop File to View</h3>
                     </div>
                     <div
-                        className="drop-container"
+                        className={"drop-container"}
                         onDragEnter={handleDrag}
                         onDragLeave={handleDrag}
                         onDragOver={handleDrag}
-                        onDrop={handleDrop}
-                    />
-                </>
-            }
-            {hasChildren
-                ? <>{children}</>
-                : <>{getLoadFileJSX()}</>
-            }
+                        onDrop={handleDrop}/>
+                </>}
+            {hasChildren ?
+                <>
+                    {children}
+                </> :
+                <>
+                    {getLoadFileJSX()}
+                </>}
         </div>
     );
 }
