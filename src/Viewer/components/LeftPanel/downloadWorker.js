@@ -1,19 +1,27 @@
 import Database from "../../services/Database";
 import DOWNLOAD_WORKER_ACTION from "./DOWNLOAD_WORKER_ACTION";
 
+
 let db = null;
 let totalCount;
 
+/**
+ *
+ */
 const getCount = () => {
     return new Promise((resolve) => {
         db.getNumberOfPages().then((count) => {
             resolve(count);
-        }).catch(() => {
-            resolve(false);
-        });
+        })
+            .catch(() => {
+                resolve(false);
+            });
     });
 };
 
+/**
+ *
+ */
 const isDecodingDone = () => {
     getCount().then((count) => {
         if (count < totalCount) {
@@ -33,48 +41,49 @@ const isDecodingDone = () => {
     });
 };
 
-onmessage = function (e) {
-    const msg = e.data;
+/**
+ *
+ * @param ev
+ */
+onmessage = function (ev) {
+    const msg = ev.data;
 
     switch (msg.code) {
         case DOWNLOAD_WORKER_ACTION.initialize:
-            db = new Database(e.data.sessionId);
-            totalCount = e.data.count;
+            db = new Database(ev.data.sessionId);
+            totalCount = ev.data.count;
             isDecodingDone();
             break;
         case DOWNLOAD_WORKER_ACTION.pageData:
-            db.getPage(e.data.pageNum).then((data) => {
-                if (undefined === data) {
-                    postMessage({
-                        code: DOWNLOAD_WORKER_ACTION.error,
-                        error: new Error("Page data was not loaded."),
-                    });
-                } else {
+            db.getPage(ev.data.pageNum)
+                .then((data) => {
                     postMessage({
                         code: DOWNLOAD_WORKER_ACTION.pageData,
-                        data: data.data,
-                        pageNum: e.data.pageNum,
+                        data: data,
+                        pageNum: ev.data.pageNum,
                     });
-                }
-            }).catch((e) => {
-                postMessage({
-                    code: DOWNLOAD_WORKER_ACTION.error,
-                    error: new Error(e.reason),
+                })
+                .catch((error) => {
+                    postMessage({
+                        code: DOWNLOAD_WORKER_ACTION.error,
+                        error: new Error(error.reason),
+                    });
                 });
-            });
             break;
         case DOWNLOAD_WORKER_ACTION.clearDatabase:
-            db.delete().then(() => {
-                postMessage({
-                    code: DOWNLOAD_WORKER_ACTION.clearDatabase,
-                    success: true,
+            db.delete()
+                .then(() => {
+                    postMessage({
+                        code: DOWNLOAD_WORKER_ACTION.clearDatabase,
+                        success: true,
+                    });
+                })
+                .catch(() => {
+                    postMessage({
+                        code: DOWNLOAD_WORKER_ACTION.clearDatabase,
+                        success: false,
+                    });
                 });
-            }).catch(() => {
-                postMessage({
-                    code: DOWNLOAD_WORKER_ACTION.clearDatabase,
-                    success: false,
-                });
-            });
             break;
         default:
             break;
