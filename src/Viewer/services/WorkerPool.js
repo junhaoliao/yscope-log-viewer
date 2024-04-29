@@ -64,7 +64,7 @@ class WorkerPool {
                     this.freeWorker(worker);
                     this.processQueue();
                 };
-                console.debug(`Started worker to load page ${task.page}`);
+                console.debug(`Started worker to load page ${task.pageNum}`);
             }
         }
     }

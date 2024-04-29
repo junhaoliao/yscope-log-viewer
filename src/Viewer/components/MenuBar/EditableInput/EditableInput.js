@@ -20,7 +20,7 @@ EditableInput.propTypes = {
  * This callback function accepts the validated value as an input.
  *
  * @callback OnChangeCallback
- * @param {number} page Passes the new value into the callback function.
+ * @param {number} pageNum Passes the new value into the callback function.
  */
 
 /**

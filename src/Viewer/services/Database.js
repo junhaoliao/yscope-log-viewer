@@ -1,5 +1,6 @@
 import Dexie from "dexie";
 
+
 /**
  * Database class that wraps all indexedDB functions.
  *
@@ -13,7 +14,7 @@ class Database extends Dexie {
     constructor (fileName) {
         super(fileName);
         this.version(1).stores({
-            logData: "page",
+            logData: "pageNum, data",
         });
         this.logData = this.table("logData");
     }
@@ -21,39 +22,42 @@ class Database extends Dexie {
     /**
      * Reads page data from the database.
      *
-     * @param {number} page
+     * @param {number} pageNum
+     * @param pageNum
      * @return {Promise<unknown>}
      */
-    getPage (page) {
+    getPage (pageNum) {
         return new Promise(async (resolve, reject) => {
-            this.logData.get({page: page}).then((data) => {
+            this.logData.get({pageNum: pageNum}).then((data) => {
                 resolve(data);
-            }).catch((reason) => {
-                console.log(reason);
-                reject(new Error(reason));
-            });
+            })
+                .catch((reason) => {
+                    console.log(reason);
+                    reject(new Error(reason));
+                });
         });
     }
 
     /**
      * Adds page data to the database.
      *
-     * @param {number} page
+     * @param {number} pageNum
      * @param {string} data
      * @return {Promise<unknown>}
      */
-    addPage (page, data) {
+    addPage (pageNum, data) {
         return new Promise(async (resolve, reject) => {
             this.logData.add(
                 {
-                    page: page,
+                    pageNum: pageNum,
                     data: data,
                 }
             ).then(() => {
                 resolve(true);
-            }).catch((e) => {
-                reject(new Error(e));
-            });
+            })
+                .catch((e) => {
+                    reject(new Error(e));
+                });
         });
     }
 
@@ -66,9 +70,10 @@ class Database extends Dexie {
         return new Promise(async (resolve, reject) => {
             this.logData.count().then((number) => {
                 resolve(number);
-            }).catch((e) => {
-                reject(new Error(e));
-            });
+            })
+                .catch((e) => {
+                    reject(new Error(e));
+                });
         });
     }
 }

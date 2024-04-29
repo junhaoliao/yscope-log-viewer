@@ -22,7 +22,7 @@ import LOCAL_STORAGE_KEYS from "./services/LOCAL_STORAGE_KEYS";
 import MessageLogger from "./services/MessageLogger";
 import STATE_CHANGE_TYPE from "./services/STATE_CHANGE_TYPE";
 import {
-    getModifiedUrl, modifyPage, parseNum,
+    getModifiedUrl, getNewLineAndPage, parseNum,
 } from "./services/utils";
 import LogFileState from "./types/LogFileState";
 
@@ -86,16 +86,14 @@ const Viewer = ({
         numEvents: null,
         numPages: null,
 
-        columnNumber: null,
-        pageNumber: 0,
+        columnNum: null,
+        lineNum: null,
         logEventIdx: logEventNumber,
-        lineNumber: null,
+        PRETTIFYNumber: null,
 
         enablePrettify: enablePrettify,
         pageSize: lsPageSize ?? DEFAULT_PAGE_SIZE,
         verbosity: null,
-
-        page: null,
     });
     const [fileInfo, setFileInfo] = useState(null);
     const [logData, setLogData] = useState(null);
@@ -190,20 +188,23 @@ const Viewer = ({
             return;
         }
         switch (type) {
-            case STATE_CHANGE_TYPE.page:
-                const [linePos, validNewPage] = modifyPage(
+            case STATE_CHANGE_TYPE.PAGE_NUM:
+                if (null === logFileState.pageNum) {
+                    throw new Error("Unexpected null logFileState.pageNum");
+                }
+                const [linePos, validNewPage] = getNewLineAndPage(
                     args.action,
-                    logFileState.page,
+                    logFileState.pageNum,
                     args.requestedPage,
                     logFileState.numPages
                 );
 
-                if (validNewPage) {
+                if (null !== validNewPage) {
                     setLoadingLogs(true);
                     setStatusMessage(`Loading page number ${validNewPage}...`);
                     clpWorker.current.postMessage({
-                        code: CLP_WORKER_PROTOCOL.CHANGE_PAGE,
-                        page: validNewPage,
+                        code: CLP_WORKER_PROTOCOL.CHANGE_PAGE_NUM,
+                        pageNum: validNewPage,
                         linePos: linePos,
                     });
                 }
@@ -236,7 +237,7 @@ const Viewer = ({
                     });
                 }
                 break;
-            case STATE_CHANGE_TYPE.CHANGE_PRETTIFY:
+            case STATE_CHANGE_TYPE.PRETTIFY:
                 setLoadingLogs(true);
                 setStatusMessage(
                     args.enablePrettify ?
@@ -244,15 +245,15 @@ const Viewer = ({
                         "Un-prettifying..."
                 );
                 clpWorker.current.postMessage({
-                    code: CLP_WORKER_PROTOCOL.CHANGE_PRETTIFY,
+                    code: CLP_WORKER_PROTOCOL.PRETTIFY,
                     enablePrettify: args.enablePrettify,
                 });
                 break;
-            case STATE_CHANGE_TYPE.lineNumber:
+            case STATE_CHANGE_TYPE.lineNum:
                 clpWorker.current.postMessage({
                     code: CLP_WORKER_PROTOCOL.GET_EVENT_FROM_LINE,
-                    lineNumber: args.lineNumber,
-                    columnNumber: args.columnNumber,
+                    lineNum: args.lineNum,
+                    columnNum: args.columnNum,
                 });
                 break;
             case STATE_CHANGE_TYPE.logEventIdx:
@@ -528,4 +529,4 @@ const Viewer = ({
 };
 
 export default Viewer;
-export {QueryOptions};
+export type {QueryOptions};

@@ -43,7 +43,7 @@ onmessage = function (e) {
             isDecodingDone();
             break;
         case DOWNLOAD_WORKER_ACTION.pageData:
-            db.getPage(e.data.page).then((data) => {
+            db.getPage(e.data.pageNum).then((data) => {
                 if (undefined === data) {
                     postMessage({
                         code: DOWNLOAD_WORKER_ACTION.error,
@@ -53,7 +53,7 @@ onmessage = function (e) {
                     postMessage({
                         code: DOWNLOAD_WORKER_ACTION.pageData,
                         data: data.data,
-                        page: e.data.page,
+                        pageNum: e.data.pageNum,
                     });
                 }
             }).catch((e) => {

@@ -111,11 +111,11 @@ class FileManager {
         this.state = {
             pageSize: pageSize,
             numPages: null,
-            page: null,
+            pageNum: null,
             enablePrettify: enablePrettify,
             logEventIdx: logEventIdx,
-            lineNumber: null,
-            columnNumber: null,
+            lineNum: null,
+            columnNum: null,
             numEvents: null,
             verbosity: null,
             compressedHumanSize: null,
@@ -286,8 +286,8 @@ class FileManager {
 
         // Update state
         this.state.verbosity = -1;
-        this.state.lineNumber = 1;
-        this.state.columnNumber = 1;
+        this.state.lineNum = 1;
+        this.state.columnNum = 1;
         this.state.numEvents = this._logsArray.length;
         this.computePageNumFromLogEventIdx();
         this.createPages();
@@ -471,8 +471,8 @@ class FileManager {
 
         // Update state
         this.state.verbosity = -1;
-        this.state.lineNumber = 1;
-        this.state.columnNumber = 1;
+        this.state.lineNum = 1;
+        this.state.columnNum = 1;
         this.state.numEvents = this._logsArray.length;
         this.computePageNumFromLogEventIdx();
         this.createPages();
@@ -519,7 +519,7 @@ class FileManager {
     computePageNumFromLogEventIdx () {
         // FIXME: dirty hack for Single-file CLP Archive
         if (null !== this._logsArray) {
-            this.state.page = Math.floor(this.state.logEventIdx / this.state.pageSize) + 1;
+            this.state.pageNum = Math.floor(this.state.logEventIdx / this.state.pageSize) + 1;
 
             return;
         }
@@ -528,12 +528,12 @@ class FileManager {
             const event = this._logEventOffsetsFiltered[index];
             const logEventIndex = event.mappedIndex + 1;
             if (logEventIndex >= this.state.logEventIdx) {
-                this.state.page = Math.floor(index / this.state.pageSize) + 1;
+                this.state.pageNum = Math.floor(index / this.state.pageSize) + 1;
 
                 return;
             }
         }
-        this.state.page = this.state.numPages;
+        this.state.pageNum = this.state.numPages;
     }
 
     /**
@@ -542,7 +542,7 @@ class FileManager {
     createPages () {
         if (null !== this._logsArray) {
             // for Single-file CLP Archive only
-            this.state.page = 1;
+            this.state.pageNum = 1;
             if (0 === this.state.numEvents % this.state.pageSize) {
                 this.state.numPages = Math.floor(this.state.numEvents / this.state.pageSize);
             } else {
@@ -553,7 +553,7 @@ class FileManager {
         }
 
         if (this._logEventOffsetsFiltered.length <= this.state.pageSize) {
-            this.state.page = 1;
+            this.state.pageNum = 1;
             this.state.numPages = 1;
         } else {
             const numEvents = this._logEventOffsetsFiltered.length;
@@ -563,7 +563,7 @@ class FileManager {
                 this.state.numPages = Math.floor(numEvents / this.state.pageSize) + 1;
             }
 
-            this.state.page = this.state.numPages;
+            this.state.pageNum = this.state.numPages;
         }
     }
 
@@ -571,16 +571,16 @@ class FileManager {
     /**
      * Sends page to be decoded with worker.
      *
-     * @param {number} page Page to be decoded.
+     * @param {number} pageNum Page to be decoded.
      * @param {number} pageSize Size of the page to be decoded.
      * @private
      */
-    _decodePageWithWorker (page, pageSize) {
+    _decodePageWithWorker (pageNum, pageSize) {
         const numEventsAtLevel = this._logEventOffsetsFiltered.length;
 
         // Calculate where to start decoding from and how many events to decode
         // On final page, the numEvents is likely less than pageSize
-        const targetEvent = ((page - 1) * pageSize);
+        const targetEvent = ((pageNum - 1) * pageSize);
         const numEvents = (targetEvent + pageSize >= numEventsAtLevel) ?
             numEventsAtLevel - targetEvent :
             pageSize;
@@ -589,7 +589,7 @@ class FileManager {
             // FIXME: dirty hack to get download working
             this._workerPool.assignTask({
                 sessionId: this.sessionId,
-                page: page,
+                pageNum: pageNum,
                 f:
                     this._logsArray?.slice(targetEvent, targetEvent + numEvents).join("\n"),
             });
@@ -606,7 +606,7 @@ class FileManager {
 
         this._workerPool.assignTask({
             sessionId: this.sessionId,
-            page: page,
+            pageNum: pageNum,
             logEvents: logEvents,
             inputStream: inputStream,
             pageLogs: null, // FIXME: dirty hack to get download working
@@ -614,15 +614,15 @@ class FileManager {
     }
 
     /**
-     * Decodes the logs for the selected page (state.page).
+     * Decodes the logs for the selected pageNum (state.pageNum).
      */
     decodePage () {
         if (null !== this._logsArray) {
             // for Single-file CLP Archive only
-            const startingEventIdx = this.state.pageSize * (this.state.page - 1);
+            const startingEventIdx = this.state.pageSize * (this.state.pageNum - 1);
             const endingEventIdx = Math.min(
                 this._logsArray.length,
-                this.state.pageSize * (this.state.page)
+                this.state.pageSize * (this.state.pageNum)
             );
 
             this.state.logEventIdx = startingEventIdx;
@@ -655,7 +655,7 @@ class FileManager {
 
         // Calculate where to start decoding from and how many events to decode
         // On final page, the numEvents is likely less than pageSize
-        const logEventsBeginIdx = ((this.state.page - 1) * this.state.pageSize);
+        const logEventsBeginIdx = ((this.state.pageNum - 1) * this.state.pageSize);
         const numEvents = Math.min(
             this.state.pageSize,
             numEventsAtLevel - logEventsBeginIdx
@@ -947,7 +947,7 @@ class FileManager {
 
             return;
         }
-        let trackedLineNumber = this.state.lineNumber;
+        let trackedLineNumber = this.state.lineNum;
         let numLines = 0;
         --trackedLineNumber;
         for (let i = 0; i < this.logEventMetadata.length; ++i) {
@@ -968,10 +968,10 @@ class FileManager {
     computeLineNumFromLogEventIdx () {
         if (null !== this._logsArray) {
             // FIXME: dirty hack for Single-file CLP Archive
-            this.state.columnNumber = 1;
-            this.state.lineNumber =
+            this.state.columnNum = 1;
+            this.state.lineNum =
                 this._logsPageLineOffsetsArray[
-                    this.state.logEventIdx - this.state.pageSize * (this.state.page - 1)
+                    this.state.logEventIdx - this.state.pageSize * (this.state.pageNum - 1)
                 ];
 
             return;
@@ -979,8 +979,8 @@ class FileManager {
 
         // If there are no logs, go to line 1
         if (0 === this._logEventOffsetsFiltered.length) {
-            this.state.columnNumber = 1;
-            this.state.lineNumber = 1;
+            this.state.columnNum = 1;
+            this.state.lineNum = 1;
         }
 
         if (0 === this.state.logEventIdx) {
@@ -998,8 +998,8 @@ class FileManager {
             lineNumberFound += this.logEventMetadata[i].numLines;
         }
 
-        this.state.columnNumber = 1;
-        this.state.lineNumber = lineNumberFound;
+        this.state.columnNum = 1;
+        this.state.lineNum = lineNumberFound;
     }
 
     /**

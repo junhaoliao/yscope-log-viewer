@@ -83,27 +83,27 @@ class ActionHandler {
      * indicates if the new page should be loaded with selected line
      * on top or bottom of page.
      *
-     * @param {number} page
+     * @param {number} pageNum
      * @param {string} linePos
      */
-    changePage (page, linePos) {
-        if (!isNumeric(page)) {
+    changePage (pageNum, linePos) {
+        if (!isNumeric(pageNum)) {
             throw (new Error("Invalid page number provided."));
         }
-        if (0 >= page || page > this._logFile.state.numPages) {
+        if (0 >= pageNum || pageNum > this._logFile.state.numPages) {
             throw (new Error("Invalid page number provided."));
         }
-        this._logFile.state.page = page;
+        this._logFile.state.pageNum = pageNum;
         this._logFile.decodePage();
 
         if ("top" === linePos) {
-            this._logFile.state.lineNumber = 1;
+            this._logFile.state.lineNum = 1;
         } else if ("bottom" === linePos) {
-            this._logFile.state.lineNumber = this._logFile.logEventMetadata.reduce((a, b) => {
+            this._logFile.state.lineNum = this._logFile.logEventMetadata.reduce((a, b) => {
                 return a + b.numLines;
             }, 0);
         } else {
-            this._logFile.state.lineNumber = 1;
+            this._logFile.state.lineNum = 1;
         }
 
         this._logFile.computeLogEventIdxFromLineNum();
@@ -171,11 +171,11 @@ class ActionHandler {
      * Recompute and load the page after changing the eventIdx.
      */
     _finalizeUpdateEvent () {
-        const currentPage = this._logFile.state.page;
+        const currentPage = this._logFile.state.pageNum;
         this._logFile.computePageNumFromLogEventIdx();
 
         // If the new event is on a new page, decode the page
-        if (currentPage !== this._logFile.state.page) {
+        if (currentPage !== this._logFile.state.pageNum) {
             this._logFile.decodePage();
         }
         this._logFile.computeLineNumFromLogEventIdx();
@@ -185,15 +185,15 @@ class ActionHandler {
     /**
      * Get the log event given a line number.
      *
-     * @param {number} lineNumber
-     * @param {number} columnNumber
+     * @param {number} lineNum
+     * @param {number} columnNum
      */
-    changeLine (lineNumber, columnNumber) {
-        if (!isNumeric(lineNumber)) {
+    changeLine (lineNum, columnNum) {
+        if (!isNumeric(lineNum)) {
             throw (new Error("Invalid line number provided."));
         }
-        this._logFile.state.lineNumber = lineNumber;
-        this._logFile.state.columnNumber = columnNumber;
+        this._logFile.state.lineNum = lineNum;
+        this._logFile.state.columnNum = columnNum;
         this._logFile.computeLogEventIdxFromLineNum();
         this._updateStateCallback(CLP_WORKER_PROTOCOL.UPDATE_STATE, this._logFile.state);
     }

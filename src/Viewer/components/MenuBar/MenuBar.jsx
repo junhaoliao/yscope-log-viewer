@@ -55,29 +55,29 @@ const MenuBar = ({
     const handleShowHelp = () => setShowHelp(true);
 
     const goToFirstPage = () => {
-        if (1 !== logFileState.page) {
-            onStateChange(STATE_CHANGE_TYPE.page, {action: MODIFY_PAGE_ACTION.firstPage});
+        if (1 !== logFileState.pageNum) {
+            onStateChange(STATE_CHANGE_TYPE.PAGE_NUM, {action: MODIFY_PAGE_ACTION.firstPage});
         }
     };
 
     const goToPrevPage = () => {
-        onStateChange(STATE_CHANGE_TYPE.page, {action: MODIFY_PAGE_ACTION.prevPage});
+        onStateChange(STATE_CHANGE_TYPE.PAGE_NUM, {action: MODIFY_PAGE_ACTION.prevPage});
     };
 
     const goToNextPage = () => {
-        onStateChange(STATE_CHANGE_TYPE.page, {action: MODIFY_PAGE_ACTION.nextPage});
+        onStateChange(STATE_CHANGE_TYPE.PAGE_NUM, {action: MODIFY_PAGE_ACTION.nextPage});
     };
 
     const goToLastPage = () => {
-        if (logFileState.page !== logFileState.numPages) {
-            onStateChange(STATE_CHANGE_TYPE.page, {action: MODIFY_PAGE_ACTION.lastPage});
+        if (logFileState.pageNum !== logFileState.numPages) {
+            onStateChange(STATE_CHANGE_TYPE.PAGE_NUM, {action: MODIFY_PAGE_ACTION.lastPage});
         }
     };
 
-    const goToPage = (page) => {
-        onStateChange(STATE_CHANGE_TYPE.page, {
+    const goToPage = (pageNum) => {
+        onStateChange(STATE_CHANGE_TYPE.PAGE_NUM, {
             action: MODIFY_PAGE_ACTION.newPage,
-            requestedPage: page,
+            requestedPage: pageNum,
         });
     };
 
@@ -108,7 +108,7 @@ const MenuBar = ({
                     <EditableInput
                         maxValue={logFileState.numPages}
                         minValue={1}
-                        value={logFileState.page}
+                        value={logFileState.pageNum}
                         onChangeCallback={goToPage}/>
                     <span className={"mx-1"}> of</span>
                     <span className={"mx-1"}>

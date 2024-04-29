@@ -16,17 +16,17 @@ import {setupThemes} from "./themes";
  * Centers the line in the editor and change the cursor position.
  *
  * @param editor
- * @param lineNumber
- * @param columnNumber
+ * @param lineNum
+ * @param columnNum
  */
 const goToLineAndCenter = (
     editor: monaco.editor.IStandaloneCodeEditor,
-    lineNumber:number,
-    columnNumber:number
+    lineNum:number,
+    columnNum:number
 ) => {
-    editor.revealLineInCenter(lineNumber);
+    editor.revealLineInCenter(lineNum);
     editor.setPosition({
-        column: columnNumber, lineNumber: lineNumber,
+        column: columnNum, lineNumber: lineNum,
     });
     editor.focus();
 };

@@ -86,11 +86,13 @@ const MonacoInstance = ({
         () => {
             if (null !== editorRef.current && null !== logData) {
                 editorRef.current.setValue(logData);
-                goToLineAndCenter(
-                    editorRef.current,
-                    logFileState.lineNumber,
-                    logFileState.columnNumber
-                );
+                if (null !== logFileState.lineNum && null !== logFileState.columnNum) {
+                    goToLineAndCenter(
+                        editorRef.current,
+                        logFileState.lineNum,
+                        logFileState.columnNum
+                    );
+                }
             }
         },
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -108,16 +110,22 @@ const MonacoInstance = ({
             return;
         }
 
-        const newLine = logFileState.lineNumber;
-        const newColumn = logFileState.columnNumber;
+        const newLine = logFileState.lineNum;
+        const newColumn = logFileState.columnNum;
+        if (null === newLine || null === newColumn) {
+            console.log("Unexpected null logFileState.lineNum or logFileState.columnNum");
+
+            return;
+        }
+
         if (newLine !== currPos.lineNumber || newColumn !== currPos.column) {
-            // Only if the lineNumber / columnNumber change is not caused by
+            // Only if the lineNum / columnNum change is not caused by
             // user moving the cursor
             goToLineAndCenter(editorRef.current, newLine, newColumn);
         }
     }, [
-        logFileState.lineNumber,
-        logFileState.columnNumber,
+        logFileState.lineNum,
+        logFileState.columnNum,
     ]);
 
     return (

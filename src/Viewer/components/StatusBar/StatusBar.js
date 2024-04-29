@@ -64,7 +64,7 @@ export function StatusBar ({status, logFileState, loadingLogs, changeStateCallba
         if (0 !== logEventIdx && logEventIdx) {
             lineInfo = `Log Event ${logEventIdx} of ${logEventMetadataLength}, `;
         }
-        lineInfo += `Ln ${logFileState.lineNumber}, Col ${logFileState.columnNumber}`;
+        lineInfo += `Ln ${logFileState.lineNum}, Col ${logFileState.columnNum}`;
         setStatusEditor(lineInfo);
 
         // Update URL without firing onhashchange or adding to browser's history
@@ -165,7 +165,7 @@ export function StatusBar ({status, logFileState, loadingLogs, changeStateCallba
                         title={logFileState.enablePrettify ?
                             "Disable pretty printing" :
                             "Enable pretty printing"}
-                        onClick={() => changeStateCallback(STATE_CHANGE_TYPE.CHANGE_PRETTIFY, {enablePrettify: !logFileState.enablePrettify})}
+                        onClick={() => changeStateCallback(STATE_CHANGE_TYPE.PRETTIFY, {enablePrettify: !logFileState.enablePrettify})}
                     >
                         <Braces className={"me-1"}/>
                         <span>

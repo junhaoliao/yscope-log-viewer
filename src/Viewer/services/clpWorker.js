@@ -61,15 +61,15 @@ onmessage = function (e) {
             }
             break;
 
-        case CLP_WORKER_PROTOCOL.CHANGE_PAGE:
+        case CLP_WORKER_PROTOCOL.CHANGE_PAGE_NUM:
             try {
-                handler.changePage(e.data.page, e.data.linePos);
+                handler.changePage(e.data.pageNum, e.data.linePos);
             } catch (e) {
                 sendError(e);
             }
             break;
 
-        case CLP_WORKER_PROTOCOL.CHANGE_PRETTIFY:
+        case CLP_WORKER_PROTOCOL.PRETTIFY:
             try {
                 handler.changePrettify(e.data.enablePrettify);
             } catch (e) {
@@ -87,7 +87,7 @@ onmessage = function (e) {
 
         case CLP_WORKER_PROTOCOL.GET_EVENT_FROM_LINE:
             try {
-                handler.changeLine(e.data.lineNumber, e.data.columnNumber);
+                handler.changeLine(e.data.lineNum, e.data.columnNum);
             } catch (e) {
                 sendError(e);
             }

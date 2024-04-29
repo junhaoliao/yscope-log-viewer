@@ -297,19 +297,19 @@ function LeftPanelTabs ({
             count: logFileState.downloadPageChunks,
         });
 
-        let page = 1;
+        let pageNum = 1;
         const blob = new BlobAppender();
         worker.onmessage = (e) => {
             const msg = e.data;
             switch (msg.code) {
                 case DOWNLOAD_WORKER_ACTION.pageData:
                     blob.append(`${msg.data}\n`);
-                    console.debug(`Added page ${msg.page} to stream.`);
-                    if (page <= logFileState.downloadPageChunks) {
-                        setProgress(90 + ((page / logFileState.downloadPageChunks) * 10));
+                    console.debug(`Added page ${msg.pageNum} to stream.`);
+                    if (pageNum <= logFileState.downloadPageChunks) {
+                        setProgress(90 + ((pageNum / logFileState.downloadPageChunks) * 10));
                         worker.postMessage({
                             code: DOWNLOAD_WORKER_ACTION.pageData,
-                            page: page++,
+                            pageNum: pageNum++,
                         });
                     } else {
                         setIsDownloading(false);
@@ -327,7 +327,7 @@ function LeftPanelTabs ({
                         setProgress(0);
                         worker.postMessage({
                             code: DOWNLOAD_WORKER_ACTION.pageData,
-                            page: page++,
+                            pageNum: pageNum++,
                         });
                     }
                     break;

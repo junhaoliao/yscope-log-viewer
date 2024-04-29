@@ -10,7 +10,7 @@ import MODIFY_PAGE_ACTION from "./MODIFY_PAGE_ACTION";
  * @param numPages The total number of pages.
  * @return A tuple containing the line position and the new page number.
  */
-const modifyPage = (
+const getNewLineAndPage = (
     action: MODIFY_PAGE_ACTION,
     currentPage: number,
     requestedPage: number,
@@ -51,8 +51,10 @@ const modifyPage = (
             break;
     }
 
-    return [linePos,
-        newPage];
+    return [
+        linePos,
+        newPage,
+    ];
 };
 
 /**
@@ -227,6 +229,6 @@ export {
     getAbsoluteUrl,
     getFilePathFromWindowLocation,
     getModifiedUrl,
-    modifyPage,
+    getNewLineAndPage,
     parseNum,
 };
