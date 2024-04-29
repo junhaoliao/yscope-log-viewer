@@ -192,20 +192,19 @@ const Viewer = ({
                 if (null === logFileState.pageNum) {
                     throw new Error("Unexpected null logFileState.pageNum");
                 }
-                const [linePos, validNewPage] = getNewLineAndPage(
-                    args.action,
+                const [newPage, newLine] = getNewLineAndPage(
                     logFileState.pageNum,
                     args.requestedPage,
                     logFileState.numPages
                 );
 
-                if (null !== validNewPage) {
+                if (null !== newPage) {
                     setLoadingLogs(true);
-                    setStatusMessage(`Loading page number ${validNewPage}...`);
+                    setStatusMessage(`Loading page number ${newPage}...`);
                     clpWorker.current.postMessage({
                         code: CLP_WORKER_PROTOCOL.CHANGE_PAGE_NUM,
-                        pageNum: validNewPage,
-                        linePos: linePos,
+                        pageNum: newPage,
+                        linePos: newLine,
                     });
                 }
                 break;

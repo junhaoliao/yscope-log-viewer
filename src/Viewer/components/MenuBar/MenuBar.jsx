@@ -55,28 +55,23 @@ const MenuBar = ({
     const handleShowHelp = () => setShowHelp(true);
 
     const goToFirstPage = () => {
-        if (1 !== logFileState.pageNum) {
-            onStateChange(STATE_CHANGE_TYPE.PAGE_NUM, {action: MODIFY_PAGE_ACTION.firstPage});
-        }
+        onStateChange(STATE_CHANGE_TYPE.PAGE_NUM, {requestedPage: MODIFY_PAGE_ACTION.firstPage});
     };
 
     const goToPrevPage = () => {
-        onStateChange(STATE_CHANGE_TYPE.PAGE_NUM, {action: MODIFY_PAGE_ACTION.prevPage});
+        onStateChange(STATE_CHANGE_TYPE.PAGE_NUM, {requestedPage: MODIFY_PAGE_ACTION.prevPage});
     };
 
     const goToNextPage = () => {
-        onStateChange(STATE_CHANGE_TYPE.PAGE_NUM, {action: MODIFY_PAGE_ACTION.nextPage});
+        onStateChange(STATE_CHANGE_TYPE.PAGE_NUM, {requestedPage: MODIFY_PAGE_ACTION.nextPage});
     };
 
     const goToLastPage = () => {
-        if (logFileState.pageNum !== logFileState.numPages) {
-            onStateChange(STATE_CHANGE_TYPE.PAGE_NUM, {action: MODIFY_PAGE_ACTION.lastPage});
-        }
+        onStateChange(STATE_CHANGE_TYPE.PAGE_NUM, {requestedPage: MODIFY_PAGE_ACTION.lastPage});
     };
 
     const goToPage = (pageNum) => {
         onStateChange(STATE_CHANGE_TYPE.PAGE_NUM, {
-            action: MODIFY_PAGE_ACTION.newPage,
             requestedPage: pageNum,
         });
     };

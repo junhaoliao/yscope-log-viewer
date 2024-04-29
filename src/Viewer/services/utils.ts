@@ -4,56 +4,56 @@ import MODIFY_PAGE_ACTION from "./MODIFY_PAGE_ACTION";
 /**
  * Modifies the page by performing the specified action.
  *
- * @param action The action to be performed.
  * @param currentPage The current page number.
  * @param requestedPage The page number requested.
  * @param numPages The total number of pages.
  * @return A tuple containing the line position and the new page number.
  */
 const getNewLineAndPage = (
-    action: MODIFY_PAGE_ACTION,
     currentPage: number,
-    requestedPage: number,
+    requestedPage: number | MODIFY_PAGE_ACTION,
     numPages: number
-): [string | null, number | null] => {
-    let newPage: number | null;
-    let linePos: string | null;
-    switch (action) {
-        case MODIFY_PAGE_ACTION.firstPage:
-            newPage = 1;
-            linePos = "top";
-            break;
-        case MODIFY_PAGE_ACTION.lastPage:
-            newPage = numPages;
-            linePos = "bottom";
-            break;
-        case MODIFY_PAGE_ACTION.newPage:
-            newPage = (0 < requestedPage && requestedPage <= numPages) ?
-                requestedPage :
-                null;
-            linePos = "top";
-            break;
-        case MODIFY_PAGE_ACTION.prevPage:
-            newPage = (0 < currentPage - 1) ?
-                currentPage - 1 :
-                null;
-            linePos = "bottom";
-            break;
-        case MODIFY_PAGE_ACTION.nextPage:
-            newPage = (currentPage + 1 <= numPages) ?
-                currentPage + 1 :
-                null;
-            linePos = "top";
-            break;
-        default:
-            newPage = null;
-            linePos = null;
-            break;
+): [ number | null, string | null] => {
+    let newPage: number | null = null;
+    let newLine: string | null = null;
+
+    if ("number" === typeof requestedPage) {
+        if (0 < requestedPage && requestedPage <= numPages) {
+            newPage = requestedPage;
+            newLine = "top";
+        }
+    } else {
+        switch (requestedPage) {
+            case MODIFY_PAGE_ACTION.firstPage:
+                newPage = 1;
+                newLine = "top";
+                break;
+            case MODIFY_PAGE_ACTION.lastPage:
+                newPage = numPages;
+                newLine = "bottom";
+                break;
+            case MODIFY_PAGE_ACTION.prevPage:
+                newPage = (0 < currentPage - 1) ?
+                    currentPage - 1 :
+                    null;
+                newLine = "bottom";
+                break;
+            case MODIFY_PAGE_ACTION.nextPage:
+                newPage = (currentPage + 1 <= numPages) ?
+                    currentPage + 1 :
+                    null;
+                newLine = "top";
+                break;
+            default:
+                newPage = null;
+                newLine = null;
+                break;
+        }
     }
 
     return [
-        linePos,
         newPage,
+        newLine,
     ];
 };
 
