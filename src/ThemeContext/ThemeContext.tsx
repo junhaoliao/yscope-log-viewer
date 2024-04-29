@@ -41,8 +41,8 @@ const ThemeContextProvider = ({children}: {children: React.ReactNode}):
     }, []);
 
     useEffect(() => {
-        const lsTheme = localStorage.getItem(LOCAL_STORAGE_KEYS.UI_THEME) ?? APP_THEME_DEFAULT;
-        switchTheme(lsTheme as APP_THEME);
+        const lsTheme = localStorage.getItem(LOCAL_STORAGE_KEYS.UI_THEME);
+        switchTheme((lsTheme ?? APP_THEME_DEFAULT) as APP_THEME);
     }, [switchTheme]);
 
     return (
