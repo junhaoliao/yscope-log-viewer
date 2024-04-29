@@ -1,5 +1,4 @@
-import PropTypes, {oneOfType} from "prop-types";
-import React, {
+import {
     useCallback, useContext, useEffect, useRef, useState,
 } from "react";
 import {Row} from "react-bootstrap";
@@ -11,9 +10,7 @@ import {
     APP_THEME, ThemeContext,
 } from "../ThemeContext/ThemeContext";
 import {
-    LEFT_PANEL_DEFAULT_WIDTH_FACTOR,
-    LEFT_PANEL_TAB_IDS,
-    LeftPanel,
+    LEFT_PANEL_DEFAULT_WIDTH_FACTOR, LEFT_PANEL_TAB_IDS, LeftPanel,
 } from "./components/LeftPanel/LeftPanel";
 import MenuBar from "./components/MenuBar/MenuBar";
 import MonacoInstance from "./components/Monaco/MonacoInstance";
@@ -25,22 +22,18 @@ import LOCAL_STORAGE_KEYS from "./services/LOCAL_STORAGE_KEYS";
 import MessageLogger from "./services/MessageLogger";
 import STATE_CHANGE_TYPE from "./services/STATE_CHANGE_TYPE";
 import {
-    getModifiedUrl, isNumeric, modifyPage,
+    getModifiedUrl, modifyPage, parseNum,
 } from "./services/utils";
 
 import "./Viewer.scss";
 
 
-Viewer.propTypes = {
-    fileSrc: oneOfType([
-        PropTypes.object,
-        PropTypes.string,
-    ]),
-    filePath: PropTypes.string,
-    prettifyLog: PropTypes.bool,
-    logEventNumber: PropTypes.number,
-    timestamp: PropTypes.number,
-};
+interface QueryOptions {
+    isRegex: boolean,
+    matchCase: boolean,
+    searchString: string
+}
+
 
 /**
  * Contains the menu, Monaco editor, and status bar. Viewer spawns its own
@@ -49,23 +42,31 @@ Viewer.propTypes = {
  * @param props
  * @param props.fileSrc File object to read or file path to load
  * @param props.logEventNumber The initial log event number
- * @param props.prettifyLog Whether to prettify the log file
+ * @param props.enablePrettify Whether to prettify the log file
  * @param props.initialQuery
  * @param props.timestamp The initial timestamp to show. If this field is
  * valid, logEventNumber will be ignored.
+ * @param props.initialQuery.searchString
  * @return
  */
-export function Viewer ({
+const Viewer = ({
     fileSrc,
-    prettifyLog,
+    enablePrettify,
     logEventNumber,
     initialQuery,
     timestamp,
-}) {
+}: {
+    fileSrc: File | string | null,
+    enablePrettify: boolean,
+    logEventNumber: number | null,
+    initialQuery: QueryOptions,
+    timestamp: number | null,
+}) => {
     const {appTheme} = useContext(ThemeContext);
 
+
     // Ref hook used to reference worker used for loading and decoding
-    const clpWorker = useRef(null);
+    const clpWorker = useRef<Worker|null>(null);
 
     // Logger used to track of all loading messages and state transitions
     const msgLogger = useRef(new MessageLogger());
@@ -82,17 +83,15 @@ export function Viewer ({
     const [logFileState, setLogFileState] = useState({
         columnNumber: null,
         lineNumber: null,
-        logEventIdx: isNumeric(logEventNumber) ?
-            Number(logEventNumber) :
-            null,
+        logEventIdx: logEventNumber,
         numberOfEvents: null,
         page: null,
         pageSize: lsPageSize ?
             Number(lsPageSize) :
             10000,
         pages: null,
-        prettify: prettifyLog ?
-            prettifyLog :
+        prettify: enablePrettify ?
+            enablePrettify :
             false,
         verbosity: null,
     });
@@ -138,9 +137,6 @@ export function Viewer ({
         const logEvent = ("string" === typeof fileSrc) ?
             logFileState.logEventIdx :
             null;
-        const initialTimestamp = isNumeric(timestamp) ?
-            Number(timestamp) :
-            null;
 
         const sessionId = uuidv1();
         window.sessionStorage.setItem("sessionId", sessionId);
@@ -150,7 +146,7 @@ export function Viewer ({
             fileSrc: fileSrc,
             prettify: logFileState.prettify,
             logEventIdx: logEvent,
-            initialTimestamp: initialTimestamp,
+            initialTimestamp: timestamp,
             pageSize: logFileState.pageSize,
         });
     };
@@ -391,13 +387,10 @@ export function Viewer ({
 
     // Fires when hash is changed in the window.
     window.onhashchange = () => {
+        // FIXME: shouldn't this be moved to App.tsx?
         const urlHashParams = new URLSearchParams(window.location.hash.substring(1));
         const logEventIdx = urlHashParams.get("logEventIdx");
-        if (isNumeric(logEventIdx)) {
-            changeState(STATE_CHANGE_TYPE.logEventIdx, {logEventIdx: Number(logEventIdx)});
-        } else {
-            changeState(STATE_CHANGE_TYPE.logEventIdx, {logEventIdx: logFileState.logEventIdx});
-        }
+        changeState(STATE_CHANGE_TYPE.logEventIdx, {logEventIdx: parseNum(logEventIdx)});
     };
 
     const searchQueryChangeHandler = (newQuery) => {
@@ -528,4 +521,7 @@ export function Viewer ({
                 </>}
         </div>
     );
-}
+};
+
+export default Viewer;
+export {QueryOptions};

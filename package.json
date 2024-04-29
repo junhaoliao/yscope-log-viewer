@@ -93,7 +93,18 @@
     "extends": [
       "yscope/react"
     ],
-    "ignorePatterns": ["customized-packages/"],
+    "ignorePatterns": [
+      "customized-packages/"
+    ],
+    "rules": {
+      "react/boolean-prop-naming": [
+        "error",
+        {
+          "rule": "^(is|has|disable|enable)[A-Za-z0-9]*",
+          "validateNested": false
+        }
+      ]
+    },
     "overrides": [
       {
         "files": [

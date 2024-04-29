@@ -4,15 +4,20 @@ import MODIFY_PAGE_ACTION from "./MODIFY_PAGE_ACTION";
 /**
  * Modifies the page by performing the specified action.
  *
- * @param {string} action
- * @param {number} currentPage
- * @param {number} requestedPage
- * @param {number} pages
- * @return {*}
+ * @param action The action to be performed.
+ * @param currentPage The current page number.
+ * @param requestedPage The page number requested.
+ * @param pages The total number of pages.
+ * @return A tuple containing the line position and the new page number.
  */
-const modifyPage = (action, currentPage, requestedPage, pages) => {
-    let newPage;
-    let linePos;
+const modifyPage = (
+    action: MODIFY_PAGE_ACTION,
+    currentPage: number,
+    requestedPage: number,
+    pages: number
+): [string | null, number | null] => {
+    let newPage: number | null;
+    let linePos: string | null;
     switch (action) {
         case MODIFY_PAGE_ACTION.firstPage:
             newPage = 1;
@@ -23,8 +28,7 @@ const modifyPage = (action, currentPage, requestedPage, pages) => {
             linePos = "bottom";
             break;
         case MODIFY_PAGE_ACTION.newPage:
-            const isValidPage = (0 < requestedPage && requestedPage <= pages);
-            newPage = (isValidPage) ?
+            newPage = (0 < requestedPage && requestedPage <= pages) ?
                 requestedPage :
                 null;
             linePos = "top";
@@ -55,13 +59,11 @@ const modifyPage = (action, currentPage, requestedPage, pages) => {
  * Returns the absolute URL of a given path relative to the window.location,
  * if the given path is a relative one.
  *
- * @param {string} path that is either absolute or relative
- * @return {string}
+ * @param path The path to be resolved.
+ * @return The absolute URL as a string.
  */
-const getAbsoluteUrl = (path) => {
+const getAbsoluteUrl = (path: string): string => {
     try {
-        // This URL() constructor should only succeed if `path`
-        //  has a "protocol" scheme like "http:"
         // eslint-disable-next-line no-new
         new URL(path);
     } catch (e) {
@@ -74,10 +76,9 @@ const getAbsoluteUrl = (path) => {
 /**
  * Parses `filePath` from the current window location's search query.
  *
- * @return {string|null} The parsed file path or
- * null if not found.
+ * @return The parsed file path or null if not found.
  */
-const getFilePathFromWindowLocation = () => {
+const getFilePathFromWindowLocation = (): string | null => {
     let [, filePath] = window.location.search.split("filePath=");
 
     if ("undefined" === typeof filePath) {
@@ -93,24 +94,33 @@ const getFilePathFromWindowLocation = () => {
  * Get modified URL from `window.location` based on the provided search and
  * hash parameters.
  *
- * @param {object} searchParams
- * @param {object} hashParams
- * @return {string} modified URL
+ * @param newSearchParams Object containing new search parameters.
+ * @param newHashParams Object containing new hash parameters.
+ * @return The modified URL as a string.
  */
-const getModifiedUrl = (searchParams, hashParams) => {
+const getModifiedUrl = (
+    newSearchParams: Record<string, string | null | false>,
+    newHashParams: Record<string, string | null>
+): string => {
     const url = new URL(`${window.location.origin}${window.location.pathname}`);
     let filePath = getFilePathFromWindowLocation();
 
     const locationSearchWithoutFilePath = window.location.search
-        .split(`filePath=${filePath}`)
+        .split(
+            (null === filePath) ?
+                "" :
+                `filePath=${filePath}`
+        )
         .join("");
 
     const urlSearchParams = new URLSearchParams(locationSearchWithoutFilePath);
     const urlHashParams = new URLSearchParams(window.location.hash.substring(1));
 
-    Object.entries(searchParams).forEach(([key, value]) => {
+    Object.entries(newSearchParams).forEach(([key, value]) => {
         if ("filePath" === key) {
-            // to be appended as the last parameter
+            if ("string" !== typeof value) {
+                throw new Error(`Unexpected filePath type: ${typeof value}`);
+            }
             filePath = value;
             urlSearchParams.delete(key);
         } else if (null === value || false === value) {
@@ -119,7 +129,8 @@ const getModifiedUrl = (searchParams, hashParams) => {
             urlSearchParams.set(key, value.toString());
         }
     });
-    Object.entries(hashParams).forEach(([key, value]) => {
+
+    Object.entries(newHashParams).forEach(([key, value]) => {
         if (null === value) {
             urlHashParams.delete(key);
         } else {
@@ -128,15 +139,13 @@ const getModifiedUrl = (searchParams, hashParams) => {
     });
 
     let urlSearchParamsAsString = urlSearchParams.toString();
-    if (false === (/%23|%26/).test(urlSearchParamsAsString)) {
-        // avoid encoding the URL
-        // if it does not contain `%23`(`#`) or `%26`(`&`)
+    if (!(/%23|%26/).test(urlSearchParamsAsString)) {
         urlSearchParamsAsString = decodeURIComponent(urlSearchParamsAsString);
     }
 
     url.search = urlSearchParamsAsString;
     if (null !== filePath) {
-        url.search += `${(0 === urlSearchParams.size) ?
+        url.search += `${0 === urlSearchParams.size ?
             "" :
             "&"}filePath=${filePath}`;
     }
@@ -147,55 +156,60 @@ const getModifiedUrl = (searchParams, hashParams) => {
 };
 
 /**
- * Tests if the provided value is numeric
+ * Parses a value into a number if it is numeric.
  *
- * @param {string|number|boolean} value
- * @return {boolean}
+ * @param value The value to parse.
+ * @return The parsed number or null if the value is not numeric.
  */
-function isNumeric (value) {
-    if ("string" === typeof value) {
-        return (/^-?\d+$/).test(value);
+const parseNum = (value: unknown): number | null => {
+    const isNumeric = "number" === typeof value ||
+        ("string" === typeof value && (/^-?\d+$/).test(value));
+
+    if (isNumeric) {
+        return Number(value);
     }
 
-    return ("number" === typeof value);
-}
+    return null;
+};
 
 /**
  * Given a list of log events, finds the first log event whose timestamp is
- * greater than or equal to the given timestamp, using binary search. The given
- * list must be sorted in increasing timestamp order.
+ * greater than or equal to the given timestamp, using binary search.
  *
- * @param {number} timestamp The timestamp to search for as milliseconds since
- * the UNIX epoch.
- * @param {object[]} logEventMetadata An array containing log event metadata
- * objects, where the "timestamp" key in each object is the event's timestamp as
- * milliseconds since the UNIX epoch.
- * @return {number|null} Index of the log event if found, or null otherwise
+ * @param timestamp The timestamp to search for as milliseconds since the UNIX epoch.
+ * @param logEventMetadata An array containing log event metadata
+ * objects, where the "timestamp" key in each object is the event's timestamp as milliseconds
+ * since the UNIX epoch.
+ * @return Index of the log event if found, or null otherwise.
  */
-function binarySearchWithTimestamp (timestamp, logEventMetadata) {
-    const {length} = logEventMetadata;
-
-    let low = 0;
-    let high = length - 1;
-    let mid;
-
-    // Early exit
-    if (0 === length) {
+const binarySearchWithTimestamp = (
+    timestamp: number,
+    logEventMetadata: { timestamp: number }[]
+): number | null => {
+    if (0 === logEventMetadata.length) {
         return null;
     }
+
+    let low = 0;
+    let high = logEventMetadata.length - 1;
+    let mid;
+
+    // @ts-expect-error `low=0` is greater than `logEventMetadata.length`
     if (timestamp <= logEventMetadata[low].timestamp) {
         return low;
     }
+
+    // @ts-expect-error `high=length-1` is less than `logEventMetadata.length`
     if (logEventMetadata[high].timestamp < timestamp) {
         return null;
     }
 
-    // Notice that the given timestamp might not show up in the events
-    // Suppose we have a list of timestamp: [2, 4, 4, 5, 6, 7],
-    // if timestamp = 3 is given, we should return the index of the first "4"
     while (low <= high) {
         mid = Math.floor((low + high) / 2);
+
+        // @ts-expect-error low <= mid <= high
         if (logEventMetadata[mid].timestamp >= timestamp) {
+            // @ts-expect-error low <= mid <= high
             if (logEventMetadata[mid - 1].timestamp < timestamp) {
                 return mid;
             }
@@ -205,15 +219,14 @@ function binarySearchWithTimestamp (timestamp, logEventMetadata) {
         }
     }
 
-    // Not found
     return null;
-}
+};
 
 export {
     binarySearchWithTimestamp,
     getAbsoluteUrl,
     getFilePathFromWindowLocation,
     getModifiedUrl,
-    isNumeric,
     modifyPage,
+    parseNum,
 };

@@ -1,5 +1,4 @@
 import {
-    useCallback,
     useEffect,
     useState,
 } from "react";
@@ -12,14 +11,11 @@ import {AdapterDayjs} from "@mui/x-date-pickers/AdapterDayjs";
 
 import config from "./config.json";
 import DropFile from "./DropFile/DropFile";
+import {ThemeContextProvider} from "./ThemeContext/ThemeContext";
 import {
-    APP_THEME,
-    APP_THEME_DEFAULT,
-    ThemeContext,
-} from "./ThemeContext/ThemeContext";
-import LOCAL_STORAGE_KEYS from "./Viewer/services/LOCAL_STORAGE_KEYS";
-import {getFilePathFromWindowLocation} from "./Viewer/services/utils";
-import {Viewer} from "./Viewer/Viewer";
+    getFilePathFromWindowLocation, parseNum,
+} from "./Viewer/services/utils";
+import Viewer, {QueryOptions} from "./Viewer/Viewer";
 
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./App.scss";
@@ -44,15 +40,12 @@ const App = () => {
     const [fileSrc, setFileSrc] = useState<File|string|null>(null);
     const [logEventIdx, setLogEventIdx] = useState<number|null>(null);
     const [timestamp, setTimestamp] = useState<number|null>(null);
-    const [prettify, setPrettify] = useState<boolean>(false);
-    const [query, setQuery] = useState({});
-    const [appTheme, setAppTheme] = useState(APP_THEME.DARK);
-
-    const switchTheme = useCallback((theme: APP_THEME) => {
-        localStorage.setItem(LOCAL_STORAGE_KEYS.UI_THEME, theme);
-        document.getElementById("app")?.setAttribute("data-theme", theme);
-        setAppTheme(theme);
-    }, [setAppTheme]);
+    const [enablePrettify, setEnablePrettify] = useState<boolean>(false);
+    const [query, setQuery] = useState<QueryOptions>({
+        isRegex: false,
+        matchCase: false,
+        searchString: "",
+    });
 
     /**
      * Initializes the application's state. The file to load is set based on
@@ -68,23 +61,24 @@ const App = () => {
         const urlHashParams = new URLSearchParams(window.location.hash.substring(1));
 
         // Load the initial state of the viewer from url
-        setPrettify("true" === urlSearchParams.get("prettify"));
+        setEnablePrettify("true" === urlSearchParams.get("prettify"));
         setQuery({
             isRegex: Boolean(urlSearchParams.get("query.isRegex")) || false,
             matchCase: Boolean(urlSearchParams.get("query.matchCase")) || false,
             searchString: urlSearchParams.get("query.searchString") ?? "",
         });
-        const logEventIdxParam = urlHashParams.get("logEventIdx");
-        if (null !== logEventIdxParam) {
-            setLogEventIdx(parseInt(logEventIdxParam, 10));
-        }
-        const timestampParam = urlSearchParams.get("timestamp");
-        if (null !== timestampParam) {
-            setTimestamp(parseInt(timestampParam, 10));
-        }
+        setTimestamp(
+            parseNum(
+                urlSearchParams.get("timestamp")
+            )
+        );
+        setLogEventIdx(
+            parseNum(
+                urlHashParams.get("logEventIdx")
+            )
+        );
 
         const filePath = getFilePathFromWindowLocation();
-
         if (null !== filePath) {
             setFileSrc(filePath);
             setAppMode(APP_STATE.FILE_VIEW);
@@ -111,26 +105,24 @@ const App = () => {
 
     useEffect(() => {
         console.debug("Version:", config.version);
-        const lsTheme = localStorage.getItem(LOCAL_STORAGE_KEYS.UI_THEME) ?? APP_THEME_DEFAULT;
-        switchTheme(lsTheme as APP_THEME);
         init();
-    }, [switchTheme]);
+    }, []);
 
     return (
         <div id={"app"}>
-            <ThemeContext.Provider value={{appTheme, switchTheme}}>
+            <ThemeContextProvider>
                 <LocalizationProvider dateAdapter={AdapterDayjs}>
                     <DropFile onFileDrop={handleFileChange}>
                         {(APP_STATE.FILE_VIEW === appMode) &&
                         <Viewer
+                            enablePrettify={enablePrettify}
                             fileSrc={fileSrc}
                             initialQuery={query}
                             logEventNumber={logEventIdx}
-                            prettifyLog={prettify}
                             timestamp={timestamp}/>}
                     </DropFile>
                 </LocalizationProvider>
-            </ThemeContext.Provider>
+            </ThemeContextProvider>
         </div>
     );
 };
