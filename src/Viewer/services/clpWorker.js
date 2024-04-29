@@ -4,6 +4,7 @@ import CLP_WORKER_PROTOCOL from "./CLP_WORKER_PROTOCOL";
 
 /**
  * Send error to component which created worker.
+ *
  * @param {string} error
  */
 const sendError = (error) => {
@@ -15,20 +16,25 @@ const sendError = (error) => {
 };
 
 let handler = null;
+
+/**
+ *
+ * @param e
+ */
 onmessage = function (e) {
     switch (e.data.code) {
         case CLP_WORKER_PROTOCOL.LOAD_FILE:
             try {
                 const {fileSrc} = e.data;
                 const {sessionId} = e.data;
-                const {prettify} = e.data;
+                const {enablePrettify} = e.data;
                 const {logEventIdx} = e.data;
                 const {pageSize} = e.data;
                 const {initialTimestamp} = e.data;
                 handler = new ActionHandler(
                     fileSrc,
                     sessionId,
-                    prettify,
+                    enablePrettify,
                     logEventIdx,
                     initialTimestamp,
                     pageSize
@@ -63,9 +69,9 @@ onmessage = function (e) {
             }
             break;
 
-        case CLP_WORKER_PROTOCOL.PRETTY_PRINT:
+        case CLP_WORKER_PROTOCOL.CHANGE_PRETTIFY:
             try {
-                handler.changePrettify(e.data.prettify);
+                handler.changePrettify(e.data.enablePrettify);
             } catch (e) {
                 sendError(e);
             }

@@ -1,9 +1,12 @@
+/**
+ *
+ */
 const STATE_CHANGE_TYPE = Object.freeze({
     lineNumber: "lineNumber",
     logEventIdx: "logEventIdx",
     page: "page",
     pageSize: "pageSize",
-    prettify: "prettify",
+    CHANGE_PRETTIFY: "change_prettify",
     search: "search",
     verbosity: "verbosity",
     startDownload: "startDownload",

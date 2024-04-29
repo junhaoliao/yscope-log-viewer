@@ -7,14 +7,14 @@ import MODIFY_PAGE_ACTION from "./MODIFY_PAGE_ACTION";
  * @param action The action to be performed.
  * @param currentPage The current page number.
  * @param requestedPage The page number requested.
- * @param pages The total number of pages.
+ * @param numPages The total number of pages.
  * @return A tuple containing the line position and the new page number.
  */
 const modifyPage = (
     action: MODIFY_PAGE_ACTION,
     currentPage: number,
     requestedPage: number,
-    pages: number
+    numPages: number
 ): [string | null, number | null] => {
     let newPage: number | null;
     let linePos: string | null;
@@ -24,11 +24,11 @@ const modifyPage = (
             linePos = "top";
             break;
         case MODIFY_PAGE_ACTION.lastPage:
-            newPage = pages;
+            newPage = numPages;
             linePos = "bottom";
             break;
         case MODIFY_PAGE_ACTION.newPage:
-            newPage = (0 < requestedPage && requestedPage <= pages) ?
+            newPage = (0 < requestedPage && requestedPage <= numPages) ?
                 requestedPage :
                 null;
             linePos = "top";
@@ -40,7 +40,7 @@ const modifyPage = (
             linePos = "bottom";
             break;
         case MODIFY_PAGE_ACTION.nextPage:
-            newPage = (currentPage + 1 <= pages) ?
+            newPage = (currentPage + 1 <= numPages) ?
                 currentPage + 1 :
                 null;
             linePos = "top";

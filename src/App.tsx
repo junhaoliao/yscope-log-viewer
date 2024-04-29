@@ -63,8 +63,8 @@ const App = () => {
         // Load the initial state of the viewer from url
         setEnablePrettify("true" === urlSearchParams.get("prettify"));
         setQuery({
-            isRegex: Boolean(urlSearchParams.get("query.isRegex")) || false,
-            matchCase: Boolean(urlSearchParams.get("query.matchCase")) || false,
+            isRegex: "true" === urlSearchParams.get("query.isRegex"),
+            matchCase: "true" === urlSearchParams.get("query.matchCase"),
             searchString: urlSearchParams.get("query.searchString") ?? "",
         });
         setTimestamp(

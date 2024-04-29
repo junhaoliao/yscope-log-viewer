@@ -58,7 +58,7 @@ export function StatusBar ({status, logFileState, loadingLogs, changeStateCallba
      */
     const setFooter = () => {
         const {logEventIdx} = logFileState;
-        const logEventMetadataLength = logFileState.numberOfEvents;
+        const logEventMetadataLength = logFileState.numEvents;
 
         let lineInfo = "";
         if (0 !== logEventIdx && logEventIdx) {
@@ -82,7 +82,7 @@ export function StatusBar ({status, logFileState, loadingLogs, changeStateCallba
      */
     function generateLinkToLogEvent () {
         const searchParams = {
-            prettify: logFileState.prettify ?
+            prettify: logFileState.enablePrettify ?
                 "true" :
                 null,
         };
@@ -162,15 +162,15 @@ export function StatusBar ({status, logFileState, loadingLogs, changeStateCallba
                     <button
                         className={"status-item status-item-button status-prettify-accent"}
                         disabled={loadingLogs}
-                        title={logFileState.prettify ?
+                        title={logFileState.enablePrettify ?
                             "Disable pretty printing" :
                             "Enable pretty printing"}
-                        onClick={() => changeStateCallback(STATE_CHANGE_TYPE.prettify, {prettify: !logFileState.prettify})}
+                        onClick={() => changeStateCallback(STATE_CHANGE_TYPE.CHANGE_PRETTIFY, {enablePrettify: !logFileState.enablePrettify})}
                     >
                         <Braces className={"me-1"}/>
                         <span>
-                            {logFileState.prettify ?
-                                "Un-prettify" :
+                            {logFileState.enablePrettify ?
+                                "Un-Prettify" :
                                 "Prettify"}
                         </span>
                     </button>

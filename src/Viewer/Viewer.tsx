@@ -24,6 +24,7 @@ import STATE_CHANGE_TYPE from "./services/STATE_CHANGE_TYPE";
 import {
     getModifiedUrl, modifyPage, parseNum,
 } from "./services/utils";
+import LogFileState from "./types/LogFileState";
 
 import "./Viewer.scss";
 
@@ -34,6 +35,7 @@ interface QueryOptions {
     searchString: string
 }
 
+const DEFAULT_PAGE_SIZE = 10000;
 
 /**
  * Contains the menu, Monaco editor, and status bar. Viewer spawns its own
@@ -46,7 +48,6 @@ interface QueryOptions {
  * @param props.initialQuery
  * @param props.timestamp The initial timestamp to show. If this field is
  * valid, logEventNumber will be ignored.
- * @param props.initialQuery.searchString
  * @return
  */
 const Viewer = ({
@@ -64,7 +65,6 @@ const Viewer = ({
 }) => {
     const {appTheme} = useContext(ThemeContext);
 
-
     // Ref hook used to reference worker used for loading and decoding
     const clpWorker = useRef<Worker|null>(null);
 
@@ -79,21 +79,23 @@ const Viewer = ({
     const [statusMessageLogs, setStatusMessageLogs] = useState([]);
 
     // Log States
-    const lsPageSize = localStorage.getItem(LOCAL_STORAGE_KEYS.PAGE_SIZE);
-    const [logFileState, setLogFileState] = useState({
+    const lsPageSize = parseNum(localStorage.getItem(LOCAL_STORAGE_KEYS.PAGE_SIZE));
+    const [logFileState, setLogFileState] = useState<LogFileState>({
+        compressedSize: 0,
+        decompressedSize: 0,
+        numEvents: null,
+        numPages: null,
+
         columnNumber: null,
-        lineNumber: null,
+        pageNumber: 0,
         logEventIdx: logEventNumber,
-        numberOfEvents: null,
-        page: null,
-        pageSize: lsPageSize ?
-            Number(lsPageSize) :
-            10000,
-        pages: null,
-        prettify: enablePrettify ?
-            enablePrettify :
-            false,
+        lineNumber: null,
+
+        enablePrettify: enablePrettify,
+        pageSize: lsPageSize ?? DEFAULT_PAGE_SIZE,
         verbosity: null,
+
+        page: null,
     });
     const [fileInfo, setFileInfo] = useState(null);
     const [logData, setLogData] = useState(null);
@@ -144,7 +146,7 @@ const Viewer = ({
             code: CLP_WORKER_PROTOCOL.LOAD_FILE,
             sessionId: sessionId,
             fileSrc: fileSrc,
-            prettify: logFileState.prettify,
+            enablePrettify: logFileState.enablePrettify,
             logEventIdx: logEvent,
             initialTimestamp: timestamp,
             pageSize: logFileState.pageSize,
@@ -193,7 +195,7 @@ const Viewer = ({
                     args.action,
                     logFileState.page,
                     args.requestedPage,
-                    logFileState.pages
+                    logFileState.numPages
                 );
 
                 if (validNewPage) {
@@ -234,14 +236,16 @@ const Viewer = ({
                     });
                 }
                 break;
-            case STATE_CHANGE_TYPE.prettify:
+            case STATE_CHANGE_TYPE.CHANGE_PRETTIFY:
                 setLoadingLogs(true);
-                setStatusMessage(args.prettify ?
-                    "Prettifying..." :
-                    "Un-prettifying...");
+                setStatusMessage(
+                    args.enablePrettify ?
+                        "Prettifying..." :
+                        "Un-prettifying..."
+                );
                 clpWorker.current.postMessage({
-                    code: CLP_WORKER_PROTOCOL.PRETTY_PRINT,
-                    prettify: args.prettify,
+                    code: CLP_WORKER_PROTOCOL.CHANGE_PRETTIFY,
+                    enablePrettify: args.enablePrettify,
                 });
                 break;
             case STATE_CHANGE_TYPE.lineNumber:
@@ -411,7 +415,7 @@ const Viewer = ({
                     queryChangeHandler={searchQueryChangeHandler}
                     searchResultClickHandler={goToEventCallback}
                     searchResults={searchResults}
-                    totalPages={logFileState.pages}
+                    totalPages={logFileState.numPages}
                     onStatusMessageChange={setStatusMessage}/>
             );
         }

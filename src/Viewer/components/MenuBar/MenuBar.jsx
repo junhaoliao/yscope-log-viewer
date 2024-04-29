@@ -69,7 +69,7 @@ const MenuBar = ({
     };
 
     const goToLastPage = () => {
-        if (logFileState.page !== logFileState.pages) {
+        if (logFileState.page !== logFileState.numPages) {
             onStateChange(STATE_CHANGE_TYPE.page, {action: MODIFY_PAGE_ACTION.lastPage});
         }
     };
@@ -106,14 +106,14 @@ const MenuBar = ({
                 </div>
                 <div className={"menu-item"}>
                     <EditableInput
-                        maxValue={logFileState.pages}
+                        maxValue={logFileState.numPages}
                         minValue={1}
                         value={logFileState.page}
                         onChangeCallback={goToPage}/>
                     <span className={"mx-1"}> of</span>
                     <span className={"mx-1"}>
                         {" "}
-                        {logFileState.pages}
+                        {logFileState.numPages}
                     </span>
                 </div>
                 <div

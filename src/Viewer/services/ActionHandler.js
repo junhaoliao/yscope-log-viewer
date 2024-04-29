@@ -18,17 +18,19 @@ import {
 class ActionHandler {
     /**
      * Creates a new FileManager object and initiates the download.
-     * @param {String|File} fileSrc
-     * @param {boolean} prettify
-     * @param {Number} logEventIdx
-     * @param {Number} initialTimestamp
-     * @param {Number} pageSize
+     *
+     * @param {string | File} fileSrc
+     * @param sessionId
+     * @param {boolean} enablePrettify
+     * @param {number} logEventIdx
+     * @param {number} initialTimestamp
+     * @param {number} pageSize
      */
-    constructor (fileSrc, sessionId, prettify, logEventIdx, initialTimestamp, pageSize) {
+    constructor (fileSrc, sessionId, enablePrettify, logEventIdx, initialTimestamp, pageSize) {
         this._logFile = new FileManager(
             fileSrc,
             sessionId,
-            prettify,
+            enablePrettify,
             logEventIdx,
             initialTimestamp,
             pageSize,
@@ -49,6 +51,7 @@ class ActionHandler {
 
     /**
      * Filters the events at the given verbosity and rebuilds the pages.
+     *
      * @param {number} desiredVerbosity
      */
     changeVerbosity (desiredVerbosity) {
@@ -79,6 +82,7 @@ class ActionHandler {
      * Go to the selected page and decode the relevant logs. linePos
      * indicates if the new page should be loaded with selected line
      * on top or bottom of page.
+     *
      * @param {number} page
      * @param {string} linePos
      */
@@ -86,7 +90,7 @@ class ActionHandler {
         if (!isNumeric(page)) {
             throw (new Error("Invalid page number provided."));
         }
-        if (0 >= page || page > this._logFile.state.pages) {
+        if (0 >= page || page > this._logFile.state.numPages) {
             throw (new Error("Invalid page number provided."));
         }
         this._logFile.state.page = page;
@@ -108,6 +112,7 @@ class ActionHandler {
 
     /**
      * Search for the given string and go to the next result.
+     *
      * @param {string} searchString
      * @param {boolean} isRegex
      * @param {boolean} matchCase
@@ -119,13 +124,11 @@ class ActionHandler {
     /**
      * Set prettify state, rebuild the page and update line number
      * for the log event.
-     * @param {boolean} prettify
+     *
+     * @param {boolean} enablePrettify
      */
-    changePrettify (prettify) {
-        if (!isBoolean(prettify)) {
-            throw (new Error("Invalid prettify state provided"));
-        }
-        this._logFile.state.prettify = prettify;
+    changePrettify (enablePrettify) {
+        this._logFile.state.enablePrettify = enablePrettify;
         this._logFile.decodePage();
         this._logFile.computeLineNumFromLogEventIdx();
         this._updateStateCallback(CLP_WORKER_PROTOCOL.UPDATE_STATE, this._logFile.state);
@@ -133,13 +136,14 @@ class ActionHandler {
 
     /**
      * Goes to the specified log event. Go to new page if needed.
+     *
      * @param {number} logEventIdx
      */
     changeEvent (logEventIdx) {
         if (!isNumeric(logEventIdx)) {
             throw (new Error("Invalid logEventIdx provided."));
         }
-        if (logEventIdx > this._logFile.state.numberOfEvents) {
+        if (logEventIdx > this._logFile.state.numEvents) {
             console.debug("Log event provided was larger than the number of events.");
         } else if (0 >= logEventIdx) {
             console.debug("Log event provided was less than or equal to zero.");
@@ -152,6 +156,7 @@ class ActionHandler {
     /**
      * Goes to the specified log event with the specified timestamp.
      * Go to new page if needed.
+     *
      * @param {number} timestamp
      */
     changeEventWithTimestamp (timestamp) {
@@ -179,6 +184,7 @@ class ActionHandler {
 
     /**
      * Get the log event given a line number.
+     *
      * @param {number} lineNumber
      * @param {number} columnNumber
      */
@@ -194,6 +200,7 @@ class ActionHandler {
 
     /**
      * Redraws the page with the new page size.
+     *
      * @param {number} pageSize
      */
     redraw (pageSize) {
@@ -224,6 +231,7 @@ class ActionHandler {
 
     /**
      * Send the newly decoded logs
+     *
      * @param {string} logs
      */
     _updateLogsCallback = (logs) => {
@@ -235,6 +243,7 @@ class ActionHandler {
 
     /**
      * Send the updated state.
+     *
      * @param {number} code
      * @param {object} state
      */
@@ -247,6 +256,7 @@ class ActionHandler {
 
     /**
      * Sends loading status update and displays message in console.
+     *
      * @param {string} msg
      * @param {boolean} error
      */
@@ -262,7 +272,9 @@ class ActionHandler {
 
     /**
      * Send the file information.
+     *
      * @param {string} fileState
+     * @param fileInfo
      */
     _updateFileInfoCallback = (fileInfo) => {
         postMessage({

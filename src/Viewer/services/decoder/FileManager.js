@@ -43,7 +43,7 @@ class FileManager {
      *
      * @param {string} fileSrc
      * @param sessionId
-     * @param {boolean} prettify
+     * @param {boolean} enablePrettify
      * @param {number} logEventIdx
      * @param {number} initialTimestamp
      * @param {number} pageSize
@@ -56,7 +56,7 @@ class FileManager {
     constructor (
         fileSrc,
         sessionId,
-        prettify,
+        enablePrettify,
         logEventIdx,
         initialTimestamp,
         pageSize,
@@ -67,7 +67,6 @@ class FileManager {
         updateSearchResultsCallback
     ) {
         this._fileSrc = fileSrc;
-        this._prettify = prettify;
         this._initialTimestamp = initialTimestamp;
         this._logEventOffsets = [];
         this._logEventOffsetsFiltered = [];
@@ -111,13 +110,13 @@ class FileManager {
 
         this.state = {
             pageSize: pageSize,
-            pages: null,
+            numPages: null,
             page: null,
-            prettify: prettify,
+            enablePrettify: enablePrettify,
             logEventIdx: logEventIdx,
             lineNumber: null,
             columnNumber: null,
-            numberOfEvents: null,
+            numEvents: null,
             verbosity: null,
             compressedHumanSize: null,
             decompressedHumanSize: null,
@@ -133,10 +132,10 @@ class FileManager {
      */
     _setupDecodingPagesToDatabase () {
         this.state.downloadChunkSize = 10000;
-        const numOfEvents = this._logEventOffsets.length;
-        this.state.downloadPageChunks = (0 === (numOfEvents % this.state.downloadChunkSize)) ?
-            Math.floor(numOfEvents / this.state.downloadChunkSize) :
-            Math.floor(numOfEvents / this.state.downloadChunkSize) + 1;
+        const numEvents = this._logEventOffsets.length;
+        this.state.downloadPageChunks = (0 === (numEvents % this.state.downloadChunkSize)) ?
+            Math.floor(numEvents / this.state.downloadChunkSize) :
+            Math.floor(numEvents / this.state.downloadChunkSize) + 1;
     }
 
     /**
@@ -209,7 +208,7 @@ class FileManager {
         this._outputResizableBuffer = new ResizableUint8Array(511000000);
         this._irStreamReader = new FourByteClpIrStreamReader(
             dataInputStream,
-            this._prettify ?
+            this.state.enablePrettify ?
                 this._prettifyLogEventContent :
                 null
         );
@@ -238,8 +237,8 @@ class FileManager {
             }
         }
 
-        this.state.numberOfEvents = this._logEventOffsets.length;
-        if (0 < this.state.numberOfEvents) {
+        this.state.numEvents = this._logEventOffsets.length;
+        if (0 < this.state.numEvents) {
             this._IRStreamHeader = this._arrayBuffer.slice(0, this._logEventOffsets[0].startIndex);
         }
     }
@@ -289,7 +288,7 @@ class FileManager {
         this.state.verbosity = -1;
         this.state.lineNumber = 1;
         this.state.columnNumber = 1;
-        this.state.numberOfEvents = this._logsArray.length;
+        this.state.numEvents = this._logsArray.length;
         this.computePageNumFromLogEventIdx();
         this.createPages();
 
@@ -320,15 +319,15 @@ class FileManager {
         this._buildIndex();
         this.filterLogEvents(-1);
 
-        const numberOfEvents = this._logEventOffsets.length;
+        const numEvents = this._logEventOffsets.length;
         if (null !== this._initialTimestamp) {
             this.state.logEventIdx = this.getLogEventIdxFromTimestamp(this._initialTimestamp);
             console.debug(`Initial Timestamp: ${this._initialTimestamp}`);
             console.debug(`logEventIdx: ${this.state.logEventIdx}`);
         } else if (null === this.state.logEventIdx ||
-            this.state.logEventIdx > numberOfEvents ||
+            this.state.logEventIdx > numEvents ||
             0 >= this.state.logEventIdx) {
-            this.state.logEventIdx = numberOfEvents;
+            this.state.logEventIdx = numEvents;
         }
 
         this.createPages();
@@ -474,7 +473,7 @@ class FileManager {
         this.state.verbosity = -1;
         this.state.lineNumber = 1;
         this.state.columnNumber = 1;
-        this.state.numberOfEvents = this._logsArray.length;
+        this.state.numEvents = this._logsArray.length;
         this.computePageNumFromLogEventIdx();
         this.createPages();
         this.decodePage();
@@ -494,7 +493,7 @@ class FileManager {
      * greater than or equal to the given timestamp
      */
     getLogEventIdxFromTimestamp (timestamp) {
-        const numberOfEvents = this._logEventOffsets.length;
+        const numEvents = this._logEventOffsets.length;
         if (this._timestampSorted) {
             const targetIdx = binarySearchWithTimestamp(
                 timestamp,
@@ -502,16 +501,16 @@ class FileManager {
             );
 
             return null === targetIdx ?
-                numberOfEvents :
+                numEvents :
                 targetIdx + 1;
         }
-        for (let idx = 0; idx < numberOfEvents; idx++) {
+        for (let idx = 0; idx < numEvents; idx++) {
             if (this._logEventOffsets[idx].timestamp >= timestamp) {
                 return idx + 1;
             }
         }
 
-        return numberOfEvents;
+        return numEvents;
     }
 
     /**
@@ -534,7 +533,7 @@ class FileManager {
                 return;
             }
         }
-        this.state.page = this.state.pages;
+        this.state.page = this.state.numPages;
     }
 
     /**
@@ -544,10 +543,10 @@ class FileManager {
         if (null !== this._logsArray) {
             // for Single-file CLP Archive only
             this.state.page = 1;
-            if (0 === this.state.numberOfEvents % this.state.pageSize) {
-                this.state.pages = Math.floor(this.state.numberOfEvents / this.state.pageSize);
+            if (0 === this.state.numEvents % this.state.pageSize) {
+                this.state.numPages = Math.floor(this.state.numEvents / this.state.pageSize);
             } else {
-                this.state.pages = Math.floor(this.state.numberOfEvents / this.state.pageSize) + 1;
+                this.state.numPages = Math.floor(this.state.numEvents / this.state.pageSize) + 1;
             }
 
             return;
@@ -555,16 +554,16 @@ class FileManager {
 
         if (this._logEventOffsetsFiltered.length <= this.state.pageSize) {
             this.state.page = 1;
-            this.state.pages = 1;
+            this.state.numPages = 1;
         } else {
-            const numOfEvents = this._logEventOffsetsFiltered.length;
-            if (0 === numOfEvents % this.state.pageSize) {
-                this.state.pages = Math.floor(numOfEvents / this.state.pageSize);
+            const numEvents = this._logEventOffsetsFiltered.length;
+            if (0 === numEvents % this.state.pageSize) {
+                this.state.numPages = Math.floor(numEvents / this.state.pageSize);
             } else {
-                this.state.pages = Math.floor(numOfEvents / this.state.pageSize) + 1;
+                this.state.numPages = Math.floor(numEvents / this.state.pageSize) + 1;
             }
 
-            this.state.page = this.state.pages;
+            this.state.page = this.state.numPages;
         }
     }
 
@@ -580,9 +579,9 @@ class FileManager {
         const numEventsAtLevel = this._logEventOffsetsFiltered.length;
 
         // Calculate where to start decoding from and how many events to decode
-        // On final page, the numberOfEvents is likely less than pageSize
+        // On final page, the numEvents is likely less than pageSize
         const targetEvent = ((page - 1) * pageSize);
-        const numberOfEvents = (targetEvent + pageSize >= numEventsAtLevel) ?
+        const numEvents = (targetEvent + pageSize >= numEventsAtLevel) ?
             numEventsAtLevel - targetEvent :
             pageSize;
 
@@ -592,7 +591,7 @@ class FileManager {
                 sessionId: this.sessionId,
                 page: page,
                 f:
-                    this._logsArray?.slice(targetEvent, targetEvent + numberOfEvents).join("\n"),
+                    this._logsArray?.slice(targetEvent, targetEvent + numEvents).join("\n"),
             });
 
             return;
@@ -600,10 +599,10 @@ class FileManager {
 
         const pageData = this._arrayBuffer.slice(
             this._logEventOffsets[targetEvent].startIndex,
-            this._logEventOffsets[targetEvent + numberOfEvents - 1].endIndex + 1
+            this._logEventOffsets[targetEvent + numEvents - 1].endIndex + 1
         );
         const inputStream = combineArrayBuffers(this._IRStreamHeader, pageData);
-        const logEvents = this._logEventOffsets.slice(targetEvent, targetEvent + numberOfEvents);
+        const logEvents = this._logEventOffsets.slice(targetEvent, targetEvent + numEvents);
 
         this._workerPool.assignTask({
             sessionId: this.sessionId,
@@ -632,7 +631,7 @@ class FileManager {
 
             let offset = 0;
             for (let i = startingEventIdx; i < endingEventIdx; i++) {
-                this._logs += this.state.prettify ?
+                this._logs += this.state.enablePrettify ?
                     this._prettifier.prettify(this._logsArray[i])[1] :
                     this._logsArray[i];
                 this._logs += "\n";
@@ -655,9 +654,9 @@ class FileManager {
         }
 
         // Calculate where to start decoding from and how many events to decode
-        // On final page, the numberOfEvents is likely less than pageSize
+        // On final page, the numEvents is likely less than pageSize
         const logEventsBeginIdx = ((this.state.page - 1) * this.state.pageSize);
-        const numOfEvents = Math.min(
+        const numEvents = Math.min(
             this.state.pageSize,
             numEventsAtLevel - logEventsBeginIdx
         );
@@ -666,7 +665,7 @@ class FileManager {
         const dataInputStream = new DataInputStream(this._arrayBuffer);
         this._irStreamReader = new FourByteClpIrStreamReader(
             dataInputStream,
-            this.state.prettify ?
+            this.state.enablePrettify ?
                 this._prettifyLogEventContent :
                 null
         );
@@ -676,7 +675,7 @@ class FileManager {
         this._availableVerbosityIndexes = new Set();
         this.logEventMetadata = [];
 
-        for (let i = logEventsBeginIdx; i < logEventsBeginIdx + numOfEvents; i++) {
+        for (let i = logEventsBeginIdx; i < logEventsBeginIdx + numEvents; i++) {
             const event = this._logEventOffsetsFiltered[i];
             const decoder = this._irStreamReader._streamProtocolDecoder;
 
@@ -824,7 +823,7 @@ class FileManager {
                     });
 
                     searchState.resultsByPages.push({
-                        pageIdx: this.state.pages - 1,
+                        pageIdx: this.state.numPages - 1,
                         results: [],
                     });
                     break;
@@ -843,7 +842,7 @@ class FileManager {
 
                 // update current page index and page end event index
                 searchState.currPageIdx++;
-                if (searchState.currPageIdx >= this.state.pages) {
+                if (searchState.currPageIdx >= this.state.numPages) {
                     searchState.isSearching = false;
                     break;
                 }

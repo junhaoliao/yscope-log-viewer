@@ -1,4 +1,8 @@
 let enumClpWorkerProtocol = 0;
+
+/**
+ *
+ */
 const CLP_WORKER_PROTOCOL = Object.freeze({
     ERROR: enumClpWorkerProtocol++,
     LOADING_MESSAGES: enumClpWorkerProtocol++,
@@ -9,7 +13,7 @@ const CLP_WORKER_PROTOCOL = Object.freeze({
     CHANGE_PAGE: enumClpWorkerProtocol++,
     LOAD_LOGS: enumClpWorkerProtocol++,
     REDRAW_PAGE: enumClpWorkerProtocol++,
-    PRETTY_PRINT: enumClpWorkerProtocol++,
+    CHANGE_PRETTIFY: enumClpWorkerProtocol++,
     UPDATE_STATE: enumClpWorkerProtocol++,
     UPDATE_FILE_INFO: enumClpWorkerProtocol++,
     UPDATE_SEARCH_STRING: enumClpWorkerProtocol++,

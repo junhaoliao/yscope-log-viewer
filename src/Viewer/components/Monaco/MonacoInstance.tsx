@@ -7,6 +7,7 @@ import React, {
 import * as monaco from "monaco-editor/esm/vs/editor/editor.api.js";
 
 import {ThemeContext} from "../../../ThemeContext/ThemeContext";
+import LogFileState from "../../types/LogFileState";
 import {APP_THEME_TO_MONACO_THEME_MAP} from "./themes";
 import {
     goToLineAndCenter,
@@ -15,22 +16,6 @@ import {
 
 import "./MonacoInstance.scss";
 
-
-interface LogFileState {
-    columnNumber: number,
-    pageIdx: number,
-    logEventIdx: number,
-    lineNumber: number,
-    maxNumEventPerPage: number,
-    numPages: number,
-    numEvents: number,
-
-    enablePrettify: boolean,
-    verbosity: null,
-
-    compressedSize: number,
-    decompressedSize: number,
-}
 
 interface MonacoInstanceProps {
     logFileState: LogFileState;

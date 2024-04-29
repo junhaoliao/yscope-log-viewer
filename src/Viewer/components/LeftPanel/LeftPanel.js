@@ -221,7 +221,7 @@ function LeftPanelTabs ({
 
     const [showDownload, setShowDownload] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
-    const [eventsPerPage, setEventsPerPage] = useState(logFileState.pages);
+    const [eventsPerPage, setEventsPerPage] = useState(logFileState.numPages);
     const inputFile = useRef(null);
     const downloadWorker = useRef(null);
 
