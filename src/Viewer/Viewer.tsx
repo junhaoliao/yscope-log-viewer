@@ -208,7 +208,7 @@ const Viewer = ({
                     });
                 }
                 break;
-            case STATE_CHANGE_TYPE.verbosity:
+            case STATE_CHANGE_TYPE.VERBOSITY:
                 if (args.verbosity !== logFileState.verbosity) {
                     setShouldReloadSearch(true);
                     handleStateChangeSearch({searchString: ""});
@@ -224,7 +224,7 @@ const Viewer = ({
                     });
                 }
                 break;
-            case STATE_CHANGE_TYPE.pageSize:
+            case STATE_CHANGE_TYPE.PAGE_SIZE:
                 if (args.pageSize !== logFileState.pageSize) {
                     setShouldReloadSearch(true);
                     handleStateChangeSearch({searchString: ""});
@@ -248,14 +248,14 @@ const Viewer = ({
                     enablePrettify: args.enablePrettify,
                 });
                 break;
-            case STATE_CHANGE_TYPE.lineNum:
+            case STATE_CHANGE_TYPE.LINE_NUM:
                 clpWorker.current.postMessage({
                     code: CLP_WORKER_PROTOCOL.GET_EVENT_FROM_LINE,
                     lineNum: args.lineNum,
                     columnNum: args.columnNum,
                 });
                 break;
-            case STATE_CHANGE_TYPE.logEventIdx:
+            case STATE_CHANGE_TYPE.LOG_EVENT_IDX:
                 setLoadingLogs(true);
                 setStatusMessage(`Going to new log event ${args.logEventIdx}`);
                 clpWorker.current.postMessage({
@@ -263,20 +263,20 @@ const Viewer = ({
                     desiredLogEventIdx: args.logEventIdx,
                 });
                 break;
-            case STATE_CHANGE_TYPE.search:
+            case STATE_CHANGE_TYPE.SEARCH:
                 handleStateChangeSearch(args);
                 break;
-            case STATE_CHANGE_TYPE.startDownload:
+            case STATE_CHANGE_TYPE.START_DOWNLOAD:
                 clpWorker.current.postMessage({
                     code: CLP_WORKER_PROTOCOL.START_DOWNLOAD,
                 });
                 break;
-            case STATE_CHANGE_TYPE.stopDownload:
+            case STATE_CHANGE_TYPE.STOP_DOWNLOAD:
                 clpWorker.current.postMessage({
                     code: CLP_WORKER_PROTOCOL.STOP_DOWNLOAD,
                 });
                 break;
-            case STATE_CHANGE_TYPE.timestamp:
+            case STATE_CHANGE_TYPE.TIMESTAMP:
                 setLoadingLogs(true);
                 setStatusMessage(`Jump to timestamp: ${args.timestamp}`);
                 clpWorker.current.postMessage({
@@ -394,16 +394,16 @@ const Viewer = ({
         // FIXME: shouldn't this be moved to App.tsx?
         const urlHashParams = new URLSearchParams(window.location.hash.substring(1));
         const logEventIdx = urlHashParams.get("logEventIdx");
-        changeState(STATE_CHANGE_TYPE.logEventIdx, {logEventIdx: parseNum(logEventIdx)});
+        changeState(STATE_CHANGE_TYPE.LOG_EVENT_IDX, {logEventIdx: parseNum(logEventIdx)});
     };
 
     const searchQueryChangeHandler = (newQuery) => {
         setSearchQuery(newQuery);
-        changeState(STATE_CHANGE_TYPE.search, {...newQuery});
+        changeState(STATE_CHANGE_TYPE.SEARCH, {...newQuery});
     };
 
     const goToEventCallback = (logEventIdx) => {
-        changeState(STATE_CHANGE_TYPE.logEventIdx, {logEventIdx: logEventIdx});
+        changeState(STATE_CHANGE_TYPE.LOG_EVENT_IDX, {logEventIdx: logEventIdx});
     };
 
     let leftPanelContent = (<></>);

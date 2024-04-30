@@ -29,7 +29,7 @@ const setupCursorPosChangeAction = (
             clearTimeout(posChangeDebounceTimeout);
         }
         posChangeDebounceTimeout = setTimeout(() => {
-            changeAppState(STATE_CHANGE_TYPE.lineNum, {
+            changeAppState(STATE_CHANGE_TYPE.LINE_NUM, {
                 lineNum: e.position.lineNumber,
                 columnNum: e.position.column,
             });

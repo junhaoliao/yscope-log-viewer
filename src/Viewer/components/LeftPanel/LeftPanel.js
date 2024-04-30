@@ -259,7 +259,7 @@ function LeftPanelTabs ({
         // TODO What is the maximum number of events monaco can support?
         e.preventDefault();
         handleCloseSettings();
-        changeStateCallback(STATE_CHANGE_TYPE.pageSize, {pageSize: eventsPerPage});
+        changeStateCallback(STATE_CHANGE_TYPE.PAGE_SIZE, {pageSize: eventsPerPage});
         localStorage.setItem("pageSize", String(eventsPerPage));
     };
 
@@ -274,14 +274,14 @@ function LeftPanelTabs ({
 
     const stopUncompressedDownload = () => {
         setDownloadingMessage("Clearing database and terminating download...");
-        changeStateCallback(STATE_CHANGE_TYPE.stopDownload, null);
+        changeStateCallback(STATE_CHANGE_TYPE.STOP_DOWNLOAD, null);
         downloadWorker.current.postMessage({
             code: DOWNLOAD_WORKER_ACTION.clearDatabase,
         });
     };
 
     const downloadUncompressedFile = async () => {
-        changeStateCallback(STATE_CHANGE_TYPE.startDownload, null);
+        changeStateCallback(STATE_CHANGE_TYPE.START_DOWNLOAD, null);
         setDownloadingMessage("Decoding data to database...");
         setIsDownloading(true);
         if (downloadWorker.current) {
@@ -373,7 +373,7 @@ function LeftPanelTabs ({
 
     useEffect(() => {
         return () => {
-            changeStateCallback(STATE_CHANGE_TYPE.stopDownload, null);
+            changeStateCallback(STATE_CHANGE_TYPE.STOP_DOWNLOAD, null);
             if (downloadWorker.current) {
                 downloadWorker.current.terminate();
             }
@@ -385,7 +385,7 @@ function LeftPanelTabs ({
      * @param e
      */
     window.onbeforeunload = function (e) {
-        changeStateCallback(STATE_CHANGE_TYPE.stopDownload, null);
+        changeStateCallback(STATE_CHANGE_TYPE.STOP_DOWNLOAD, null);
         if (null !== downloadWorker.current) {
             downloadWorker.current.postMessage({
                 code: DOWNLOAD_WORKER_ACTION.clearDatabase,

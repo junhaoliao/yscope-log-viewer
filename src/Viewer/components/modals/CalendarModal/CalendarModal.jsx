@@ -34,7 +34,7 @@ const CalendarModal = ({
     const handleDatetimeSubmit = (e) => {
         e.preventDefault();
         onClose();
-        onStateChange(STATE_CHANGE_TYPE.timestamp, {timestamp: timestamp});
+        onStateChange(STATE_CHANGE_TYPE.TIMESTAMP, {timestamp: timestamp});
     };
 
     return (

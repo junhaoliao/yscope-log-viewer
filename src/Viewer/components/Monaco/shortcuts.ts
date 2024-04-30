@@ -38,7 +38,7 @@ const SHORTCUTS = [
         id: "topOfPage",
         label: "Go To Top Of Page",
         keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyU],
-        action: STATE_CHANGE_TYPE.lineNum,
+        action: STATE_CHANGE_TYPE.LINE_NUM,
         getActionArgs: () => ({
             lineNum: 1,
             columnNum: 1,
@@ -49,7 +49,7 @@ const SHORTCUTS = [
         label: "Go To End Of Page",
         keybindings: [monaco.KeyMod.CtrlCmd |
             monaco.KeyCode.KeyI],
-        action: STATE_CHANGE_TYPE.lineNum,
+        action: STATE_CHANGE_TYPE.LINE_NUM,
         getActionArgs: (editor: monaco.editor.IStandaloneCodeEditor) => ({
             lineNum: editor.getModel()?.getLineCount(),
             columnNum: 1,

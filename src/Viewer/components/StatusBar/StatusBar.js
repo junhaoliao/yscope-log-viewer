@@ -117,7 +117,7 @@ export function StatusBar ({status, logFileState, loadingLogs, changeStateCallba
     };
 
     const selectVerbosity = (value) => {
-        changeStateCallback(STATE_CHANGE_TYPE.verbosity, {verbosity: value});
+        changeStateCallback(STATE_CHANGE_TYPE.VERBOSITY, {verbosity: value});
     };
 
     // TODO Set min size of viewer
