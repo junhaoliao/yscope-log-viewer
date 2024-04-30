@@ -1,0 +1,24 @@
+/**
+ * Enum of the protocol code for communications between the client and CLP worker.
+ */
+enum CLP_WORKER_PROTOCOL {
+    CHANGE_PAGE_NUM,
+    CHANGE_TIMESTAMP,
+    ERROR,
+    GET_EVENT_FROM_LINE,
+    GET_LINE_FROM_EVENT,
+    LOAD_FILE,
+    LOAD_LOGS,
+    LOADING_MESSAGES,
+    PRETTIFY,
+    REDRAW_PAGE,
+    START_DOWNLOAD,
+    STOP_DOWNLOAD,
+    UPDATE_FILE_INFO,
+    UPDATE_SEARCH_RESULTS,
+    UPDATE_SEARCH_STRING,
+    UPDATE_STATE,
+    UPDATE_VERBOSITY
+}
+
+export default CLP_WORKER_PROTOCOL;
