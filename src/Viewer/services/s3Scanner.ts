@@ -2,8 +2,6 @@ import {
     ListObjectsCommand, S3Client,
 } from "@aws-sdk/client-s3";
 
-import app from "../../App";
-
 
 const {S3_ENDPOINT, S3_BUCKET} = (() => {
     return {
