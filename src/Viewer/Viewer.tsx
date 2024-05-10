@@ -20,7 +20,10 @@ import CLP_WORKER_PROTOCOL from "./services/CLP_WORKER_PROTOCOL";
 import FourByteClpIrStreamReader from "./services/decoder/FourByteClpIrStreamReader";
 import LOCAL_STORAGE_KEYS from "./services/LOCAL_STORAGE_KEYS";
 import MessageLogger from "./services/MessageLogger";
-import STATE_CHANGE_TYPE from "./services/STATE_CHANGE_TYPE";
+import {
+    getNextObject, getPrevObject,
+} from "./services/s3Scanner";
+import STATE_CHANGE_TYPE, {CHANGE_FILE_DIREECTION} from "./services/STATE_CHANGE_TYPE";
 import {
     getModifiedUrl, getNewLineAndPage, parseNum,
 } from "./services/utils";
@@ -80,21 +83,25 @@ const Viewer = ({
 
     // Log States
     const lsPageSize = parseNum(localStorage.getItem(LOCAL_STORAGE_KEYS.PAGE_SIZE));
-    const [logFileState, setLogFileState] = useState<LogFileState>({
-        compressedSize: 0,
-        decompressedSize: 0,
+    const defaultLogFileState = {
+        compressedSize: null,
+        decompressedSize: null,
         numEvents: null,
         numPages: null,
 
         columnNum: null,
         lineNum: null,
         logEventIdx: logEventNumber,
-        PRETTIFYNumber: null,
+        pageNum: null,
 
         enablePrettify: enablePrettify,
         pageSize: lsPageSize ?? DEFAULT_PAGE_SIZE,
         verbosity: null,
-    });
+
+        nextFilePath: null,
+        prevFilePath: null,
+    };
+    const [logFileState, setLogFileState] = useState<LogFileState>(defaultLogFileState);
     const [fileInfo, setFileInfo] = useState(null);
     const [logData, setLogData] = useState(null);
 
@@ -125,6 +132,7 @@ const Viewer = ({
         if (clpWorker.current) {
             clpWorker.current.terminate();
         }
+        setLogFileState(defaultLogFileState);
         setStatusMessageLogs([...msgLogger.current.reset()]);
         setLoadingLogs(false);
         setLoadingFile(true);
@@ -188,6 +196,11 @@ const Viewer = ({
             return;
         }
         switch (type) {
+            case STATE_CHANGE_TYPE.CHANGE_FILE:
+                loadFile((args.direction === CHANGE_FILE_DIREECTION.PREV) ?
+                    logFileState.prevFilePath :
+                    logFileState.nextFilePath);
+                break;
             case STATE_CHANGE_TYPE.PAGE_NUM:
                 if (null === logFileState.pageNum) {
                     throw new Error("Unexpected null logFileState.pageNum");
@@ -331,6 +344,12 @@ const Viewer = ({
                 break;
             case CLP_WORKER_PROTOCOL.UPDATE_FILE_INFO:
                 setFileInfo(event.data.fileInfo);
+                getPrevObject(event.data.fileInfo.filePath).then((path) => {
+                    setLogFileState((v) => ({...v, prevFilePath: path}));
+                });
+                getNextObject(event.data.fileInfo.filePath).then((path) => {
+                    setLogFileState((v) => ({...v, nextFilePath: path}));
+                });
                 break;
             case CLP_WORKER_PROTOCOL.UPDATE_SEARCH_RESULTS:
                 setSearchResults((prevArray) => [

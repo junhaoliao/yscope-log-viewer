@@ -1,17 +1,20 @@
 interface LogFileState {
-    compressedSize: number,
-    decompressedSize: number,
+    compressedSize: number | null,
+    decompressedSize: number | null,
     numPages: number | null,
     numEvents: number | null,
 
     columnNum: number | null,
-    pageNum: number | null,
     lineNum: number | null,
     logEventIdx: number | null,
+    pageNum: number | null,
 
     enablePrettify: boolean,
     pageSize: number,
     verbosity: null,
+
+    nextFilePath: string|null,
+    prevFilePath: string|null,
 
     [key: string]: never
 }

@@ -4,6 +4,7 @@ const path = require("path");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const MonacoWebpackPlugin = require("monaco-editor-webpack-plugin");
 const CopyWebpackPlugin = require("copy-webpack-plugin");
+const DotEnvPlugin = require("dotenv-webpack");
 
 
 module.exports = {
@@ -96,6 +97,7 @@ module.exports = {
         publicPath: "auto",
     },
     plugins: [
+        new DotEnvPlugin(),
         new HtmlWebpackPlugin({
             template: path.resolve(__dirname, "public", "index.html"),
         }),

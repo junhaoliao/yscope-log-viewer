@@ -22,7 +22,8 @@
 }
 
 .menu-item-btn {
-  cursor: pointer;
+  border: 0;
+  background: none;
 }
 
 .menu-divider {
@@ -49,7 +50,13 @@ kbd {
     border-color: red;
   }
 
-  .menu-item-btn:hover {
+  .menu-item-btn {
+    color: #000;
+  }
+  .menu-item-btn:disabled {
+    color: #ccc;
+  }
+  .menu-item-btn:hover:enabled {
     background: #cecece;
   }
 }
@@ -63,7 +70,13 @@ kbd {
     border-color: green;
   }
 
-  .menu-item-btn:hover {
+  .menu-item-btn {
+    color: #ccc;
+  }
+  .menu-item-btn:disabled {
+    color: #6e6e6e;
+  }
+  .menu-item-btn:hover:enabled {
     background: #454545;
   }
 }
