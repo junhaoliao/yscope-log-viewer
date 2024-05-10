@@ -7,6 +7,13 @@ import STATE_CHANGE_TYPE from "../../services/STATE_CHANGE_TYPE";
 /* eslint-disable sort-keys */
 const SHORTCUTS = [
     {
+        id: null,
+        label: "Focus on Editor",
+        keybindings: [monaco.KeyCode.Backquote],
+        action: null,
+        getActionArgs: null,
+    },
+    {
         id: "nextPage",
         label: "Go To Next Page",
         keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.BracketRight],
@@ -47,8 +54,7 @@ const SHORTCUTS = [
     {
         id: "endOfPage",
         label: "Go To End Of Page",
-        keybindings: [monaco.KeyMod.CtrlCmd |
-            monaco.KeyCode.KeyI],
+        keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyI],
         action: STATE_CHANGE_TYPE.LINE_NUM,
         getActionArgs: (editor: monaco.editor.IStandaloneCodeEditor) => ({
             lineNum: editor.getModel()?.getLineCount(),
@@ -69,6 +75,9 @@ const setupShortcutActions = (
     changeAppState: Function
 ) => {
     SHORTCUTS.forEach(({action, getActionArgs, id, keybindings, label}) => {
+        if (null === action) {
+            return;
+        }
         editor.addAction({
             id: id,
             label: label,

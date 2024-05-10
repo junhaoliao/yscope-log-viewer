@@ -21,6 +21,7 @@ import {
 import MODIFY_PAGE_ACTION from "../../services/MODIFY_PAGE_ACTION";
 import STATE_CHANGE_TYPE from "../../services/STATE_CHANGE_TYPE";
 import CalendarModal from "../modals/CalendarModal/CalendarModal";
+import HelpModal from "../modals/HelpModal";
 import {EditableInput} from "./EditableInput/EditableInput";
 
 import "./MenuBar.scss";
@@ -43,7 +44,6 @@ const MenuBar = ({
     logFileState, fileInfo, isLoading, onStateChange,
 }) => {
     const {appTheme} = useContext(ThemeContext);
-
 
     const [showCalendar, setShowCalendar] = useState(false);
     const [showHelp, setShowHelp] = useState(false);
@@ -193,131 +193,11 @@ const MenuBar = ({
                 onClose={handleCloseCalendar}
                 onStateChange={onStateChange}/>
 
-            <Modal
-                className={"help-modal border-0"}
-                contentClassName={getModalClass()}
-                data-theme={appTheme}
-                show={showHelp}
-                onHide={handleCloseHelp}
-            >
-                <Modal.Header className={"modal-background"}>
-                    <div className={"float-left"}>
-                        Keyboard Shortcuts
-                    </div>
-                </Modal.Header>
-                <Modal.Body className={"modal-background p-3 pt-2"}>
-                    <Table
-                        borderless={true}
-                        style={{fontSize: "15px"}}
-                    >
-                        <thead>
-                            <tr>
-                                <th>Action</th>
-                                <th>Windows</th>
-                                <th>macOS</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>Focus on Editor</td>
-                                <td>
-                                    <kbd>`</kbd>
-                                </td>
-                                <td>
-                                    <kbd>`</kbd>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>Next Page</td>
-                                <td>
-                                    <kbd>CTRL</kbd>
-                                    +
-                                    <kbd>]</kbd>
-                                </td>
-                                <td>
-                                    <kbd>⌘</kbd>
-                                    +
-                                    <kbd>]</kbd>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>Prev Page</td>
-                                <td>
-                                    <kbd>CTRL</kbd>
-                                    +
-                                    <kbd>[</kbd>
-                                </td>
-                                <td>
-                                    <kbd>⌘</kbd>
-                                    +
-                                    <kbd>[</kbd>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>First Page</td>
-                                <td>
-                                    <kbd>CTRL</kbd>
-                                    +
-                                    <kbd>,</kbd>
-                                </td>
-                                <td>
-                                    <kbd>⌘</kbd>
-                                    +
-                                    <kbd>,</kbd>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>Last Page</td>
-                                <td>
-                                    <kbd>CTRL</kbd>
-                                    +
-                                    <kbd>.</kbd>
-                                </td>
-                                <td>
-                                    <kbd>⌘</kbd>
-                                    +
-                                    <kbd>.</kbd>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>Top of Page</td>
-                                <td>
-                                    <kbd>CTRL</kbd>
-                                    +
-                                    <kbd>U</kbd>
-                                </td>
-                                <td>
-                                    <kbd>⌘</kbd>
-                                    +
-                                    <kbd>U</kbd>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>End of Page</td>
-                                <td>
-                                    <kbd>CTRL</kbd>
-                                    +
-                                    <kbd>I</kbd>
-                                </td>
-                                <td>
-                                    <kbd>⌘</kbd>
-                                    +
-                                    <kbd>I</kbd>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </Table>
-                </Modal.Body>
-                <Modal.Footer className={"modal-background"}>
-                    <Button
-                        className={"btn-sm"}
-                        variant={"secondary"}
-                        onClick={handleCloseHelp}
-                    >
-                        Close
-                    </Button>
-                </Modal.Footer>
-            </Modal>
+            <HelpModal
+                isOpen={showHelp}
+                modalClass={getModalClass()}
+                theme={appTheme}
+                onClose={handleCloseHelp}/>
         </>
     );
 };
