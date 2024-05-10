@@ -2,6 +2,8 @@ import {
     ListObjectsCommand, S3Client,
 } from "@aws-sdk/client-s3";
 
+import app from "../../App";
+
 
 const {S3_ENDPOINT, S3_BUCKET} = (() => {
     return {
@@ -97,7 +99,7 @@ const getPrevObject = async (objectPath: string): Promise<string | null> => {
 
                     return null;
                 }
-                if (lastObjectInfo.timestamp < timestamp) {
+                if (lastObjectInfo.appName === appName && lastObjectInfo.timestamp < timestamp) {
                     // the current item is on the next page
                     marker = response.NextMarker;
 
@@ -118,7 +120,14 @@ const getPrevObject = async (objectPath: string): Promise<string | null> => {
                 return null;
             }
             let lowerBound = 0;
-            let upperBound = Contents.length;
+            let upperBound = 1 + Contents.findLastIndex((element) => {
+                if ("undefined" === typeof element.Key) {
+                    return false;
+                }
+                const elementInfo = parseObjectInfo(element.Key);
+                return elementInfo?.appName === appName;
+            });
+
             let midIndex = Math.floor(
                 (lowerBound + upperBound) / 2
             );
@@ -160,7 +169,10 @@ const getPrevObject = async (objectPath: string): Promise<string | null> => {
                 return lastKeyOnLastPage && (endpoint + lastKeyOnLastPage);
             }
             const prevItem = Contents[prevItemIdx];
-            const prevKey = prevItem?.Key ?? null;
+            if ("undefined" === typeof prevItem) {
+                return null;
+            }
+            const prevKey = prevItem.Key ?? null;
 
             return prevKey && (endpoint + prevKey);
         } catch (e) {
@@ -182,7 +194,7 @@ const getNextObject = async (objectPath: string): Promise<string | null> => {
         return null;
     }
 
-    const {prefix, basename, endpoint} = objectInfo;
+    const {prefix, appName, basename, endpoint} = objectInfo;
     const input = {
         Bucket: S3_BUCKET,
         MaxKeys: 1,
@@ -193,16 +205,20 @@ const getNextObject = async (objectPath: string): Promise<string | null> => {
     try {
         const command = new ListObjectsCommand(input);
         const response = await S3_CLIENT.send(command);
-        if ("undefined" !== typeof response.NextMarker) {
-            return endpoint + response.NextMarker;
+        if ("undefined" === typeof response.NextMarker) {
+            return null;
         }
+        const nextItemInfo = parseObjectInfo(response.NextMarker);
+        if (null === nextItemInfo || nextItemInfo.appName !== appName) {
+            return null;
+        }
+
+        return (endpoint + response.NextMarker);
     } catch (e) {
         console.error("Error happened in ListObjectsCommand:", e);
 
         return null;
     }
-
-    return null;
 };
 
 export {
