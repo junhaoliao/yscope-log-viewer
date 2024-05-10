@@ -96,7 +96,7 @@ const Viewer = ({
 
         enablePrettify: enablePrettify,
         pageSize: lsPageSize ?? DEFAULT_PAGE_SIZE,
-        verbosity: null,
+        verbosity: -1,
 
         nextFilePath: null,
         prevFilePath: null,
@@ -127,12 +127,12 @@ const Viewer = ({
      * Reload viewer on fileSrc change
      *
      * @param fileSrc
+     * @param oldLogFileState
      */
-    const loadFile = (fileSrc) => {
+    const loadFile = (fileSrc, oldLogFileState) => {
         if (clpWorker.current) {
             clpWorker.current.terminate();
         }
-        setLogFileState(defaultLogFileState);
         setStatusMessageLogs([...msgLogger.current.reset()]);
         setLoadingLogs(false);
         setLoadingFile(true);
@@ -143,7 +143,7 @@ const Viewer = ({
 
         // If file was loaded using file dialog or drag/drop, reset logEventIdx
         const logEvent = ("string" === typeof fileSrc) ?
-            logFileState.logEventIdx :
+            oldLogFileState.logEventIdx :
             null;
 
         const sessionId = uuidv1();
@@ -152,16 +152,16 @@ const Viewer = ({
             code: CLP_WORKER_PROTOCOL.LOAD_FILE,
             sessionId: sessionId,
             fileSrc: fileSrc,
-            enablePrettify: logFileState.enablePrettify,
+            enablePrettify: oldLogFileState.enablePrettify,
             logEventIdx: logEvent,
             initialTimestamp: timestamp,
-            pageSize: logFileState.pageSize,
+            pageSize: oldLogFileState.pageSize,
         });
     };
 
     // Load file if file info changes (this could happen from drag and drop)
     useEffect(() => {
-        loadFile(fileSrc);
+        loadFile(fileSrc, logFileState);
     }, [fileSrc]);
 
     // Save statusMessages to the msg logger for debugging
@@ -197,9 +197,17 @@ const Viewer = ({
         }
         switch (type) {
             case STATE_CHANGE_TYPE.CHANGE_FILE:
-                loadFile((args.direction === CHANGE_FILE_DIREECTION.PREV) ?
-                    logFileState.prevFilePath :
-                    logFileState.nextFilePath);
+                loadFile(
+                    (args.direction === CHANGE_FILE_DIREECTION.PREV) ?
+                        logFileState.prevFilePath :
+                        logFileState.nextFilePath,
+                    {
+                        ...defaultLogFileState,
+                        logEventIdx: (args.direction === CHANGE_FILE_DIREECTION.PREV) ?
+                            -1 :
+                            1,
+                    }
+                );
                 break;
             case STATE_CHANGE_TYPE.PAGE_NUM:
                 if (null === logFileState.pageNum) {
@@ -389,7 +397,10 @@ const Viewer = ({
             const newUrl = getModifiedUrl(searchParams, hashParams);
             window.history.pushState({}, null, newUrl);
         }
-    }, [fileInfo]);
+    }, [
+        fileInfo,
+        logFileState.logEventIdx,
+    ]);
 
     /**
      * Unsets the cached page size in case it causes a client OOM. If it

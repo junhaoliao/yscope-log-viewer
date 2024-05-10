@@ -66,13 +66,6 @@ export function StatusBar ({status, logFileState, loadingLogs, changeStateCallba
         }
         lineInfo += `Ln ${logFileState.lineNum}, Col ${logFileState.columnNum}`;
         setStatusEditor(lineInfo);
-
-        // Update URL without firing onhashchange or adding to browser's history
-        let url = `${window.location.origin}${window.location.pathname}${window.location.search}`;
-        if (logEventIdx && 0 !== logEventIdx) {
-            url += `#logEventIdx=${logEventIdx}`;
-        }
-        history.pushState(null, null, url);
     };
 
     /**

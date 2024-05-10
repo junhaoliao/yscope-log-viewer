@@ -244,7 +244,7 @@ function LeftPanelTabs ({
     };
 
     const loadFile = (e) => {
-        loadFileCallback(e.target.files[0]);
+        loadFileCallback(e.target.files[0], logFileState);
     };
 
     // Modal Functions

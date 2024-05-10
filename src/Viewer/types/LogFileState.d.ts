@@ -11,7 +11,7 @@ interface LogFileState {
 
     enablePrettify: boolean,
     pageSize: number,
-    verbosity: null,
+    verbosity: number,
 
     nextFilePath: string|null,
     prevFilePath: string|null,
