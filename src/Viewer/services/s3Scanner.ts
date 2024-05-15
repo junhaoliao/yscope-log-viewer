@@ -46,7 +46,16 @@ const parseObjectInfo = (urlOrPath: string): (IParsedObjectInfo | null) => {
 
     const prefix = pathname.substring(0, lastSlashIndex + 1);
     const basename = pathname.substring(lastSlashIndex + 1);
-    const [appName, timestampString] = basename.split(".");
+
+    const match = basename.match(/^(.*)\.(\d+)\.(.*)$/);
+    if (null === match) {
+        return null;
+    }
+    const [
+        ,
+        appName,
+        timestampString,
+    ] = match;
 
     if ("undefined" === typeof appName || "undefined" === typeof timestampString) {
         return null;
