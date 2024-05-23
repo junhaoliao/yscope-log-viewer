@@ -160,11 +160,11 @@ class FileManager {
      * Callback when progress is updated in file getXMLHttpRequest.
      *
      * @param {number} numBytesDownloaded Number of bytes downloaded
-     * @param {number} fileSizeBytes Total file size
+     * @param {number} numBytesTotal Total file size
      * @private
      */
-    _updateFileLoadProgress = (numBytesDownloaded, fileSizeBytes) => {
-        const percentComplete = (numBytesDownloaded / fileSizeBytes) * 100;
+    _updateFileLoadProgress = (numBytesDownloaded, numBytesTotal) => {
+        const percentComplete = (numBytesDownloaded / numBytesTotal) * 100;
         if (null != this._loadState.prevCheckTime) {
             const loadedTime = performance.now() - this._loadState.prevCheckTime;
             const downloadSpeed =
