@@ -64,11 +64,11 @@ const downloadAndReadFile = async (fileUrl: string, progressCallback: ProgressCa
         if (e instanceof AxiosError) {
             throw new HTTPRequestError(
                 fileUrl,
-                e.response?.status.toString() ?? "Unknown Axios Status",
-                e.response?.statusText ?? "Unknown Axios Status Text"
+                e.code ?? "Unknown Axios Code",
+                e.message
             );
         } else {
-            throw new HTTPRequestError(fileUrl, "Unknow error", "In downloading the file.");
+            throw new HTTPRequestError(fileUrl, "Unknown error", "In downloading the file.");
         }
     }
 };

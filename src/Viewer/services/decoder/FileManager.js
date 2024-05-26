@@ -13,6 +13,7 @@ import {
     DataInputStream, DataInputStreamEOFError,
 } from "./DataInputStream";
 import FourByteClpIrStreamReader from "./FourByteClpIrStreamReader";
+import JsonlDecoder from "./JsonlDecoder";
 import ResizableUint8Array from "./ResizableUint8Array";
 import SimplePrettifier from "./SimplePrettifier";
 import {
@@ -429,6 +430,9 @@ class FileManager {
 
                 return pako.inflate(fileInfo.data, {to: "Uint8Array"});
             },
+            ".jsonl": async () => {
+                return this.#decodeJsonlLogAndUpdate(fileInfo.data);
+            },
         };
 
         let isPlainTextFile = true;
@@ -456,13 +460,40 @@ class FileManager {
     /**
      * Decode CLP Archive log buffer and update editor state
      *
-     * @param {Uint8Array} decompressedLogFile buffer to
+     * @param {Uint8Array} fileByteArray buffer to
      * decode to string and update editor
      * @private
      */
-    async _decodeClpArchiveLogAndUpdate (decompressedLogFile) {
-        const clpArchiveDecoder = new ClpArchiveDecoder(decompressedLogFile);
+    async _decodeClpArchiveLogAndUpdate (fileByteArray) {
+        const clpArchiveDecoder = new ClpArchiveDecoder(fileByteArray);
         this._logsArray = await clpArchiveDecoder.decode();
+
+        // Update decompression status
+        this.state.decompressedHumanSize =
+            formatSizeInBytes(this._logsArray.join("\n").length, false);
+        this._loadingMessageCallback(`Decompressed ${this.state.decompressedHumanSize}.`);
+
+        // Update state
+        this.state.verbosity = -1;
+        this.state.lineNum = 1;
+        this.state.columnNum = 1;
+        this.state.numEvents = this._logsArray.length;
+        this.computePageNumFromLogEventIdx();
+        this.createPages();
+        this.decodePage();
+
+        // FIXME: dirty hack to get search working
+        this._logEventOffsetsFiltered.length = this._logsArray.length;
+        this._logEventOffsets.length = this._logsArray.length;
+        this._setupDecodingPagesToDatabase();
+
+        this._updateStateCallback(CLP_WORKER_PROTOCOL.UPDATE_STATE, this.state);
+    }
+
+    // FIXME: refactor
+    #decodeJsonlLogAndUpdate (fileByteArray) {
+        const jsonlDecoder = new JsonlDecoder(fileByteArray);
+        this._logsArray = jsonlDecoder.decode();
 
         // Update decompression status
         this.state.decompressedHumanSize =
