@@ -1,5 +1,5 @@
 import {
-    useCallback, useContext, useEffect, useRef, useState,
+    useCallback, useContext, useEffect, useMemo, useRef, useState,
 } from "react";
 import {Row} from "react-bootstrap";
 import LoadingIcons from "react-loading-icons";
@@ -20,9 +20,7 @@ import CLP_WORKER_PROTOCOL from "./services/CLP_WORKER_PROTOCOL";
 import FourByteClpIrStreamReader from "./services/decoder/FourByteClpIrStreamReader";
 import LOCAL_STORAGE_KEYS from "./services/LOCAL_STORAGE_KEYS";
 import MessageLogger from "./services/MessageLogger";
-import {
-    getNextObject, getPrevObject,
-} from "./services/s3Scanner";
+import S3Scanner from "./services/S3Scanner";
 import STATE_CHANGE_TYPE, {CHANGE_FILE_DIREECTION} from "./services/STATE_CHANGE_TYPE";
 import {
     getModifiedUrl, getNewLineAndPage, parseNum,
@@ -70,6 +68,20 @@ const Viewer = ({
 
     // Ref hook used to reference worker used for loading and decoding
     const clpWorker = useRef<Worker|null>(null);
+
+    // s3 scanner for navigating among related files
+    // FIXME: hide the prevFile / nextFile buttons
+    //  when the S3_ENDPOINT envvar isn't specified
+    const s3Scanner = useMemo<null|S3Scanner>(
+        () => (
+            (
+                "undefined" === typeof process.env.S3_ENDPOINT ||
+                0 === process.env.S3_ENDPOINT.length
+            ) ?
+                null :
+                new S3Scanner()),
+        []
+    );
 
     // Logger used to track of all loading messages and state transitions
     const msgLogger = useRef(new MessageLogger());
@@ -352,10 +364,10 @@ const Viewer = ({
                 break;
             case CLP_WORKER_PROTOCOL.UPDATE_FILE_INFO:
                 setFileInfo(event.data.fileInfo);
-                getPrevObject(event.data.fileInfo.filePath).then((path) => {
+                s3Scanner?.getPrevObject(event.data.fileInfo.filePath).then((path) => {
                     setLogFileState((v) => ({...v, prevFilePath: path}));
                 });
-                getNextObject(event.data.fileInfo.filePath).then((path) => {
+                s3Scanner?.getNextObject(event.data.fileInfo.filePath).then((path) => {
                     setLogFileState((v) => ({...v, nextFilePath: path}));
                 });
                 break;
