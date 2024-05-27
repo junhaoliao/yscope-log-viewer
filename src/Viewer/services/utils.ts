@@ -101,7 +101,7 @@ const getFilePathFromWindowLocation = (): string | null => {
  * @return The modified URL as a string.
  */
 const getModifiedUrl = (
-    newSearchParams: Record<string, string | null | false>,
+    newSearchParams: Record<string, string | null | boolean>,
     newHashParams: Record<string, string | null>
 ): string => {
     const url = new URL(`${window.location.origin}${window.location.pathname}`);

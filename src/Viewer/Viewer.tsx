@@ -439,7 +439,7 @@ const Viewer = ({
         changeState(STATE_CHANGE_TYPE.LOG_EVENT_IDX, {logEventIdx: parseNum(logEventIdx)});
     };
 
-    const searchQueryChangeHandler = (newQuery) => {
+    const handleSearchQueryChange = (newQuery) => {
         setSearchQuery(newQuery);
         changeState(STATE_CHANGE_TYPE.SEARCH, {...newQuery});
     };
@@ -453,8 +453,8 @@ const Viewer = ({
         if (LEFT_PANEL_TAB_IDS.SEARCH === leftPanelActiveTabId) {
             leftPanelContent = (
                 <SearchPanel
+                    handleQueryChange={handleSearchQueryChange}
                     query={searchQuery}
-                    queryChangeHandler={searchQueryChangeHandler}
                     searchResultClickHandler={goToEventCallback}
                     searchResults={searchResults}
                     totalPages={logFileState.numPages}
