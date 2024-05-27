@@ -16,7 +16,7 @@ interface LogEvent {
 class JsonlDecoder implements FileDecoder {
     static TEXT_DECODER = new TextDecoder();
 
-    #fileContent: Uint8Array;
+    readonly #fileContent: Uint8Array;
 
     #encoderPattern: string =
         "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %level %class.%method(%file:%line): %message";
@@ -116,7 +116,9 @@ class JsonlDecoder implements FileDecoder {
 
     constructor (fileContent: Uint8Array) {
         this.#fileContent = fileContent;
-        this.#setEncoderPattern("%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %level %class.%method(%file:%line): %message%n");
+        this.#setEncoderPattern(
+            "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %level %class.%method(%file:%line): %message%n"
+        );
     }
 
     decode (): string[] {
