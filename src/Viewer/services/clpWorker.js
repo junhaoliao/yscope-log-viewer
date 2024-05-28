@@ -25,20 +25,7 @@ onmessage = function (e) {
     switch (e.data.code) {
         case CLP_WORKER_PROTOCOL.LOAD_FILE:
             try {
-                const {fileSrc} = e.data;
-                const {sessionId} = e.data;
-                const {enablePrettify} = e.data;
-                const {logEventIdx} = e.data;
-                const {pageSize} = e.data;
-                const {initialTimestamp} = e.data;
-                handler = new ActionHandler(
-                    fileSrc,
-                    sessionId,
-                    enablePrettify,
-                    logEventIdx,
-                    initialTimestamp,
-                    pageSize
-                );
+                handler = new ActionHandler(e.data);
             } catch (e) {
                 sendError(e);
             }

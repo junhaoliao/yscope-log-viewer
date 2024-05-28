@@ -6,6 +6,7 @@ import {Tarball} from "@obsidize/tar-browserify";
 import {ZstdCodec} from "../../../../customized-packages/zstd-codec/js";
 import CLP_WORKER_PROTOCOL from "../CLP_WORKER_PROTOCOL";
 import {readFile} from "../GetFile";
+import s3Scanner from "../S3Scanner";
 import {binarySearchWithTimestamp} from "../utils";
 import WorkerPool from "../WorkerPool";
 import {ClpArchiveDecoder} from "./ClpArchiveDecoder";
@@ -46,6 +47,7 @@ class FileManager {
      * @param sessionId
      * @param {boolean} enablePrettify
      * @param {number} logEventIdx
+     * @param {string} [initialFileOrder]
      * @param {number} initialTimestamp
      * @param {number} pageSize
      * @param {Function} loadingMessageCallback
@@ -59,6 +61,7 @@ class FileManager {
         sessionId,
         enablePrettify,
         logEventIdx,
+        initialFileOrder,
         initialTimestamp,
         pageSize,
         loadingMessageCallback,
@@ -67,7 +70,9 @@ class FileManager {
         updateFileInfoCallback,
         updateSearchResultsCallback
     ) {
+        this._s3Scanner = new s3Scanner();
         this._fileSrc = fileSrc;
+        this._initialFileOrder = initialFileOrder;
         this._initialTimestamp = initialTimestamp;
         this._logEventOffsets = [];
         this._logEventOffsetsFiltered = [];
@@ -386,10 +391,35 @@ class FileManager {
         return entry.content;
     }
 
+    async #loadFileSrcFromPrefix () {
+        if (null === this._initialFileOrder) {
+            return;
+        }
+
+        let fileSrc = null;
+        if ("first" === this._initialFileOrder) {
+            fileSrc = await this._s3Scanner.getFirstObject(this._fileSrc);
+            this.state.logEventIdx = 1;
+        } else if ("last" === this._initialFileOrder) {
+            fileSrc = await this._s3Scanner.getLastObject(this._fileSrc);
+            this.state.logEventIdx = -1;
+        } else {
+            console.error(`Unexpected this._initialFileOrder=${this._initialFileOrder}`);
+        }
+        const orderAndPrefixMsg = `${this._initialFileOrder} file from prefix=${this._fileSrc}`;
+        if (null !== fileSrc) {
+            console.log(`Found ${orderAndPrefixMsg}`);
+            this._fileSrc = fileSrc;
+        } else {
+            console.log(`Unable to find ${orderAndPrefixMsg}`);
+        }
+    }
+
     /**
      * Load log file into editor
      */
     async loadLogFile () {
+        await this.#loadFileSrcFromPrefix();
         const fileName = this._getFileName();
         const fileInfo = await readFile(this._fileSrc, this._updateFileLoadProgress);
         this._updateInputFileInfo(fileInfo);

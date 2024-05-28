@@ -36,6 +36,16 @@ interface QueryOptions {
     searchString: string
 }
 
+interface ViewerProps {
+    fileSrc: File | string | null,
+    enablePrettify: boolean,
+    logEventNumber: number | null,
+    initialFileOrder: string | null,
+    initialQuery: QueryOptions,
+    timestamp: number | null,
+}
+
+
 const DEFAULT_PAGE_SIZE = 10000;
 
 /**
@@ -46,6 +56,7 @@ const DEFAULT_PAGE_SIZE = 10000;
  * @param props.fileSrc File object to read or file path to load
  * @param props.logEventNumber The initial log event number
  * @param props.enablePrettify Whether to prettify the log file
+ * @param props.initialFileOrder
  * @param props.initialQuery
  * @param props.timestamp The initial timestamp to show. If this field is
  * valid, logEventNumber will be ignored.
@@ -55,15 +66,10 @@ const Viewer = ({
     fileSrc,
     enablePrettify,
     logEventNumber,
+    initialFileOrder,
     initialQuery,
     timestamp,
-}: {
-    fileSrc: File | string | null,
-    enablePrettify: boolean,
-    logEventNumber: number | null,
-    initialQuery: QueryOptions,
-    timestamp: number | null,
-}) => {
+}: ViewerProps) => {
     const {appTheme} = useContext(ThemeContext);
 
     // Ref hook used to reference worker used for loading and decoding
@@ -110,6 +116,7 @@ const Viewer = ({
         pageSize: lsPageSize ?? DEFAULT_PAGE_SIZE,
         verbosity: -1,
 
+        fileOrder: initialFileOrder,
         nextFilePath: null,
         prevFilePath: null,
     };
@@ -139,9 +146,9 @@ const Viewer = ({
      * Reload viewer on fileSrc change
      *
      * @param fileSrc
-     * @param oldLogFileState
+     * @param prevLogFileState
      */
-    const loadFile = (fileSrc, oldLogFileState) => {
+    const loadFile = (fileSrc, prevLogFileState) => {
         if (clpWorker.current) {
             clpWorker.current.terminate();
         }
@@ -155,19 +162,20 @@ const Viewer = ({
 
         // If file was loaded using file dialog or drag/drop, reset logEventIdx
         const logEvent = ("string" === typeof fileSrc) ?
-            oldLogFileState.logEventIdx :
+            prevLogFileState.logEventIdx :
             null;
 
         const sessionId = uuidv1();
         window.sessionStorage.setItem("sessionId", sessionId);
         clpWorker.current.postMessage({
             code: CLP_WORKER_PROTOCOL.LOAD_FILE,
-            sessionId: sessionId,
+            enablePrettify: prevLogFileState.enablePrettify,
             fileSrc: fileSrc,
-            enablePrettify: oldLogFileState.enablePrettify,
-            logEventIdx: logEvent,
+            initialFileOrder: prevLogFileState.fileOrder,
             initialTimestamp: timestamp,
-            pageSize: oldLogFileState.pageSize,
+            logEventIdx: logEvent,
+            pageSize: prevLogFileState.pageSize,
+            sessionId: sessionId,
         });
     };
 
@@ -218,6 +226,7 @@ const Viewer = ({
                         logEventIdx: (args.direction === CHANGE_FILE_DIREECTION.PREV) ?
                             -1 :
                             1,
+                        fileOrder: null,
                     }
                 );
                 break;

@@ -26,12 +26,21 @@ class ActionHandler {
      * @param {number} initialTimestamp
      * @param {number} pageSize
      */
-    constructor (fileSrc, sessionId, enablePrettify, logEventIdx, initialTimestamp, pageSize) {
+    constructor ({
+        fileSrc,
+        sessionId,
+        enablePrettify,
+        logEventIdx,
+        initialTimestamp,
+        initialFileOrder,
+        pageSize,
+    }) {
         this._logFile = new FileManager(
             fileSrc,
             sessionId,
             enablePrettify,
             logEventIdx,
+            initialFileOrder,
             initialTimestamp,
             pageSize,
             this._loadingMessageCallback,

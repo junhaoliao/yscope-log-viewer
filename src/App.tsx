@@ -1,5 +1,7 @@
 import {
     useEffect,
+    useMemo,
+    useRef,
     useState,
 } from "react";
 
@@ -13,9 +15,9 @@ import config from "./config.json";
 import DropFile from "./DropFile/DropFile";
 import {ThemeContextProvider} from "./ThemeContext/ThemeContext";
 import {
-    getFilePathFromWindowLocation, parseNum,
+    getFilePathFromWindowLocation, getModifiedUrl, parseNum,
 } from "./Viewer/services/utils";
-import Viewer, {QueryOptions} from "./Viewer/Viewer";
+import Viewer from "./Viewer/Viewer";
 
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./App.scss";
@@ -27,6 +29,39 @@ enum APP_STATE {
     FILE_PROMPT = "file_prompt",
     FILE_VIEW = "file_view",
 }
+
+enum FileOrder {
+    FIRST = "first",
+    LAST = "last"
+}
+
+/**
+ * Retrieves the file order from the provided URLSearchParams object.
+ *
+ * @param urlSearchParams The URLSearchParams object containing the search parameters.
+ * @return The file order value, or null if not found or invalid.
+ */
+const getAndClearFileOrderFrom = (urlSearchParams: URLSearchParams):
+    (FileOrder | null) => {
+    const paramFileOrder = urlSearchParams.get("fileOrder");
+    if (null !== paramFileOrder) {
+        // Clear the parameter
+        const newUrl = getModifiedUrl({
+            fileOrder: null,
+        }, {});
+
+        window.history.pushState({}, "", newUrl);
+
+        if (Object.values<string>(FileOrder).includes(paramFileOrder)) {
+            console.log(`Will be looking for the ${paramFileOrder} file from prefix=${
+                urlSearchParams.get("filePath")}`);
+
+            return paramFileOrder as FileOrder;
+        }
+    }
+
+    return null;
+};
 
 /**
  * Main component which renders viewer and scanner depending
@@ -41,11 +76,30 @@ const App = () => {
     const [logEventIdx, setLogEventIdx] = useState<number|null>(null);
     const [timestamp, setTimestamp] = useState<number|null>(null);
     const [enablePrettify, setEnablePrettify] = useState<boolean>(false);
-    const [query, setQuery] = useState<QueryOptions>({
-        isRegex: false,
-        matchCase: false,
-        searchString: "",
-    });
+    const urlSearchParams = useMemo(
+        () => new URLSearchParams(window.location.search.substring(1)),
+        []
+    );
+    const urlHashParams = useMemo(
+        () => new URLSearchParams(window.location.hash.substring(1)),
+        []
+    );
+    const initialQuery = {
+        isRegex: "true" === urlSearchParams.get("query.isRegex"),
+        matchCase: "true" === urlSearchParams.get("query.matchCase"),
+        searchString: urlSearchParams.get("query.searchString") ?? "",
+    };
+    const initialFileOrderRef = useRef<FileOrder|null>(null);
+
+    /**
+     * Handles the file being changed
+     *
+     * @param file
+     */
+    const handleFileChange = (file: File) => {
+        setFileSrc(file);
+        setAppMode(APP_STATE.FILE_VIEW);
+    };
 
     /**
      * Initializes the application's state. The file to load is set based on
@@ -56,17 +110,11 @@ const App = () => {
      * </ul>
      * If neither are provided, we display a prompt to load a file.
      */
-    const init = () => {
-        const urlSearchParams = new URLSearchParams(window.location.search.substring(1));
-        const urlHashParams = new URLSearchParams(window.location.hash.substring(1));
+    useEffect(() => {
+        console.debug("Version:", config.version);
 
         // Load the initial state of the viewer from url
         setEnablePrettify("true" === urlSearchParams.get("prettify"));
-        setQuery({
-            isRegex: "true" === urlSearchParams.get("query.isRegex"),
-            matchCase: "true" === urlSearchParams.get("query.matchCase"),
-            searchString: urlSearchParams.get("query.searchString") ?? "",
-        });
         setTimestamp(
             parseNum(
                 urlSearchParams.get("timestamp")
@@ -82,6 +130,9 @@ const App = () => {
         if (null !== filePath) {
             setFileSrc(filePath);
             setAppMode(APP_STATE.FILE_VIEW);
+            if (null === initialFileOrderRef.current) {
+                initialFileOrderRef.current = getAndClearFileOrderFrom(urlSearchParams);
+            }
         } else if (
             // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
             null !== config.defaultFileUrl
@@ -91,22 +142,12 @@ const App = () => {
         } else {
             setAppMode(APP_STATE.FILE_PROMPT);
         }
-    };
+    }, [
+        urlHashParams,
+        urlSearchParams,
+    ]);
 
-    /**
-     * Handles the file being changed
-     *
-     * @param file
-     */
-    const handleFileChange = (file: File) => {
-        setFileSrc(file);
-        setAppMode(APP_STATE.FILE_VIEW);
-    };
-
-    useEffect(() => {
-        console.debug("Version:", config.version);
-        init();
-    }, []);
+    console.log(initialFileOrderRef.current);
 
     return (
         <div id={"app"}>
@@ -117,7 +158,8 @@ const App = () => {
                         <Viewer
                             enablePrettify={enablePrettify}
                             fileSrc={fileSrc}
-                            initialQuery={query}
+                            initialFileOrder={initialFileOrderRef.current}
+                            initialQuery={initialQuery}
                             logEventNumber={logEventIdx}
                             timestamp={timestamp}/>}
                     </DropFile>

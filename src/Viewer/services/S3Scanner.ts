@@ -9,10 +9,12 @@ interface IParsedObjectInfo {
     basename: string;
     endpoint: string | null;
     prefix: string;
-    timestamp: number;
+    timestamp: number | null;
 }
 
 class S3Scanner {
+    static readonly #S3_LIST_OBJECTS_MAX_KEYS_MAX_VALUE = 1000;
+
     static readonly #S3_ENDPOINT: string = process.env.S3_ENDPOINT ?? "";
 
     static readonly #S3_BUCKET: string = process.env.S3_BUCKET ?? "";
@@ -42,26 +44,38 @@ class S3Scanner {
 
         const prefix = pathname.substring(0, lastSlashIndex + 1);
         const basename = pathname.substring(lastSlashIndex + 1);
-        const match = basename.match(/^(.*)\.(\d+)\.(.*)$/);
+        const withTimestampMatch = basename.match(/^(.*)\.(\d+)\.(.*)$/);
 
-        if (null === match) {
+        let appName;
+        let timestampString;
+        if (null !== withTimestampMatch) {
+            ([
+                ,
+                appName,
+                timestampString,
+            ] = withTimestampMatch);
+        } else {
+            // assume a prefix is provided in the basename part,
+            // which fully or partially contains the appName
+            appName = basename;
+        }
+
+        if ("undefined" === typeof appName) {
             return null;
         }
 
-        const [,
-            appName,
-            timestampString] = match;
-
-        if ("undefined" === typeof appName || "undefined" === typeof timestampString) {
-            return null;
-        }
+        // Parses the timestamp
+        // If the provided url is only a prefix, the timestamp might not be available.
+        const timestamp = ("undefined" === typeof timestampString) ?
+            null :
+            parseInt(timestampString, 10);
 
         return {
             appName: appName,
             basename: basename,
             endpoint: endpoint,
             prefix: prefix,
-            timestamp: parseInt(timestampString, 10),
+            timestamp: timestamp,
         };
     }
 
@@ -94,7 +108,7 @@ class S3Scanner {
         while (true) {
             const input = {
                 Bucket: S3Scanner.#S3_BUCKET,
-                MaxKeys: 1000,
+                MaxKeys: S3Scanner.#S3_LIST_OBJECTS_MAX_KEYS_MAX_VALUE,
                 Marker: marker,
                 Prefix: prefix,
             };
@@ -245,6 +259,110 @@ class S3Scanner {
 
             return null;
         }
+    }
+
+    /**
+     * Queries the "first" object's path starting with the same prefix.
+     *
+     * @param objectPath of current
+     */
+    public async getFirstObject (objectPath: string): Promise<string | null> {
+        const objectInfo = S3Scanner.#parseObjectInfo(objectPath);
+        if (null === objectInfo || null === objectInfo.endpoint) {
+            return null;
+        }
+
+        const {prefix, endpoint, appName} = objectInfo;
+        const input = {
+            Bucket: S3Scanner.#S3_BUCKET,
+            MaxKeys: 1,
+            Prefix: prefix,
+            Marker: appName,
+        };
+
+        try {
+            const command = new ListObjectsCommand(input);
+            const response = await this.#s3Client.send(command);
+
+            const {Contents} = response;
+
+            if ("undefined" === typeof Contents || 0 === Contents.length) {
+                return null;
+            }
+
+            const [firstItem] = Contents;
+            const firstKey = firstItem?.Key ?? null;
+
+            return firstKey && (endpoint + firstKey);
+        } catch (e) {
+            console.error("Error happened in ListObjectsCommand:", e);
+
+            return null;
+        }
+    }
+
+    /**
+     * Queries the "last" object's path starting with the same prefix.
+     *
+     * @param objectPath of current
+     */
+    public async getLastObject (objectPath: string): Promise<string | null> {
+        const objectInfo = S3Scanner.#parseObjectInfo(objectPath);
+        if (null === objectInfo || null === objectInfo.endpoint) {
+            return null;
+        }
+
+        const {appName, prefix, endpoint} = objectInfo;
+        let marker: string = appName;
+        let lastKey: string | null = null;
+
+        while (true) {
+            const input = {
+                Bucket: S3Scanner.#S3_BUCKET,
+                MaxKeys: S3Scanner.#S3_LIST_OBJECTS_MAX_KEYS_MAX_VALUE,
+                Prefix: prefix,
+                Marker: marker,
+            };
+
+            const command = new ListObjectsCommand(input);
+
+            try {
+                const response = await this.#s3Client.send(command);
+                const {Contents} = response;
+
+                if ("undefined" === typeof Contents || 0 === Contents.length) {
+                    break;
+                }
+
+                const lastObjectIndex = Contents.findLastIndex((element) => {
+                    if ("undefined" === typeof element.Key) {
+                        return false;
+                    }
+                    const elementInfo = S3Scanner.#parseObjectInfo(element.Key);
+
+                    return elementInfo?.appName === appName;
+                });
+
+                lastKey = Contents[lastObjectIndex]?.Key ?? lastKey;
+                console.log(lastKey);
+
+                // Stop querying the next page when the last object is found:
+                //  - if this page has been the last page OR
+                //  - the last appName matching object isn't the last one enumerated
+                if ("undefined" === typeof response.NextMarker ||
+                    lastObjectIndex !== Contents.length - 1) {
+                    break;
+                }
+
+                marker = response.NextMarker;
+            } catch (e) {
+                console.error("Error happened in ListObjectsCommand:", e);
+
+                return null;
+            }
+        }
+
+        return lastKey && (endpoint + lastKey);
     }
 }
 
