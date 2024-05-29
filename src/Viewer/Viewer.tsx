@@ -10,6 +10,9 @@ import {
     APP_THEME, ThemeContext,
 } from "../ThemeContext/ThemeContext";
 import {
+    FileSeek, SEEK_PARAM_VALUE,
+} from "../types/url.types";
+import {
     LEFT_PANEL_DEFAULT_WIDTH_FACTOR, LEFT_PANEL_TAB_IDS, LeftPanel,
 } from "./components/LeftPanel/LeftPanel";
 import MenuBar from "./components/MenuBar/MenuBar";
@@ -40,13 +43,52 @@ interface ViewerProps {
     fileSrc: File | string | null,
     enablePrettify: boolean,
     logEventNumber: number | null,
-    initialFileOrder: string | null,
+    seekParams: FileSeek | null,
     initialQuery: QueryOptions,
     timestamp: number | null,
 }
 
 
 const DEFAULT_PAGE_SIZE = 10000;
+
+interface FileAndLogEventIdx {
+    fileSrc: string,
+    logEventIdx: number
+}
+
+/**
+ *
+ * @param s3Scanner
+ * @param seekParams
+ */
+const getFileFromSeekParams = async (s3Scanner: S3Scanner, seekParams: FileSeek):
+    Promise<FileAndLogEventIdx | null> => {
+    let fileSrc: string | null;
+    let logEventIdx: number;
+    if (SEEK_PARAM_VALUE.BEGIN === seekParams.seek) {
+        fileSrc = await s3Scanner.getFirstObject(seekParams.filePathPrefix);
+        logEventIdx = 1;
+    } else {
+        // SEEK_PARAM_VALUE.END === seekParams.seek
+        fileSrc = await s3Scanner.getLastObject(seekParams.filePathPrefix);
+        logEventIdx = -1;
+    }
+
+    if (null === fileSrc) {
+        console.log(`Unable to find ${seekParams.seek} file from filePathPrefix=${
+            seekParams.filePathPrefix}`);
+
+        return null;
+    }
+
+    console.log(`Found ${seekParams.seek} file from filePathPrefix=${
+        seekParams.filePathPrefix} as ${fileSrc}`);
+
+    return {
+        fileSrc: fileSrc,
+        logEventIdx: logEventIdx,
+    };
+};
 
 /**
  * Contains the menu, Monaco editor, and status bar. Viewer spawns its own
@@ -56,7 +98,7 @@ const DEFAULT_PAGE_SIZE = 10000;
  * @param props.fileSrc File object to read or file path to load
  * @param props.logEventNumber The initial log event number
  * @param props.enablePrettify Whether to prettify the log file
- * @param props.initialFileOrder
+ * @param props.seekParams
  * @param props.initialQuery
  * @param props.timestamp The initial timestamp to show. If this field is
  * valid, logEventNumber will be ignored.
@@ -66,7 +108,7 @@ const Viewer = ({
     fileSrc,
     enablePrettify,
     logEventNumber,
-    initialFileOrder,
+    seekParams,
     initialQuery,
     timestamp,
 }: ViewerProps) => {
@@ -116,7 +158,6 @@ const Viewer = ({
         pageSize: lsPageSize ?? DEFAULT_PAGE_SIZE,
         verbosity: -1,
 
-        fileOrder: initialFileOrder,
         nextFilePath: null,
         prevFilePath: null,
     };
@@ -171,7 +212,6 @@ const Viewer = ({
             code: CLP_WORKER_PROTOCOL.LOAD_FILE,
             enablePrettify: prevLogFileState.enablePrettify,
             fileSrc: fileSrc,
-            initialFileOrder: prevLogFileState.fileOrder,
             initialTimestamp: timestamp,
             logEventIdx: logEvent,
             pageSize: prevLogFileState.pageSize,
@@ -181,7 +221,19 @@ const Viewer = ({
 
     // Load file if file info changes (this could happen from drag and drop)
     useEffect(() => {
-        loadFile(fileSrc, logFileState);
+        const fileChange = async () => {
+            if (null !== s3Scanner && null !== seekParams) {
+                const fileAndLogEventIdx =
+                    await getFileFromSeekParams(s3Scanner, seekParams);
+
+                if (null !== fileAndLogEventIdx) {
+                    ({fileSrc, logEventIdx: logEventNumber} = fileAndLogEventIdx);
+                }
+            }
+            loadFile(fileSrc, {...logFileState, logEventNumber: logEventNumber});
+        };
+
+        fileChange();
     }, [fileSrc]);
 
     // Save statusMessages to the msg logger for debugging
@@ -226,7 +278,6 @@ const Viewer = ({
                         logEventIdx: (args.direction === CHANGE_FILE_DIREECTION.PREV) ?
                             -1 :
                             1,
-                        fileOrder: null,
                     }
                 );
                 break;
@@ -402,6 +453,10 @@ const Viewer = ({
     ]);
 
     useEffect(() => {
+        if (null === clpWorker.current) {
+            // FIXME: why the check?
+            return;
+        }
         clpWorker.current.onmessage = handleWorkerMessage;
     }, [
         logFileState,
@@ -412,7 +467,7 @@ const Viewer = ({
 
     useEffect(() => {
         if (null !== fileInfo) {
-            const searchParams = {filePath: fileInfo.filePath};
+            const searchParams = {filePath: fileInfo.filePath ?? null};
             const hashParams = {logEventIdx: logFileState.logEventIdx};
 
             const newUrl = getModifiedUrl(searchParams, hashParams);
@@ -496,7 +551,8 @@ const Viewer = ({
                         </ul>
                     </Row>
                 </div>}
-            {!loadingFile &&
+            {/* FIXME: why we need to null check fileInfo here? */}
+            {!loadingFile && fileInfo &&
                 <>
                     <div
                         style={{

@@ -19,12 +19,13 @@ class ActionHandler {
     /**
      * Creates a new FileManager object and initiates the download.
      *
-     * @param {string | File} fileSrc
-     * @param sessionId
-     * @param {boolean} enablePrettify
-     * @param {number} logEventIdx
-     * @param {number} initialTimestamp
-     * @param {number} pageSize
+     * @param {object} props
+     * @param {string | File} props.fileSrc
+     * @param {string} props.sessionId
+     * @param {boolean} props.enablePrettify
+     * @param {number} props.logEventIdx
+     * @param {number} props.initialTimestamp
+     * @param {number} props.pageSize
      */
     constructor ({
         fileSrc,
@@ -32,7 +33,6 @@ class ActionHandler {
         enablePrettify,
         logEventIdx,
         initialTimestamp,
-        initialFileOrder,
         pageSize,
     }) {
         this._logFile = new FileManager(
@@ -40,7 +40,6 @@ class ActionHandler {
             sessionId,
             enablePrettify,
             logEventIdx,
-            initialFileOrder,
             initialTimestamp,
             pageSize,
             this._loadingMessageCallback,

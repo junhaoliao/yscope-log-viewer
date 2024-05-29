@@ -15,6 +15,11 @@ import config from "./config.json";
 import DropFile from "./DropFile/DropFile";
 import {ThemeContextProvider} from "./ThemeContext/ThemeContext";
 import {
+    APP_URL_SEARCH_PARAMS,
+    FileSeek,
+    SEEK_PARAM_VALUE,
+} from "./types/url.types";
+import {
     getFilePathFromWindowLocation, getModifiedUrl, parseNum,
 } from "./Viewer/services/utils";
 import Viewer from "./Viewer/Viewer";
@@ -30,34 +35,40 @@ enum APP_STATE {
     FILE_VIEW = "file_view",
 }
 
-enum FileOrder {
-    FIRST = "first",
-    LAST = "last"
-}
 
 /**
- * Retrieves the file order from the provided URLSearchParams object.
+ * Retrieves "seek" related parameters from the provided URLSearchParams object.
  *
  * @param urlSearchParams The URLSearchParams object containing the search parameters.
- * @return The file order value, or null if not found or invalid.
+ * @return The "seek" related parameters, or null if not found or invalid.
  */
-const getAndClearFileOrderFrom = (urlSearchParams: URLSearchParams):
-    (FileOrder | null) => {
-    const paramFileOrder = urlSearchParams.get("fileOrder");
-    if (null !== paramFileOrder) {
-        // Clear the parameter
-        const newUrl = getModifiedUrl({
-            fileOrder: null,
-        }, {});
+const getAndClearFileSeek = (urlSearchParams: URLSearchParams):
+    (FileSeek | null) => {
+    const paramFilePathPrefix = urlSearchParams.get(APP_URL_SEARCH_PARAMS.FILE_PATH_PREFIX);
+    const paramSeek = urlSearchParams.get(APP_URL_SEARCH_PARAMS.SEEK);
+    if (null === paramFilePathPrefix || null === paramSeek) {
+        console.debug(`Either seek="${paramSeek}" or filePathPrefix="${paramFilePathPrefix}" ` +
+            "is null. No file seeking will be performed.");
 
-        window.history.pushState({}, "", newUrl);
+        return null;
+    }
 
-        if (Object.values<string>(FileOrder).includes(paramFileOrder)) {
-            console.log(`Will be looking for the ${paramFileOrder} file from prefix=${
-                urlSearchParams.get("filePath")}`);
+    // Clear the parameter
+    const newUrl = getModifiedUrl({
+        [APP_URL_SEARCH_PARAMS.FILE_PATH_PREFIX]: null,
+        [APP_URL_SEARCH_PARAMS.SEEK]: null,
+    }, {});
 
-            return paramFileOrder as FileOrder;
-        }
+    window.history.pushState({}, "", newUrl);
+
+    if (Object.values<string>(SEEK_PARAM_VALUE).includes(paramSeek)) {
+        console.log(`Will be seeking for the ${paramSeek} file from ` +
+                `filePathPrefix=${paramFilePathPrefix}`);
+
+        return {
+            seek: paramSeek as SEEK_PARAM_VALUE,
+            filePathPrefix: paramFilePathPrefix,
+        };
     }
 
     return null;
@@ -89,7 +100,7 @@ const App = () => {
         matchCase: "true" === urlSearchParams.get("query.matchCase"),
         searchString: urlSearchParams.get("query.searchString") ?? "",
     };
-    const initialFileOrderRef = useRef<FileOrder|null>(null);
+    const initialSeekRef = useRef<FileSeek|null>(null);
 
     /**
      * Handles the file being changed
@@ -127,12 +138,12 @@ const App = () => {
         );
 
         const filePath = getFilePathFromWindowLocation();
+        initialSeekRef.current = getAndClearFileSeek(urlSearchParams);
         if (null !== filePath) {
             setFileSrc(filePath);
             setAppMode(APP_STATE.FILE_VIEW);
-            if (null === initialFileOrderRef.current) {
-                initialFileOrderRef.current = getAndClearFileOrderFrom(urlSearchParams);
-            }
+        } else if (null !== initialSeekRef.current) {
+            setAppMode(APP_STATE.FILE_VIEW);
         } else if (
             // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
             null !== config.defaultFileUrl
@@ -147,8 +158,6 @@ const App = () => {
         urlSearchParams,
     ]);
 
-    console.log(initialFileOrderRef.current);
-
     return (
         <div id={"app"}>
             <ThemeContextProvider>
@@ -158,9 +167,9 @@ const App = () => {
                         <Viewer
                             enablePrettify={enablePrettify}
                             fileSrc={fileSrc}
-                            initialFileOrder={initialFileOrderRef.current}
                             initialQuery={initialQuery}
                             logEventNumber={logEventIdx}
+                            seekParams={initialSeekRef.current}
                             timestamp={timestamp}/>}
                     </DropFile>
                 </LocalizationProvider>

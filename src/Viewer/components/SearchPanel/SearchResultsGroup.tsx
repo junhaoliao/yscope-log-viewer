@@ -106,9 +106,8 @@ const SearchResultsGroup = ({
                     {collapsed ?
                         <CaretDownFill size={14}/> :
                         <CaretRightFill size={14}/>}
-                    &nbsp;PAGE
-                    {" "}
-                    {pageNum + 1}
+                    &nbsp;
+                    {`Page ${pageNum + 1}`}
                 </div>
                 <div className={"search-results-page-header-result-count"}>
                     {results.searchResults.length}
