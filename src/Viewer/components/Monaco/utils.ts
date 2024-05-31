@@ -49,7 +49,7 @@ const initMonacoEditor = (
         editorContainer,
         {
             // FIXME: add custom observer debounce automatic layout
-            automaticLayout: true,
+            automaticLayout: false,
             language: LOG_LANGUAGE_NAME,
             maxTokenizationLineLength: 30_000,
             mouseWheelZoom: true,
@@ -59,6 +59,19 @@ const initMonacoEditor = (
             wordWrap: "on",
         }
     );
+
+    let resizeTimeout: NodeJS.Timeout;
+    const resizeObserver = new ResizeObserver((entries) => {
+        if (null !== resizeTimeout) {
+            console.log("canceled");
+            clearTimeout(resizeTimeout);
+        }
+        resizeTimeout = setTimeout(() => {
+            editor.layout();
+        }, 250);
+    });
+
+    resizeObserver.observe(editorContainer);
 
     setupShortcutActions(editor, changeAppState);
     setupCursorPosChangeAction(editor, changeAppState);
