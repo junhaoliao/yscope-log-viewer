@@ -78,7 +78,7 @@ class JsonlDecoder implements FileDecoder {
         this.#encoderPattern = this.#encoderPattern.replace("%n", "");
 
         // Use a regular expression to find all placeholders
-        const placeholderRegex = /%(\w+)/g;
+        const placeholderRegex = /%([\w.]+)/g;
         let match;
         while (null !== (match = placeholderRegex.exec(this.#encoderPattern))) {
             // e.g., "%thread", "thread"
