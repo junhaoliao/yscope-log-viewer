@@ -9,7 +9,6 @@ dayjs.extend(DayjsTimezone);
 dayjs.extend(DayjsUtc);
 
 interface LogEvent {
-    ts?: number;
     [key: string]: string | number;
 }
 
@@ -25,6 +24,8 @@ class JsonlDecoder implements FileDecoder {
 
     #dateFormat: string = "YYYY-MM-DD HH:mm:ss.SSS ZZ";
 
+    #timestampPropName: string = "ts";
+
     #propertyNames: string[] = [];
 
     static #convertLogbackDateFormatToDayjs (dateFormat: string) {
@@ -39,7 +40,7 @@ class JsonlDecoder implements FileDecoder {
         return dateFormat;
     }
 
-    static #formatDate (timestamp: number, format: string): string {
+    static #formatDate (timestamp: number | string, format: string): string {
         return dayjs(timestamp)
             .tz("UTC")
             .format(format);
@@ -86,15 +87,19 @@ class JsonlDecoder implements FileDecoder {
                 this.#propertyNames.push(propName);
             }
         }
-        console.log(this.#propertyNames);
     }
 
     #formatLogEvent (logEvent: LogEvent) {
         let result = this.#encoderPattern;
 
         // Replace date placeholder with formatted date
-        if ("undefined" !== typeof logEvent.ts) {
-            const formattedDate = JsonlDecoder.#formatDate(logEvent.ts, this.#dateFormat);
+        const timestamp = logEvent[this.#timestampPropName];
+        if ("undefined" !== typeof timestamp) {
+            const formattedDate = JsonlDecoder.#formatDate(
+                timestamp,
+                this.#dateFormat
+            );
+
             result = result.replace(this.#encoderDatePattern, formattedDate);
         }
 
@@ -116,8 +121,16 @@ class JsonlDecoder implements FileDecoder {
 
     constructor (fileContent: Uint8Array) {
         this.#fileContent = fileContent;
+
+        // FIXME
+        // this.#timestampPropName = "ts";
+        // this.#setEncoderPattern(
+        //     "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %level %class.%method(%file:%line): %message%n"
+        // );
+        this.#timestampPropName = "@timestamp";
         this.#setEncoderPattern(
-            "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %level %class.%method(%file:%line): %message%n"
+            "%d{yyyy-MM-dd HH:mm:ss.SSS} [%process.thread.name] %log.level" +
+            " %message%n"
         );
     }
 
