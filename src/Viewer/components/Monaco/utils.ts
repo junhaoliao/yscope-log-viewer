@@ -48,7 +48,6 @@ const initMonacoEditor = (
     const editor = monaco.editor.create(
         editorContainer,
         {
-            // FIXME: add custom observer debounce automatic layout
             automaticLayout: false,
             language: LOG_LANGUAGE_NAME,
             maxTokenizationLineLength: 30_000,
@@ -60,8 +59,8 @@ const initMonacoEditor = (
         }
     );
 
-    let resizeTimeout: NodeJS.Timeout;
-    const resizeObserver = new ResizeObserver((entries) => {
+    let resizeTimeout: NodeJS.Timeout | null = null;
+    const resizeObserver = new ResizeObserver(() => {
         if (null !== resizeTimeout) {
             console.log("canceled");
             clearTimeout(resizeTimeout);
