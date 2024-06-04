@@ -1,11 +1,13 @@
 import PropTypes from "prop-types";
 import React, {
-    useEffect, useState,
+    useEffect,
+    useState,
 } from "react";
 import {ProgressBar} from "react-bootstrap";
 import {
     ArrowsCollapse,
     ArrowsExpand,
+    CalendarDate, CalendarX,
     CaretDownFill,
     CaretRightFill,
     ExclamationTriangle,
@@ -53,9 +55,14 @@ const SearchPanel = ({
     onStatusMessageChange,
 }) => {
     const [isAllCollapsed, setIsAllCollapsed] = useState(false);
+    const [isDateAlwaysVisible, setIsDateAlwaysVisible] = useState(false);
+
 
     const handleCollapseAllClick = () => {
         setIsAllCollapsed(!isAllCollapsed);
+    };
+    const handleAlwaysShowDateClick = () => {
+        setIsDateAlwaysVisible(!isDateAlwaysVisible);
     };
 
     const handleShareButtonClick = () => {
@@ -108,6 +115,7 @@ const SearchPanel = ({
         resultGroups = searchResults.map((resultGroup, index) => (
             <SearchResultsGroup
                 isAllCollapsed={isAllCollapsed}
+                isDateAlwaysVisible={isDateAlwaysVisible}
                 key={index}
                 pageNum={resultGroup.page_num}
                 resultClickHandler={searchResultClickHandler}
@@ -130,20 +138,33 @@ const SearchPanel = ({
                     <div className={"tab-search-header-text"}>SEARCH</div>
                     <button
                         className={"tab-search-header-button"}
-                        disabled={0 === query.searchString.length}
-                        title={"Share query"}
-                        onClick={handleShareButtonClick}
+                        title={isDateAlwaysVisible ?
+                            "Show matching text" :
+                            "Always show date"}
+                        onClick={handleAlwaysShowDateClick}
                     >
-                        <ShareFill/>
+                        {isDateAlwaysVisible ?
+                            <CalendarX/> :
+                            <CalendarDate/>}
                     </button>
                     <button
                         className={"tab-search-header-button"}
-                        title={"Collapse All"}
+                        title={isAllCollapsed ?
+                            "Expand all" :
+                            "Collapse all"}
                         onClick={handleCollapseAllClick}
                     >
                         {isAllCollapsed ?
                             <ArrowsExpand/> :
                             <ArrowsCollapse/>}
+                    </button>
+                    <button
+                        className={"tab-search-header-button"}
+                        disabled={0 === query.searchString.length}
+                        title={"Share query"}
+                        onClick={handleShareButtonClick}
+                    >
+                        <ShareFill/>
                     </button>
                 </div>
                 <form style={{display: "flex"}}>
@@ -189,7 +210,7 @@ const SearchPanel = ({
                         style={{height: "3px"}}
                         variant={100 === progress ?
                             "success" :
-                            undefined}/>}
+                            ""}/>}
             </div>
             <div className={"search-results-container"}>
                 {hasMoreResults &&
@@ -239,10 +260,12 @@ SearchPanel.propTypes = {
  * @param {number} props.pageNum
  * @param {object} props.results
  * @param {ResultClickHandler} props.resultClickHandler
+ * @param props.isDateAlwaysVisible
  * @return {JSX.Element}
  */
 const SearchResultsGroup = ({
     isAllCollapsed,
+    isDateAlwaysVisible,
     pageNum,
     results,
     resultClickHandler,
@@ -275,12 +298,19 @@ const SearchResultsGroup = ({
                     resultClickHandler(eventIndex + 1);
                 }}
             >
-                {/* Cap prefix length to be 25 characters
-                     so highlighted text can be shown */}
                 <span>
-                    {(25 < prefix.length) && "..."}
-                    {prefix.slice(-25)}
+                    {
+                        isDateAlwaysVisible ?
+                            prefix :
+                            <>
+                                {/* Cap prefix length to be 25 characters so the matching part can
+                                 be shown */}
+                                {(25 < prefix.length) && "..."}
+                                {prefix.slice(-25)}
+                            </>
+                    }
                 </span>
+
                 <span
                     className={"search-result-highlight"}
                 >
