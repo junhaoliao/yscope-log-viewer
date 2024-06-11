@@ -168,6 +168,7 @@ const App = () => {
                             enablePrettify={enablePrettify}
                             fileSrc={fileSrc}
                             initialQuery={initialQuery}
+                            isLocalTimezone={true}
                             logEventNumber={logEventIdx}
                             seekParams={initialSeekRef.current}
                             timestamp={timestamp}/>}

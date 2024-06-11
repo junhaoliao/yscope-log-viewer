@@ -3,12 +3,17 @@ import {
 } from "react";
 import {ProgressBar} from "react-bootstrap";
 import {
-    CalendarEvent, FileText, Keyboard,
+    CalendarEvent, FileText, Keyboard, Toggles,
 } from "react-bootstrap-icons";
+
+import dayjs from "dayjs";
+import timezone from "dayjs/plugin/timezone";
+import utc from "dayjs/plugin/utc";
 
 import {
     APP_THEME, ThemeContext,
 } from "../../../ThemeContext/ThemeContext";
+import STATE_CHANGE_TYPE from "../../services/STATE_CHANGE_TYPE";
 import LogFileState from "../../types/LogFileState";
 import CalendarModal from "../modals/CalendarModal/CalendarModal";
 import HelpModal from "../modals/HelpModal";
@@ -16,6 +21,9 @@ import NavigationBar from "./NavigationBar";
 
 import "./MenuBar.scss";
 
+
+dayjs.extend(timezone);
+dayjs.extend(utc);
 
 interface FileInfo {
     name: string
@@ -45,6 +53,7 @@ const MenuBar = ({
 
     const [showCalendar, setShowCalendar] = useState<boolean>(false);
     const [showHelp, setShowHelp] = useState<boolean>(false);
+    const [isLocalTime, setIsLocalTime] = useState<boolean>(true);
 
     const handleCloseCalendar = () => {
         setShowCalendar(false);
@@ -58,6 +67,18 @@ const MenuBar = ({
     };
     const handleShowHelp = () => {
         setShowHelp(true);
+    };
+    const handleTimezoneChange = () => {
+        setIsLocalTime((oldIsLocalTime) => {
+            const newIsLocalTime = !oldIsLocalTime;
+            console.log("Setting isLocalTime to", newIsLocalTime);
+
+            onStateChange(STATE_CHANGE_TYPE.TIMEZONE, {
+                isLocalTimezone: newIsLocalTime,
+            });
+
+            return newIsLocalTime;
+        });
     };
 
 
@@ -105,6 +126,14 @@ const MenuBar = ({
                             <CalendarEvent title={"Calendar"}/>
                         </div>
                         <div className={"menu-divider"}/>
+
+                        <div
+                            className={"menu-item menu-item-btn"}
+                            title={"Change Timezone"}
+                            onClick={handleTimezoneChange}
+                        >
+                            <Toggles title={"Local Timezone"}/>
+                        </div>
 
                         <div
                             className={"menu-item menu-item-btn"}

@@ -1,7 +1,8 @@
-// TODO If we need to use the original timestamp pattern, uncomment this line
-// import * as dayjs from "dayjs";
+import * as dayjs from "dayjs";
+
 import LogtypeBuf from "./LogtypeBuf";
 import PROTOCOL from "./PROTOCOL";
+
 
 class IRTokenDecoder {
     constructor () {
@@ -30,9 +31,11 @@ class IRTokenDecoder {
             // NOTE: Since we don't specify a timezone, JavaScript will use the
             // user's local  timezone. This should be more convenient for the
             // user.
-            const date = new Date(0);
-            date.setUTCMilliseconds(Number(timestamp));
-            outputResizableBuffer.pushString(date.toISOString());
+            // console.log(dayjs.tz(0))
+            outputResizableBuffer.pushString(
+                dayjs.tz(Number(timestamp)).format()
+            );
+
             // TODO If we need to use the original timestamp pattern,
             //  uncomment this line
             // return dayjs(Number(timestamp)).format(this._timestampPattern);
@@ -53,9 +56,9 @@ class IRTokenDecoder {
                 continue;
             }
 
-            if (LogtypeBuf.INTEGER_VARIABLE_DELIMITER !== b
-                && LogtypeBuf.FLOAT_VARIABLE_DELIMITER !== b
-                && LogtypeBuf.VARIABLE_ID_DELIMITER !== b) {
+            if (LogtypeBuf.INTEGER_VARIABLE_DELIMITER !== b &&
+                LogtypeBuf.FLOAT_VARIABLE_DELIMITER !== b &&
+                LogtypeBuf.VARIABLE_ID_DELIMITER !== b) {
                 ++i;
                 continue;
             }

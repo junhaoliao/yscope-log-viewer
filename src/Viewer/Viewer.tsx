@@ -46,6 +46,7 @@ interface ViewerProps {
     seekParams: FileSeek | null,
     initialQuery: QueryOptions,
     timestamp: number | null,
+    isLocalTimezone: boolean,
 }
 
 
@@ -102,6 +103,7 @@ const getFileFromSeekParams = async (s3Scanner: S3Scanner, seekParams: FileSeek)
  * @param props.initialQuery
  * @param props.timestamp The initial timestamp to show. If this field is
  * valid, logEventNumber will be ignored.
+ * @param props.isLocalTimezone
  * @return
  */
 const Viewer = ({
@@ -111,6 +113,7 @@ const Viewer = ({
     seekParams,
     initialQuery,
     timestamp,
+    isLocalTimezone,
 }: ViewerProps) => {
     const {appTheme} = useContext(ThemeContext);
 
@@ -155,6 +158,7 @@ const Viewer = ({
         pageNum: null,
 
         enablePrettify: enablePrettify,
+        isLocalTimezone: isLocalTimezone,
         pageSize: lsPageSize ?? DEFAULT_PAGE_SIZE,
         verbosity: -1,
 
@@ -213,6 +217,7 @@ const Viewer = ({
             enablePrettify: prevLogFileState.enablePrettify,
             fileSrc: fileSrc,
             initialTimestamp: timestamp,
+            isLocalTimezone: isLocalTimezone,
             logEventIdx: logEvent,
             pageSize: prevLogFileState.pageSize,
             sessionId: sessionId,
@@ -375,6 +380,18 @@ const Viewer = ({
                 clpWorker.current.postMessage({
                     code: CLP_WORKER_PROTOCOL.CHANGE_TIMESTAMP,
                     timestamp: Number(args.timestamp),
+                });
+                break;
+            case STATE_CHANGE_TYPE.TIMEZONE:
+                setLoadingLogs(true);
+                setStatusMessage(
+                    args.isLocalTimezone ?
+                        "Setting timezone to local..." :
+                        "Setting timezone to UTC..."
+                );
+                clpWorker.current.postMessage({
+                    code: CLP_WORKER_PROTOCOL.TIMEZONE,
+                    isLocalTimezone: args.isLocalTimezone,
                 });
                 break;
             default:
