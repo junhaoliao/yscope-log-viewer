@@ -437,7 +437,6 @@ class FileManager {
 
         let isPlainTextFile = true;
         for (const extension in fileExtensionHandlers) {
-            console.log("extension", extension, fileName, fileName.endsWith(extension));
             if (fileName.endsWith(extension)) {
                 isPlainTextFile = false;
 
