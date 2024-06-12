@@ -87,11 +87,9 @@ const MenuBar = ({
         setShowHelp(true);
     };
     const handleTimezoneChange = (event, newTimezone) => {
-        console.log(newTimezone);
         if (null === newTimezone) return;
 
         setCurTimezone(newTimezone);
-        console.log("Timezone changed to", newTimezone);
         onStateChange(STATE_CHANGE_TYPE.TIMEZONE, {
             timezone: newTimezone,
         });
