@@ -3,12 +3,15 @@ import {
 } from "react";
 import {ProgressBar} from "react-bootstrap";
 import {
-    CalendarEvent, FileText, Keyboard, Toggles,
+    CalendarEvent, FileText, Keyboard,
 } from "react-bootstrap-icons";
 
 import dayjs from "dayjs";
 import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
+
+import Button from "@mui/joy/Button";
+import ToggleButtonGroup from "@mui/joy/ToggleButtonGroup";
 
 import {
     APP_THEME, ThemeContext,
@@ -68,17 +71,13 @@ const MenuBar = ({
     const handleShowHelp = () => {
         setShowHelp(true);
     };
-    const handleTimezoneChange = () => {
-        setIsLocalTime((oldIsLocalTime) => {
-            const newIsLocalTime = !oldIsLocalTime;
-            console.log("Setting isLocalTime to", newIsLocalTime);
-
+    const handleTimezoneChange = (event, newIsLocalTime) => {
+        if (null !== newIsLocalTime) {
+            setIsLocalTime(newIsLocalTime);
             onStateChange(STATE_CHANGE_TYPE.TIMEZONE, {
                 isLocalTimezone: newIsLocalTime,
             });
-
-            return newIsLocalTime;
-        });
+        }
     };
 
 
@@ -127,13 +126,27 @@ const MenuBar = ({
                         </div>
                         <div className={"menu-divider"}/>
 
-                        <div
-                            className={"menu-item menu-item-btn"}
-                            title={"Change Timezone"}
-                            onClick={handleTimezoneChange}
+                        <ToggleButtonGroup
+                            aria-label={"Platform"}
+                            color={"primary"}
+                            exclusive={true}
+                            size={"sm"}
+                            value={isLocalTime}
+                            onChange={handleTimezoneChange}
                         >
-                            <Toggles title={"Local Timezone"}/>
-                        </div>
+                            <Button
+                                sx={{border: "none"}}
+                                value={true}
+                            >
+                                Local
+                            </Button>
+                            <Button
+                                sx={{border: "none"}}
+                                value={false}
+                            >
+                                UTC
+                            </Button>
+                        </ToggleButtonGroup>
 
                         <div
                             className={"menu-item menu-item-btn"}

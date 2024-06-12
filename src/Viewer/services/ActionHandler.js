@@ -145,7 +145,6 @@ class ActionHandler {
     }
 
     changeTimezone (isLocalTimezone) {
-        console.log("Local Timezone: ", isLocalTimezone);
         if (isLocalTimezone) {
             dayjs.tz.setDefault();
         } else {

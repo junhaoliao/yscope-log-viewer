@@ -1,4 +1,4 @@
-import {
+import React, {
     useEffect,
     useMemo,
     useRef,
@@ -8,6 +8,7 @@ import {
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 
+import {CssVarsProvider} from "@mui/joy/styles";
 import {LocalizationProvider} from "@mui/x-date-pickers";
 import {AdapterDayjs} from "@mui/x-date-pickers/AdapterDayjs";
 
@@ -160,21 +161,24 @@ const App = () => {
 
     return (
         <div id={"app"}>
-            <ThemeContextProvider>
-                <LocalizationProvider dateAdapter={AdapterDayjs}>
-                    <DropFile onFileDrop={handleFileChange}>
-                        {(APP_STATE.FILE_VIEW === appMode) &&
-                        <Viewer
-                            enablePrettify={enablePrettify}
-                            fileSrc={fileSrc}
-                            initialQuery={initialQuery}
-                            isLocalTimezone={true}
-                            logEventNumber={logEventIdx}
-                            seekParams={initialSeekRef.current}
-                            timestamp={timestamp}/>}
-                    </DropFile>
-                </LocalizationProvider>
-            </ThemeContextProvider>
+            <LocalizationProvider dateAdapter={AdapterDayjs}>
+                <CssVarsProvider>
+                    <ThemeContextProvider>
+                        <DropFile onFileDrop={handleFileChange}>
+                            {(APP_STATE.FILE_VIEW === appMode) &&
+                            <Viewer
+                                enablePrettify={enablePrettify}
+                                fileSrc={fileSrc}
+                                initialQuery={initialQuery}
+                                isLocalTimezone={true}
+                                logEventNumber={logEventIdx}
+                                seekParams={initialSeekRef.current}
+                                timestamp={timestamp}/>}
+                        </DropFile>
+                    </ThemeContextProvider>
+                </CssVarsProvider>
+            </LocalizationProvider>
+
         </div>
     );
 };
