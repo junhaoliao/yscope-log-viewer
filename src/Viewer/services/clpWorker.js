@@ -65,7 +65,7 @@ onmessage = function (e) {
             break;
         case CLP_WORKER_PROTOCOL.TIMEZONE:
             try {
-                handler.changeTimezone(e.data.isLocalTimezone);
+                handler.changeTimezone(e.data.timezone);
             } catch (e) {
                 sendError(e);
             }

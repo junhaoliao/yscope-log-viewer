@@ -33,6 +33,21 @@ interface FileInfo {
 }
 
 /**
+ *
+ * @param root0
+ * @param root0.value
+ * @param root0.label
+ */
+const ToggleButton = ({value, label}) => (
+    <Button
+        sx={{minHeight: "100%"}}
+        value={value}
+    >
+        {label}
+    </Button>
+);
+
+/**
  * Menu bar used to navigate the log file.
  *
  * @param props
@@ -56,7 +71,7 @@ const MenuBar = ({
 
     const [showCalendar, setShowCalendar] = useState<boolean>(false);
     const [showHelp, setShowHelp] = useState<boolean>(false);
-    const [isLocalTime, setIsLocalTime] = useState<boolean>(true);
+    const [curTimezone, setCurTimezone] = useState<string | null>(null);
 
     const handleCloseCalendar = () => {
         setShowCalendar(false);
@@ -71,13 +86,15 @@ const MenuBar = ({
     const handleShowHelp = () => {
         setShowHelp(true);
     };
-    const handleTimezoneChange = (event, newIsLocalTime) => {
-        if (null !== newIsLocalTime) {
-            setIsLocalTime(newIsLocalTime);
-            onStateChange(STATE_CHANGE_TYPE.TIMEZONE, {
-                isLocalTimezone: newIsLocalTime,
-            });
-        }
+    const handleTimezoneChange = (event, newTimezone) => {
+        console.log(newTimezone);
+        if (null === newTimezone) return;
+
+        setCurTimezone(newTimezone);
+        console.log("Timezone changed to", newTimezone);
+        onStateChange(STATE_CHANGE_TYPE.TIMEZONE, {
+            timezone: newTimezone,
+        });
     };
 
 
@@ -116,7 +133,23 @@ const MenuBar = ({
                             logFileState={logFileState}
                             onStateChange={onStateChange}/>
 
-                        <div className={"menu-divider"}/>
+
+                        <ToggleButtonGroup
+                            aria-label={"Platform"}
+                            color={"neutral"}
+                            sx={{borderRadius: "0px"}}
+
+                            value={curTimezone}
+                            variant={"outlined"}
+                            onChange={handleTimezoneChange}
+                        >
+                            <ToggleButton
+                                label={"Local"}
+                                value={"local"}/>
+                            <ToggleButton
+                                label={"UTC"}
+                                value={"UTC"}/>
+                        </ToggleButtonGroup>
 
                         <div
                             className={"menu-item menu-item-btn"}
@@ -125,28 +158,6 @@ const MenuBar = ({
                             <CalendarEvent title={"Calendar"}/>
                         </div>
                         <div className={"menu-divider"}/>
-
-                        <ToggleButtonGroup
-                            aria-label={"Platform"}
-                            color={"primary"}
-                            exclusive={true}
-                            size={"sm"}
-                            value={isLocalTime}
-                            onChange={handleTimezoneChange}
-                        >
-                            <Button
-                                sx={{border: "none"}}
-                                value={true}
-                            >
-                                Local
-                            </Button>
-                            <Button
-                                sx={{border: "none"}}
-                                value={false}
-                            >
-                                UTC
-                            </Button>
-                        </ToggleButtonGroup>
 
                         <div
                             className={"menu-item menu-item-btn"}

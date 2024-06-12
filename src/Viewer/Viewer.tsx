@@ -46,7 +46,7 @@ interface ViewerProps {
     seekParams: FileSeek | null,
     initialQuery: QueryOptions,
     timestamp: number | null,
-    isLocalTimezone: boolean,
+    timezone: string | null,
 }
 
 
@@ -103,7 +103,7 @@ const getFileFromSeekParams = async (s3Scanner: S3Scanner, seekParams: FileSeek)
  * @param props.initialQuery
  * @param props.timestamp The initial timestamp to show. If this field is
  * valid, logEventNumber will be ignored.
- * @param props.isLocalTimezone
+ * @param props.timezone
  * @return
  */
 const Viewer = ({
@@ -113,7 +113,7 @@ const Viewer = ({
     seekParams,
     initialQuery,
     timestamp,
-    isLocalTimezone,
+    timezone,
 }: ViewerProps) => {
     const {appTheme} = useContext(ThemeContext);
 
@@ -158,8 +158,8 @@ const Viewer = ({
         pageNum: null,
 
         enablePrettify: enablePrettify,
-        isLocalTimezone: isLocalTimezone,
         pageSize: lsPageSize ?? DEFAULT_PAGE_SIZE,
+        timezone: timezone,
         verbosity: -1,
 
         nextFilePath: null,
@@ -217,10 +217,10 @@ const Viewer = ({
             enablePrettify: prevLogFileState.enablePrettify,
             fileSrc: fileSrc,
             initialTimestamp: timestamp,
-            isLocalTimezone: isLocalTimezone,
             logEventIdx: logEvent,
             pageSize: prevLogFileState.pageSize,
             sessionId: sessionId,
+            timezone: timezone,
         });
     };
 
@@ -384,14 +384,9 @@ const Viewer = ({
                 break;
             case STATE_CHANGE_TYPE.TIMEZONE:
                 setLoadingLogs(true);
-                setStatusMessage(
-                    args.isLocalTimezone ?
-                        "Setting timezone to local..." :
-                        "Setting timezone to UTC..."
-                );
                 clpWorker.current.postMessage({
                     code: CLP_WORKER_PROTOCOL.TIMEZONE,
-                    isLocalTimezone: args.isLocalTimezone,
+                    timezone: args.timezone,
                 });
                 break;
             default:

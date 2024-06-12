@@ -144,11 +144,12 @@ class ActionHandler {
         this._updateStateCallback(CLP_WORKER_PROTOCOL.UPDATE_STATE, this._logFile.state);
     }
 
-    changeTimezone (isLocalTimezone) {
-        if (isLocalTimezone) {
+    changeTimezone (timezone) {
+        if (null === timezone) return;
+        if ("local" === timezone) {
             dayjs.tz.setDefault();
         } else {
-            dayjs.tz.setDefault("UTC");
+            dayjs.tz.setDefault(timezone);
         }
         this._logFile.decodePage();
         this._logFile.computeLineNumFromLogEventIdx();
