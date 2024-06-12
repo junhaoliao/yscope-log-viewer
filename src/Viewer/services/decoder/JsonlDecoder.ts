@@ -18,7 +18,7 @@ class JsonlDecoder implements FileDecoder {
     readonly #fileContent: Uint8Array;
 
     #encoderPattern: string =
-        "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %level %class.%method(%file:%line): %message";
+        "%d{yyyy-MM-dd HH:mm:ss.SSS} %level [%thread] %class.%method(%file:%line): %message";
 
     #encoderDatePattern: string = "%d{yyyy-MM-dd HH:mm:ss.SSS}";
 
@@ -121,16 +121,9 @@ class JsonlDecoder implements FileDecoder {
 
     constructor (fileContent: Uint8Array) {
         this.#fileContent = fileContent;
-
-        // FIXME
-        // this.#timestampPropName = "ts";
-        // this.#setEncoderPattern(
-        //     "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %level %class.%method(%file:%line): %message%n"
-        // );
-        this.#timestampPropName = "@timestamp";
+        this.#timestampPropName = "ts";
         this.#setEncoderPattern(
-            "%d{yyyy-MM-dd HH:mm:ss.SSS} [%process.thread.name] %log.level" +
-            " %message%n"
+            "%d{yyyy-MM-dd HH:mm:ss.SSS} %level [%thread] %class.%method(%file:%line): %message%n"
         );
     }
 
