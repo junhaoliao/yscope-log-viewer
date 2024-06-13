@@ -70,7 +70,13 @@ onmessage = function (e) {
                 sendError(e);
             }
             break;
-
+        case CLP_WORKER_PROTOCOL.TIMEZONE:
+            try {
+                handler.changeTimezone(e.data.timezone);
+            } catch (e) {
+                sendError(e);
+            }
+            break;
         case CLP_WORKER_PROTOCOL.GET_LINE_FROM_EVENT:
             try {
                 handler.changeEvent(e.data.desiredLogEventIdx);

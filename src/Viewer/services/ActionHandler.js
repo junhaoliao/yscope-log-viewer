@@ -1,9 +1,16 @@
+import dayjs from "dayjs";
+import dayjsTimezone from "dayjs/plugin/timezone";
+import dayjsUtc from "dayjs/plugin/utc";
+
 import CLP_WORKER_PROTOCOL from "./CLP_WORKER_PROTOCOL";
 import FileManager from "./decoder/FileManager";
 import {
     isBoolean, isNumeric,
 } from "./decoder/utils";
 
+
+dayjs.extend(dayjsUtc);
+dayjs.extend(dayjsTimezone);
 
 // TODO: Move decompressing of file from FileManager to ActionHandler.
 //  When there are multiple IRStreams in a single file, this will allow
@@ -18,11 +25,13 @@ import {
 class ActionHandler {
     /**
      * Creates a new FileManager object and initiates the download.
-     * @param {String|File} fileSrc
+     *
+     * @param {string | File} fileSrc
+     * @param sessionId
      * @param {boolean} prettify
-     * @param {Number} logEventIdx
-     * @param {Number} initialTimestamp
-     * @param {Number} pageSize
+     * @param {number} logEventIdx
+     * @param {number} initialTimestamp
+     * @param {number} pageSize
      */
     constructor (fileSrc, sessionId, prettify, logEventIdx, initialTimestamp, pageSize) {
         this._logFile = new FileManager(
@@ -49,6 +58,7 @@ class ActionHandler {
 
     /**
      * Filters the events at the given verbosity and rebuilds the pages.
+     *
      * @param {number} desiredVerbosity
      */
     changeVerbosity (desiredVerbosity) {
@@ -79,6 +89,7 @@ class ActionHandler {
      * Go to the selected page and decode the relevant logs. linePos
      * indicates if the new page should be loaded with selected line
      * on top or bottom of page.
+     *
      * @param {number} page
      * @param {string} linePos
      */
@@ -108,6 +119,7 @@ class ActionHandler {
 
     /**
      * Search for the given string and go to the next result.
+     *
      * @param {string} searchString
      * @param {boolean} isRegex
      * @param {boolean} matchCase
@@ -119,6 +131,7 @@ class ActionHandler {
     /**
      * Set prettify state, rebuild the page and update line number
      * for the log event.
+     *
      * @param {boolean} prettify
      */
     changePrettify (prettify) {
@@ -131,8 +144,21 @@ class ActionHandler {
         this._updateStateCallback(CLP_WORKER_PROTOCOL.UPDATE_STATE, this._logFile.state);
     }
 
+    changeTimezone (timezone) {
+        if (null === timezone) return;
+        if ("local" === timezone) {
+            dayjs.tz.setDefault();
+        } else {
+            dayjs.tz.setDefault(timezone);
+        }
+        this._logFile.decodePage();
+        this._logFile.computeLineNumFromLogEventIdx();
+        this._updateStateCallback(CLP_WORKER_PROTOCOL.UPDATE_STATE, this._logFile.state);
+    }
+
     /**
      * Goes to the specified log event. Go to new page if needed.
+     *
      * @param {number} logEventIdx
      */
     changeEvent (logEventIdx) {
@@ -152,6 +178,7 @@ class ActionHandler {
     /**
      * Goes to the specified log event with the specified timestamp.
      * Go to new page if needed.
+     *
      * @param {number} timestamp
      */
     changeEventWithTimestamp (timestamp) {
@@ -179,6 +206,7 @@ class ActionHandler {
 
     /**
      * Get the log event given a line number.
+     *
      * @param {number} lineNumber
      * @param {number} columnNumber
      */
@@ -194,6 +222,7 @@ class ActionHandler {
 
     /**
      * Redraws the page with the new page size.
+     *
      * @param {number} pageSize
      */
     redraw (pageSize) {
@@ -224,6 +253,7 @@ class ActionHandler {
 
     /**
      * Send the newly decoded logs
+     *
      * @param {string} logs
      */
     _updateLogsCallback = (logs) => {
@@ -235,6 +265,7 @@ class ActionHandler {
 
     /**
      * Send the updated state.
+     *
      * @param {number} code
      * @param {object} state
      */
@@ -247,6 +278,7 @@ class ActionHandler {
 
     /**
      * Sends loading status update and displays message in console.
+     *
      * @param {string} msg
      * @param {boolean} error
      */
@@ -262,7 +294,9 @@ class ActionHandler {
 
     /**
      * Send the file information.
+     *
      * @param {string} fileState
+     * @param fileInfo
      */
     _updateFileInfoCallback = (fileInfo) => {
         postMessage({

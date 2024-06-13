@@ -1,3 +1,6 @@
+/**
+ *
+ */
 const STATE_CHANGE_TYPE = Object.freeze({
     lineNumber: "lineNumber",
     logEventIdx: "logEventIdx",
@@ -9,6 +12,7 @@ const STATE_CHANGE_TYPE = Object.freeze({
     startDownload: "startDownload",
     stopDownload: "stopDownload",
     timestamp: "timestamp",
+    timezone: "timezone",
 });
 
 export default STATE_CHANGE_TYPE;

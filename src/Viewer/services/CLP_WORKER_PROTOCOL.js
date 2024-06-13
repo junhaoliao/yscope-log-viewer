@@ -17,6 +17,7 @@ const CLP_WORKER_PROTOCOL = Object.freeze({
     START_DOWNLOAD: enumClpWorkerProtocol++,
     STOP_DOWNLOAD: enumClpWorkerProtocol++,
     CHANGE_TIMESTAMP: enumClpWorkerProtocol++,
+    TIMEZONE: enumClpWorkerProtocol++,
 });
 
 export default CLP_WORKER_PROTOCOL;

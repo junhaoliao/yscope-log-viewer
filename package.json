@@ -23,7 +23,7 @@
     "@emotion/react": "^11.11.4",
     "@emotion/styled": "^11.11.0",
     "@msgpack/msgpack": "^3.0.0-beta2",
-    "@mui/joy": "^5.0.0-beta.29",
+    "@mui/joy": "^5.0.0-beta.36",
     "@mui/x-date-pickers": "^6.19.5",
     "@obsidize/tar-browserify": "4.0.0",
     "axios": "^1.6.7",

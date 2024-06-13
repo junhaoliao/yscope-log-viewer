@@ -18,7 +18,7 @@ import {
 const DateTimePicker = ({onChange, value}) => {
     const commonProps = {
         autoFocus: false,
-        timezone: "UTC",
+        timezone: "default",
         onChange: onChange,
         value: value,
     };

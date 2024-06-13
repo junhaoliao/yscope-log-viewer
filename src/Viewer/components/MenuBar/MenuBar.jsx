@@ -15,6 +15,9 @@ import {
     Keyboard,
 } from "react-bootstrap-icons";
 
+import {Button as JoyButton} from "@mui/joy";
+import ToggleButtonGroup from "@mui/joy/ToggleButtonGroup";
+
 import {THEME_STATES} from "../../../ThemeContext/THEME_STATES";
 import {ThemeContext} from "../../../ThemeContext/ThemeContext";
 import MODIFY_PAGE_ACTION from "../../services/MODIFY_PAGE_ACTION";
@@ -26,11 +29,33 @@ import "./MenuBar.scss";
 
 
 /**
+ * Renders a toggle button
+ *
+ * @param {object} props The props for the toggle button component
+ * @param {string} props.value The current value of the button
+ * @param {string} props.label The label to be displayed on the button
+ * @return {React.ReactElement}
+ */
+const ToggleButton = ({value, label}) => (
+    <JoyButton
+        sx={{minHeight: "100%", fontSize: "medium", fontWeight: 500}}
+        value={value}
+    >
+        {label}
+    </JoyButton>
+);
+
+/**
  * Menu bar used to navigate the log file.
+ *
+ * @param logFileState.logFileState
  * @param {object} logFileState Current state of the log file
  * @param {object} fileInfo Object containing file name & path
  * @param {boolean} isLoading whether logs / actions are being loaded
  * @param {ChangeStateCallback} onStateChange
+ * @param logFileState.fileInfo
+ * @param logFileState.isLoading
+ * @param logFileState.onStateChange
  * @return {JSX.Element}
  */
 const MenuBar = ({
@@ -38,9 +63,9 @@ const MenuBar = ({
 }) => {
     const {theme} = useContext(ThemeContext);
 
-
     const [showCalendar, setShowCalendar] = useState(false);
     const [showHelp, setShowHelp] = useState(false);
+    const [curTimezone, setCurTimezone] = useState("local");
 
     const handleCloseCalendar = () => setShowCalendar(false);
     const handleShowCalendar = () => setShowCalendar(true);
@@ -72,6 +97,18 @@ const MenuBar = ({
         onStateChange(STATE_CHANGE_TYPE.page, {
             action: MODIFY_PAGE_ACTION.newPage,
             requestedPage: page,
+        });
+    };
+
+    const handleTimezoneChange = (
+        _event,
+        newTimezone,
+    ) => {
+        if (null === newTimezone) return;
+
+        setCurTimezone(newTimezone);
+        onStateChange(STATE_CHANGE_TYPE.TIMEZONE, {
+            timezone: newTimezone,
         });
     };
 
@@ -166,6 +203,22 @@ const MenuBar = ({
                     <div className={"menu-right"}>
                         {getPageNav()}
                         <div className={"menu-divider"}/>
+
+                        <ToggleButtonGroup
+                            aria-label={"timezone-toggle"}
+                            color={"neutral"}
+                            sx={{borderRadius: 0}}
+                            value={curTimezone}
+                            variant={"outlined"}
+                            onChange={handleTimezoneChange}
+                        >
+                            <ToggleButton
+                                label={"Local"}
+                                value={"local"}/>
+                            <ToggleButton
+                                label={"UTC"}
+                                value={"UTC"}/>
+                        </ToggleButtonGroup>
 
                         <div
                             className={"menu-item menu-item-btn"}

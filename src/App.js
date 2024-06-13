@@ -3,16 +3,16 @@ import React, {
 } from "react";
 
 import dayjs from "dayjs";
+import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
 
+import {CssVarsProvider} from "@mui/joy/styles/CssVarsProvider";
 import {LocalizationProvider} from "@mui/x-date-pickers";
 import {AdapterDayjs} from "@mui/x-date-pickers/AdapterDayjs";
 
 import config from "./config.json";
 import {DropFile} from "./DropFile/DropFile";
-import {THEME_STATES} from "./ThemeContext/THEME_STATES";
-import {ThemeContext} from "./ThemeContext/ThemeContext";
-import LOCAL_STORAGE_KEYS from "./Viewer/services/LOCAL_STORAGE_KEYS";
+import {ThemeContextProvider} from "./ThemeContext/ThemeContext";
 import {getFilePathFromWindowLocation} from "./Viewer/services/utils";
 import {Viewer} from "./Viewer/Viewer";
 
@@ -21,6 +21,7 @@ import "./App.scss";
 
 
 dayjs.extend(utc);
+dayjs.extend(timezone);
 
 /**
  * Main component which renders viewer and scanner depending
@@ -41,22 +42,11 @@ export function App () {
     const [timestamp, setTimestamp] = useState(null);
     const [prettify, setPrettify] = useState(null);
     const [query, setQuery] = useState({});
-    const [theme, setTheme] = useState(THEME_STATES.DARK);
 
     useEffect(() => {
         console.debug("Version:", config.version);
-        const lsTheme = localStorage.getItem(LOCAL_STORAGE_KEYS.UI_THEME);
-        switchTheme(THEME_STATES.LIGHT === lsTheme ?
-            THEME_STATES.LIGHT :
-            THEME_STATES.DARK);
         init();
     }, []);
-
-    const switchTheme = (theme) => {
-        localStorage.setItem(LOCAL_STORAGE_KEYS.UI_THEME, theme);
-        document.getElementById("app").setAttribute("data-theme", theme);
-        setTheme(theme);
-    };
 
     /**
      * Initializes the application's state. The file to load is set based on
@@ -106,19 +96,21 @@ export function App () {
 
     return (
         <div id={"app"}>
-            <ThemeContext.Provider value={{theme, switchTheme}}>
-                <LocalizationProvider dateAdapter={AdapterDayjs}>
-                    <DropFile handleFileDrop={handleFileChange}>
-                        {(APP_STATE.FILE_VIEW === appMode) &&
-                        <Viewer
-                            fileSrc={fileSrc}
-                            initialQuery={query}
-                            logEventNumber={logEventIdx}
-                            prettifyLog={prettify}
-                            timestamp={timestamp}/>}
-                    </DropFile>
-                </LocalizationProvider>
-            </ThemeContext.Provider>
+            <CssVarsProvider>
+                <ThemeContextProvider>
+                    <LocalizationProvider dateAdapter={AdapterDayjs}>
+                        <DropFile handleFileDrop={handleFileChange}>
+                            {(APP_STATE.FILE_VIEW === appMode) &&
+                            <Viewer
+                                fileSrc={fileSrc}
+                                initialQuery={query}
+                                logEventNumber={logEventIdx}
+                                prettifyLog={prettify}
+                                timestamp={timestamp}/>}
+                        </DropFile>
+                    </LocalizationProvider>
+                </ThemeContextProvider>
+            </CssVarsProvider>
         </div>
     );
 }
