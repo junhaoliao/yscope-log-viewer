@@ -33,7 +33,7 @@ const ThemeContext = createContext<ThemeContextType>({
  * @param props
  * @param props.children
  */
-const ThemeContextProvider = ({children}: { children: React.ReactNode }):
+const ThemeContextProvider = ({children}: {children: React.ReactNode}):
     React.ReactElement => {
     const [appTheme, setAppTheme] = useState(APP_THEME.DARK);
     const {setMode} = useColorScheme();
@@ -43,7 +43,7 @@ const ThemeContextProvider = ({children}: { children: React.ReactNode }):
         document.getElementById("app")?.setAttribute("data-theme", theme);
         setAppTheme(theme);
         setMode(theme);
-    }, []);
+    }, [setMode]);
 
     useEffect(() => {
         const lsTheme = localStorage.getItem(LOCAL_STORAGE_KEYS.UI_THEME);

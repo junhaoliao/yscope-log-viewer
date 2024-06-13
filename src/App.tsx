@@ -173,7 +173,6 @@ const App = () => {
                     </DropFile>
                 </ThemeContextProvider>
             </CssVarsProvider>
-
         </div>
     );
 };

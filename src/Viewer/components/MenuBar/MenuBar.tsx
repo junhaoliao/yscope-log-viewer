@@ -6,10 +6,6 @@ import {
     CalendarEvent, FileText, Keyboard,
 } from "react-bootstrap-icons";
 
-import dayjs from "dayjs";
-import timezone from "dayjs/plugin/timezone";
-import utc from "dayjs/plugin/utc";
-
 import Button from "@mui/joy/Button";
 import ToggleButtonGroup from "@mui/joy/ToggleButtonGroup";
 
@@ -30,10 +26,11 @@ interface FileInfo {
 }
 
 /**
+ * Renders a toggle button
  *
- * @param props
- * @param props.value
- * @param props.label
+ * @param props The props for the toggle button component
+ * @param props.value The current value of the button
+ * @param props.label The label to be displayed on the button
  */
 const ToggleButton = ({value, label}) => (
     <Button
@@ -83,7 +80,11 @@ const MenuBar = ({
     const handleShowHelp = () => {
         setShowHelp(true);
     };
-    const handleTimezoneChange = (event, newTimezone) => {
+
+    const handleTimezoneChange = (
+        _event: React.MouseEvent<HTMLElement>,
+        newTimezone: string | null
+    ) => {
         if (null === newTimezone) return;
 
         setCurTimezone(newTimezone);
