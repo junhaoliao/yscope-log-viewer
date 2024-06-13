@@ -4,6 +4,7 @@ import {
 import {Row} from "react-bootstrap";
 import LoadingIcons from "react-loading-icons";
 
+import dayjs from "dayjs";
 import {v1 as uuidv1} from "uuid";
 
 import {
@@ -375,6 +376,18 @@ const Viewer = ({
                 clpWorker.current.postMessage({
                     code: CLP_WORKER_PROTOCOL.CHANGE_TIMESTAMP,
                     timestamp: Number(args.timestamp),
+                });
+                break;
+            case STATE_CHANGE_TYPE.TIMEZONE:
+                setLoadingLogs(true);
+                if ("local" === args.timezone) {
+                    dayjs.tz.setDefault();
+                } else {
+                    dayjs.tz.setDefault(args.timezone);
+                }
+                clpWorker.current.postMessage({
+                    code: CLP_WORKER_PROTOCOL.TIMEZONE,
+                    timezone: args.timezone,
                 });
                 break;
             default:

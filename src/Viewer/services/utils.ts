@@ -142,7 +142,7 @@ const getModifiedUrl = (
 
     let urlSearchParamsAsString = urlSearchParams.toString();
     if (!(/%23|%26/).test(urlSearchParamsAsString)) {
-        urlSearchParamsAsString = decodeURIComponent(urlSearchParamsAsString);
+        urlSearchParamsAsString = decodeURIComponent(urlSearchParamsAsString);   
     }
 
     url.search = urlSearchParamsAsString;

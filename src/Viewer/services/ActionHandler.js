@@ -1,3 +1,5 @@
+import * as dayjs from "dayjs";
+
 import CLP_WORKER_PROTOCOL from "./CLP_WORKER_PROTOCOL";
 import FileManager from "./decoder/FileManager";
 import {
@@ -137,6 +139,18 @@ class ActionHandler {
      */
     changePrettify (enablePrettify) {
         this._logFile.state.enablePrettify = enablePrettify;
+        this._logFile.decodePage();
+        this._logFile.computeLineNumFromLogEventIdx();
+        this._updateStateCallback(CLP_WORKER_PROTOCOL.UPDATE_STATE, this._logFile.state);
+    }
+
+    changeTimezone (timezone) {
+        if (null === timezone) return;
+        if ("local" === timezone) {
+            dayjs.tz.setDefault();
+        } else {
+            dayjs.tz.setDefault(timezone);
+        }
         this._logFile.decodePage();
         this._logFile.computeLineNumFromLogEventIdx();
         this._updateStateCallback(CLP_WORKER_PROTOCOL.UPDATE_STATE, this._logFile.state);

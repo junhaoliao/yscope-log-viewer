@@ -6,8 +6,10 @@ import {
 } from "react";
 
 import dayjs from "dayjs";
+import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
 
+import {CssVarsProvider} from "@mui/joy/styles/CssVarsProvider";
 import {LocalizationProvider} from "@mui/x-date-pickers";
 import {AdapterDayjs} from "@mui/x-date-pickers/AdapterDayjs";
 
@@ -29,6 +31,7 @@ import "./App.scss";
 
 
 dayjs.extend(utc);
+dayjs.extend(timezone);
 
 enum APP_STATE {
     FILE_PROMPT = "file_prompt",
@@ -160,20 +163,22 @@ const App = () => {
 
     return (
         <div id={"app"}>
-            <ThemeContextProvider>
-                <LocalizationProvider dateAdapter={AdapterDayjs}>
-                    <DropFile onFileDrop={handleFileChange}>
-                        {(APP_STATE.FILE_VIEW === appMode) &&
-                        <Viewer
-                            enablePrettify={enablePrettify}
-                            fileSrc={fileSrc}
-                            initialQuery={initialQuery}
-                            logEventNumber={logEventIdx}
-                            seekParams={initialSeekRef.current}
-                            timestamp={timestamp}/>}
-                    </DropFile>
-                </LocalizationProvider>
-            </ThemeContextProvider>
+            <CssVarsProvider>
+                <ThemeContextProvider>
+                    <LocalizationProvider dateAdapter={AdapterDayjs}>
+                        <DropFile onFileDrop={handleFileChange}>
+                            {(APP_STATE.FILE_VIEW === appMode) &&
+                                <Viewer
+                                    enablePrettify={enablePrettify}
+                                    fileSrc={fileSrc}
+                                    initialQuery={initialQuery}
+                                    logEventNumber={logEventIdx}
+                                    seekParams={initialSeekRef.current}
+                                    timestamp={timestamp}/>}
+                        </DropFile>
+                    </LocalizationProvider>
+                </ThemeContextProvider>
+            </CssVarsProvider>
         </div>
     );
 };

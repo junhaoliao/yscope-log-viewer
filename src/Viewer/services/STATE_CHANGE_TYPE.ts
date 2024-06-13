@@ -18,6 +18,7 @@ enum STATE_CHANGE_TYPE {
     START_DOWNLOAD = "startDownload",
     STOP_DOWNLOAD = "stopDownload",
     TIMESTAMP = "timestamp",
+    TIMEZONE = "timezone",
 }
 
 export default STATE_CHANGE_TYPE;

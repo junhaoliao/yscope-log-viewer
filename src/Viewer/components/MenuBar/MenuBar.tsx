@@ -6,9 +6,13 @@ import {
     CalendarEvent, FileText, Keyboard,
 } from "react-bootstrap-icons";
 
+import Button from "@mui/joy/Button";
+import ToggleButtonGroup from "@mui/joy/ToggleButtonGroup";
+
 import {
     APP_THEME, ThemeContext,
 } from "../../../ThemeContext/ThemeContext";
+import STATE_CHANGE_TYPE from "../../services/STATE_CHANGE_TYPE";
 import LogFileState from "../../types/LogFileState";
 import CalendarModal from "../modals/CalendarModal/CalendarModal";
 import HelpModal from "../modals/HelpModal";
@@ -20,6 +24,22 @@ import "./MenuBar.scss";
 interface FileInfo {
     name: string
 }
+
+/**
+ * Renders a toggle button
+ *
+ * @param props The props for the toggle button component
+ * @param props.value The current value of the button
+ * @param props.label The label to be displayed on the button
+ */
+const ToggleButton = ({value, label}: {value: string, label: string}) => (
+    <Button
+        sx={{minHeight: "100%", fontSize: "medium", fontWeight: "500"}}
+        value={value}
+    >
+        {label}
+    </Button>
+);
 
 /**
  * Menu bar used to navigate the log file.
@@ -45,6 +65,7 @@ const MenuBar = ({
 
     const [showCalendar, setShowCalendar] = useState<boolean>(false);
     const [showHelp, setShowHelp] = useState<boolean>(false);
+    const [curTimezone, setCurTimezone] = useState<string>("local");
 
     const handleCloseCalendar = () => {
         setShowCalendar(false);
@@ -58,6 +79,18 @@ const MenuBar = ({
     };
     const handleShowHelp = () => {
         setShowHelp(true);
+    };
+
+    const handleTimezoneChange = (
+        _event: React.MouseEvent<HTMLElement>,
+        newTimezone: string | null
+    ) => {
+        if (null === newTimezone) return;
+
+        setCurTimezone(newTimezone);
+        onStateChange(STATE_CHANGE_TYPE.TIMEZONE, {
+            timezone: newTimezone,
+        });
     };
 
 
@@ -96,7 +129,22 @@ const MenuBar = ({
                             logFileState={logFileState}
                             onStateChange={onStateChange}/>
 
-                        <div className={"menu-divider"}/>
+
+                        <ToggleButtonGroup
+                            aria-label={"timezone-toggle"}
+                            color={"neutral"}
+                            sx={{borderRadius: 0}}
+                            value={curTimezone}
+                            variant={"outlined"}
+                            onChange={handleTimezoneChange}
+                        >
+                            <ToggleButton
+                                label={"Local"}
+                                value={"local"}/>
+                            <ToggleButton
+                                label={"UTC"}
+                                value={"UTC"}/>
+                        </ToggleButtonGroup>
 
                         <div
                             className={"menu-item menu-item-btn"}

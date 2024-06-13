@@ -1,9 +1,16 @@
-import React, {
+import {
     createContext,
     useCallback,
     useEffect,
     useState,
 } from "react";
+
+import {useColorScheme} from "@mui/joy/styles/CssVarsProvider";
+import {
+    Experimental_CssVarsProvider as MaterialCssVarsProvider,
+    experimental_extendTheme as extendMaterialTheme,
+    THEME_ID,
+} from "@mui/material/styles";
 
 import LOCAL_STORAGE_KEYS from "../Viewer/services/LOCAL_STORAGE_KEYS";
 
@@ -12,6 +19,7 @@ enum APP_THEME {
     LIGHT = "light",
     DARK = "dark",
 }
+
 const APP_THEME_DEFAULT = APP_THEME.DARK;
 
 interface ThemeContextType {
@@ -24,6 +32,8 @@ const ThemeContext = createContext<ThemeContextType>({
     switchTheme: () => null,
 });
 
+const materialTheme = extendMaterialTheme();
+
 /**
  * Provides a theme context for its children.
  *
@@ -33,12 +43,14 @@ const ThemeContext = createContext<ThemeContextType>({
 const ThemeContextProvider = ({children}: {children: React.ReactNode}):
     React.ReactElement => {
     const [appTheme, setAppTheme] = useState(APP_THEME.DARK);
+    const {setMode} = useColorScheme();
 
     const switchTheme = useCallback((theme: APP_THEME) => {
         localStorage.setItem(LOCAL_STORAGE_KEYS.UI_THEME, theme);
         document.getElementById("app")?.setAttribute("data-theme", theme);
         setAppTheme(theme);
-    }, []);
+        setMode(theme);
+    }, [setMode]);
 
     useEffect(() => {
         const lsTheme = localStorage.getItem(LOCAL_STORAGE_KEYS.UI_THEME);
@@ -47,7 +59,9 @@ const ThemeContextProvider = ({children}: {children: React.ReactNode}):
 
     return (
         <ThemeContext.Provider value={{appTheme, switchTheme}}>
-            {children}
+            <MaterialCssVarsProvider theme={{[THEME_ID]: materialTheme}}>
+                {children}
+            </MaterialCssVarsProvider>
         </ThemeContext.Provider>
     );
 };
