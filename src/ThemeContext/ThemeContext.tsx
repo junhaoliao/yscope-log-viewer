@@ -1,4 +1,4 @@
-import React, {
+import {
     createContext,
     useCallback,
     useEffect,
@@ -6,6 +6,11 @@ import React, {
 } from "react";
 
 import {useColorScheme} from "@mui/joy/styles/CssVarsProvider";
+import {
+    Experimental_CssVarsProvider as MaterialCssVarsProvider,
+    experimental_extendTheme as extendMaterialTheme,
+    THEME_ID,
+} from "@mui/material/styles";
 
 import LOCAL_STORAGE_KEYS from "../Viewer/services/LOCAL_STORAGE_KEYS";
 
@@ -26,6 +31,8 @@ const ThemeContext = createContext<ThemeContextType>({
     appTheme: APP_THEME.DARK,
     switchTheme: () => null,
 });
+
+const materialTheme = extendMaterialTheme();
 
 /**
  * Provides a theme context for its children.
@@ -52,7 +59,9 @@ const ThemeContextProvider = ({children}: {children: React.ReactNode}):
 
     return (
         <ThemeContext.Provider value={{appTheme, switchTheme}}>
-            {children}
+            <MaterialCssVarsProvider theme={{[THEME_ID]: materialTheme}}>
+                {children}
+            </MaterialCssVarsProvider>
         </ThemeContext.Provider>
     );
 };
