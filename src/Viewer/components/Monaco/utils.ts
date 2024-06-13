@@ -59,10 +59,9 @@ const initMonacoEditor = (
         }
     );
 
-    let resizeTimeout: NodeJS.Timeout | null = null;
+    let resizeTimeout: ReturnType<typeof setTimeout> | null = null;
     const resizeObserver = new ResizeObserver(() => {
         if (null !== resizeTimeout) {
-            console.log("canceled");
             clearTimeout(resizeTimeout);
         }
         resizeTimeout = setTimeout(() => {
