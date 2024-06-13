@@ -25,18 +25,15 @@ import NavigationBar from "./NavigationBar";
 import "./MenuBar.scss";
 
 
-dayjs.extend(timezone);
-dayjs.extend(utc);
-
 interface FileInfo {
     name: string
 }
 
 /**
  *
- * @param root0
- * @param root0.value
- * @param root0.label
+ * @param props
+ * @param props.value
+ * @param props.label
  */
 const ToggleButton = ({value, label}) => (
     <Button
@@ -71,7 +68,7 @@ const MenuBar = ({
 
     const [showCalendar, setShowCalendar] = useState<boolean>(false);
     const [showHelp, setShowHelp] = useState<boolean>(false);
-    const [curTimezone, setCurTimezone] = useState<string | null>(null);
+    const [curTimezone, setCurTimezone] = useState<string>("local");
 
     const handleCloseCalendar = () => {
         setShowCalendar(false);
@@ -133,10 +130,9 @@ const MenuBar = ({
 
 
                         <ToggleButtonGroup
-                            aria-label={"Platform"}
+                            aria-label={"timezone-toggle"}
                             color={"neutral"}
-                            sx={{borderRadius: "0px"}}
-
+                            sx={{borderRadius: 0}}
                             value={curTimezone}
                             variant={"outlined"}
                             onChange={handleTimezoneChange}

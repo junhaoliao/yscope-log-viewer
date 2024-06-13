@@ -1,4 +1,4 @@
-import * as dayjs from "dayjs";
+import dayjs from "dayjs";
 
 import LogtypeBuf from "./LogtypeBuf";
 import PROTOCOL from "./PROTOCOL";
@@ -31,14 +31,9 @@ class IRTokenDecoder {
             // NOTE: Since we don't specify a timezone, JavaScript will use the
             // user's local  timezone. This should be more convenient for the
             // user.
-            // console.log(dayjs.tz(0))
             outputResizableBuffer.pushString(
                 dayjs.tz(Number(timestamp)).format()
             );
-
-            // TODO If we need to use the original timestamp pattern,
-            //  uncomment this line
-            // return dayjs(Number(timestamp)).format(this._timestampPattern);
         }
     }
 

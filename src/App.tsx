@@ -1,4 +1,4 @@
-import React, {
+import {
     useEffect,
     useMemo,
     useRef,
@@ -8,9 +8,7 @@ import React, {
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 
-import {CssVarsProvider} from "@mui/joy/styles";
-import {LocalizationProvider} from "@mui/x-date-pickers";
-import {AdapterDayjs} from "@mui/x-date-pickers/AdapterDayjs";
+import {CssVarsProvider} from "@mui/joy/styles/CssVarsProvider";
 
 import config from "./config.json";
 import DropFile from "./DropFile/DropFile";
@@ -161,23 +159,20 @@ const App = () => {
 
     return (
         <div id={"app"}>
-            <LocalizationProvider dateAdapter={AdapterDayjs}>
-                <CssVarsProvider>
-                    <ThemeContextProvider>
-                        <DropFile onFileDrop={handleFileChange}>
-                            {(APP_STATE.FILE_VIEW === appMode) &&
-                            <Viewer
-                                enablePrettify={enablePrettify}
-                                fileSrc={fileSrc}
-                                initialQuery={initialQuery}
-                                logEventNumber={logEventIdx}
-                                seekParams={initialSeekRef.current}
-                                timestamp={timestamp}
-                                timezone={"local"}/>}
-                        </DropFile>
-                    </ThemeContextProvider>
-                </CssVarsProvider>
-            </LocalizationProvider>
+            <CssVarsProvider>
+                <ThemeContextProvider>
+                    <DropFile onFileDrop={handleFileChange}>
+                        {(APP_STATE.FILE_VIEW === appMode) &&
+                        <Viewer
+                            enablePrettify={enablePrettify}
+                            fileSrc={fileSrc}
+                            initialQuery={initialQuery}
+                            logEventNumber={logEventIdx}
+                            seekParams={initialSeekRef.current}
+                            timestamp={timestamp}/>}
+                    </DropFile>
+                </ThemeContextProvider>
+            </CssVarsProvider>
 
         </div>
     );

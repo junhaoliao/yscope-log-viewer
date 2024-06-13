@@ -46,7 +46,6 @@ interface ViewerProps {
     seekParams: FileSeek | null,
     initialQuery: QueryOptions,
     timestamp: number | null,
-    timezone: string | null,
 }
 
 
@@ -103,7 +102,6 @@ const getFileFromSeekParams = async (s3Scanner: S3Scanner, seekParams: FileSeek)
  * @param props.initialQuery
  * @param props.timestamp The initial timestamp to show. If this field is
  * valid, logEventNumber will be ignored.
- * @param props.timezone
  * @return
  */
 const Viewer = ({
@@ -113,7 +111,6 @@ const Viewer = ({
     seekParams,
     initialQuery,
     timestamp,
-    timezone,
 }: ViewerProps) => {
     const {appTheme} = useContext(ThemeContext);
 
@@ -159,7 +156,6 @@ const Viewer = ({
 
         enablePrettify: enablePrettify,
         pageSize: lsPageSize ?? DEFAULT_PAGE_SIZE,
-        timezone: timezone,
         verbosity: -1,
 
         nextFilePath: null,
@@ -220,7 +216,6 @@ const Viewer = ({
             logEventIdx: logEvent,
             pageSize: prevLogFileState.pageSize,
             sessionId: sessionId,
-            timezone: timezone,
         });
     };
 
