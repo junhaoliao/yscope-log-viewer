@@ -12,6 +12,8 @@ import {setupShortcutActions} from "./shortcuts";
 import {setupThemes} from "./themes";
 
 
+const MONACO_RESIZE_DEBOUNCE_TIMEOUT = 250;
+
 /**
  * Centers the line in the editor and change the cursor position.
  *
@@ -66,7 +68,7 @@ const initMonacoEditor = (
         }
         resizeTimeout = setTimeout(() => {
             editor.layout();
-        }, 250);
+        }, MONACO_RESIZE_DEBOUNCE_TIMEOUT);
     });
 
     resizeObserver.observe(editorContainer);
