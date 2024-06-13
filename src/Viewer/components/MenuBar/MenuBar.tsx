@@ -34,7 +34,7 @@ interface FileInfo {
  */
 const ToggleButton = ({value, label}: {value: string, label: string}) => (
     <Button
-        sx={{minHeight: "100%"}}
+        sx={{minHeight: "100%", fontSize: "medium", fontWeight: "500"}}
         value={value}
     >
         {label}
