@@ -32,7 +32,7 @@ interface FileInfo {
  * @param props.value The current value of the button
  * @param props.label The label to be displayed on the button
  */
-const ToggleButton = ({value, label}) => (
+const ToggleButton = ({value, label}: {value: string, label: string}) => (
     <Button
         sx={{minHeight: "100%"}}
         value={value}
