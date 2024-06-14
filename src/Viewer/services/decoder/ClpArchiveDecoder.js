@@ -1,13 +1,24 @@
-import * as msgpack from "@msgpack/msgpack";
-import data from "bootstrap/js/src/dom/data";
+import dayjs from "dayjs";
 import initSqlJs from "sql.js";
 import {XzReadableStream} from "xzwasm";
 
-import {DataInputStream, DataInputStreamEOFError} from "./DataInputStream";
+import * as msgpack from "@msgpack/msgpack";
+
+import {
+    DataInputStream, DataInputStreamEOFError,
+} from "./DataInputStream";
 
 
+/**
+ *
+ * @param byteArray
+ */
 const lzmaDecompress = async (byteArray) => {
     const stream = new ReadableStream({
+        /**
+         *
+         * @param controller
+         */
         start (controller) {
             controller.enqueue(byteArray);
             controller.close();
@@ -18,6 +29,10 @@ const lzmaDecompress = async (byteArray) => {
     return new Uint8Array(await decompressedResponse.arrayBuffer());
 };
 
+/**
+ *
+ * @param byteArray
+ */
 const unpackDictionary = (byteArray) => {
     const dataInputStream = new DataInputStream(byteArray.buffer, true);
     const dictionary = [];
@@ -25,6 +40,7 @@ const unpackDictionary = (byteArray) => {
     while (true) {
         try {
             const id = dataInputStream.readUnsignedLong();
+
             // mind an overflow situation here because supposedly we should use BigInt to hold this long uint
             const payloadSize = Number(dataInputStream.readUnsignedLong());
             const payload = dataInputStream.readFully(payloadSize);
@@ -43,6 +59,10 @@ const unpackDictionary = (byteArray) => {
     return dictionary;
 };
 
+/**
+ *
+ * @param encodedVar
+ */
 const decodeClpFloat = (encodedVar) => {
     // Mask: (1 << 54) - 1
     const EIGHT_BYTE_ENCODED_FLOAT_DIGITS_BIT_MASK = (1n << 54n) - 1n;
@@ -61,7 +81,9 @@ const decodeClpFloat = (encodedVar) => {
     encodedFloat >>= BigInt(55);
     const isNegative = (0 < encodedFloat);
 
-    const valueLength = numDigits + 1 + (isNegative ? 1 : 0);
+    const valueLength = numDigits + 1 + (isNegative ?
+        1 :
+        0);
     const value = new Uint8Array(valueLength);
     let pos = valueLength - 1;
     const decimalIdx = valueLength - 1 - decimalPos;
@@ -81,27 +103,17 @@ const decodeClpFloat = (encodedVar) => {
     return value;
 };
 
-const formatDate = (timestamp) => {
-    const pad = (num, size) => num.toString().padStart(size, "0");
-    const date = new Date(timestamp);
-
-    const year = date.getUTCFullYear();
-    const month = pad(date.getUTCMonth() + 1, 2); // +1 because months are 0-indexed
-    const day = pad(date.getUTCDate(), 2);
-    const hours = pad(date.getUTCHours(), 2);
-    const minutes = pad(date.getUTCMinutes(), 2);
-    const seconds = pad(date.getUTCSeconds(), 2);
-    const milliseconds = pad(date.getUTCMilliseconds(), 3);
-
-    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}.${milliseconds}`;
-};
-
+/**
+ *
+ * @param str
+ */
 const rstrip = (str) => {
     return str.replace(/\s+$/, "");
 };
 
 export class ClpArchiveDecoder {
     static #enc = new TextEncoder();
+
     static #dec = new TextDecoder();
 
     constructor (fileByteArray) {
@@ -138,8 +150,7 @@ export class ClpArchiveDecoder {
 
     async __readMetaDataDb (fileBytes) {
         const SQL = await initSqlJs({
-            locateFile: (file) =>
-                `static/js/${file}`,
+            locateFile: (file) => `static/js/${file}`,
         });
         const db = new SQL.Database(fileBytes);
         const queryResult = db.exec(`
@@ -151,9 +162,9 @@ export class ClpArchiveDecoder {
             FROM files
         `)[0];
 
-        for (let i = 0; i < queryResult["columns"].length; i++) {
-            const columnName = queryResult["columns"][i];
-            const value = queryResult["values"][0][i];
+        for (let i = 0; i < queryResult.columns.length; i++) {
+            const columnName = queryResult.columns[i];
+            const value = queryResult.values[0][i];
             switch (columnName) {
                 case "num_messages":
                     this._numMessages = value;
@@ -177,16 +188,16 @@ export class ClpArchiveDecoder {
     }
 
     async _populateFiles () {
-        const fileOffsets = this._metadata["archive_files"];
+        const fileOffsets = this._metadata.archive_files;
         const archiveFiles = [];
 
         for (let i = 0; i < fileOffsets.length - 1; i++) {
             const fileInfo = fileOffsets[i];
             const nextFileInfo = fileOffsets[1 + i];
             archiveFiles.push({
-                fileName: fileInfo["n"],
-                offset: fileInfo["o"],
-                size: nextFileInfo["o"] - fileInfo["o"],
+                fileName: fileInfo.n,
+                offset: fileInfo.o,
+                size: nextFileInfo.o - fileInfo.o,
             });
         }
 
@@ -194,16 +205,16 @@ export class ClpArchiveDecoder {
 
         for (let i = 0; i < archiveFiles.length; i++) {
             const f = archiveFiles[i];
-            const fileName = f["fileName"];
+            const {fileName} = f;
 
-            f["bytes"] = this._dataInputStream.readFully(f["size"]);
+            f.bytes = this._dataInputStream.readFully(f.size);
 
             if ("logtype.dict" === fileName) {
-                this._logTypeDict = unpackDictionary(await lzmaDecompress(f["bytes"].slice(8)));
+                this._logTypeDict = unpackDictionary(await lzmaDecompress(f.bytes.slice(8)));
             } else if ("var.dict" === fileName) {
-                this._varDict = unpackDictionary(await lzmaDecompress(f["bytes"].slice(8)));
+                this._varDict = unpackDictionary(await lzmaDecompress(f.bytes.slice(8)));
             } else if ("metadata.db" === fileName) {
-                await this.__readMetaDataDb(f["bytes"]);
+                await this.__readMetaDataDb(f.bytes);
             } else if ("var.segindex" === fileName) {
                 segmentsAvailable = true;
             } else if (true === segmentsAvailable) {
@@ -236,8 +247,9 @@ export class ClpArchiveDecoder {
 
     async _unpackSegments () {
         const unpackPromises = this._segmentFiles.map(
-            (f) => this._unpackOneSegment(f["bytes"])
+            (f) => this._unpackOneSegment(f.bytes)
         );
+
         await Promise.all(unpackPromises);
     }
 
@@ -259,7 +271,9 @@ export class ClpArchiveDecoder {
             const logMessageBytes = [];
 
             this._logTypeDict[logType].forEach((logTypeCharByte) => {
-                if ([0x11, 0x12, 0x13].includes(logTypeCharByte)) {
+                if ([0x11,
+                    0x12,
+                    0x13].includes(logTypeCharByte)) {
                     const variable = variablesIterator.next().value;
                     const bytes = this._getBytesForVariable(logTypeCharByte, variable);
 
@@ -269,7 +283,13 @@ export class ClpArchiveDecoder {
                 }
             });
 
-            const formattedTimestamp = formatDate(Number(timestamp));
+
+            const formattedTimestamp = (
+                "UTC" === globalThis.timezone ?
+                    dayjs.utc(Number(timestamp)) :
+                    dayjs(Number(timestamp))
+            )
+                .format();
             const formattedMessage = ClpArchiveDecoder.#dec.decode(new Uint8Array(logMessageBytes)).trim();
 
             this._decompressedLogs.push(`${formattedTimestamp} ${formattedMessage}`);
@@ -278,7 +298,7 @@ export class ClpArchiveDecoder {
 
     _decodeSegments () {
         for (const s of this._segments) {
-            this._decodeOneSegment(s["timestamps"], s["logTypes"], s["variables"]);
+            this._decodeOneSegment(s.timestamps, s.logTypes, s.variables);
         }
     }
 
