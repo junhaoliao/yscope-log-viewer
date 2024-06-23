@@ -622,7 +622,7 @@ class FileManager {
             this._workerPool.assignTask({
                 sessionId: this.sessionId,
                 pageNum: pageNum,
-                f:
+                pageLogs:
                     this._logsArray?.slice(targetEvent, targetEvent + numEvents).join("\n"),
             });
 
