@@ -5,6 +5,8 @@ import {Row} from "react-bootstrap";
 import LoadingIcons from "react-loading-icons";
 
 import dayjs from "dayjs";
+import tz from "dayjs/plugin/timezone";
+import utc from "dayjs/plugin/utc";
 import {v1 as uuidv1} from "uuid";
 
 import {
@@ -33,6 +35,8 @@ import LogFileState from "./types/LogFileState";
 
 import "./Viewer.scss";
 
+dayjs.extend(utc);
+dayjs.extend(tz);
 
 interface QueryOptions {
     isRegex: boolean,
