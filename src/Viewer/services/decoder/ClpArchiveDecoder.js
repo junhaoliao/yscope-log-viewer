@@ -1,4 +1,5 @@
 import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
 import initSqlJs from "sql.js";
 import {XzReadableStream} from "xzwasm";
 
@@ -8,6 +9,8 @@ import {
     DataInputStream, DataInputStreamEOFError,
 } from "./DataInputStream";
 
+
+dayjs.extend(utc);
 
 /**
  *
