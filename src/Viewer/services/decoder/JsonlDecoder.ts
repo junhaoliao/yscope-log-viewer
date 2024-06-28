@@ -34,16 +34,18 @@ class JsonlDecoder implements FileDecoder {
         dateFormat = dateFormat.replace("yy", "YY");
 
         // Fix day
-        dateFormat = dateFormat.replace("dd", "D");
+        dateFormat = dateFormat.replace("dd", "DD");
         dateFormat = dateFormat.replace("d", "D");
 
         return dateFormat;
     }
 
     static #formatDate (timestamp: number | string, format: string): string {
-        return dayjs(timestamp)
-            .tz("UTC")
-            .format(format);
+        return (
+            "UTC" === globalThis.timezone ?
+                dayjs.utc(Number(timestamp)) :
+                dayjs(Number(timestamp))
+        ).format(format);
     }
 
     #extractDateFormat () {
@@ -67,7 +69,7 @@ class JsonlDecoder implements FileDecoder {
             return;
         }
 
-        this.#dateFormat = JsonlDecoder.#convertLogbackDateFormatToDayjs(dateFormat);
+        this.#dateFormat = `${JsonlDecoder.#convertLogbackDateFormatToDayjs(dateFormat)}ZZ`;
     }
 
     #setEncoderPattern (pattern: string) {
