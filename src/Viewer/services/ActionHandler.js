@@ -151,7 +151,7 @@ class ActionHandler {
         } else {
             dayjs.tz.setDefault(timezone);
         }
-        if (0 !== this._logFile._logsArray.length) {
+        if (null !== this._logFile._logsArray && 0 !== this._logFile._logsArray.length) {
             await this._logFile.loadLogFile();
         }
         this._logFile.decodePage();
