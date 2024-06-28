@@ -269,7 +269,7 @@ export class ClpArchiveDecoder {
         const variablesIterator = variables[Symbol.iterator]();
 
         for (let i = 0; i < this._numMessages; i++) {
-            const timestamp = timestamps[i];
+            const timestamp = Number(timestamps[i]);
             const logType = logTypes[i];
             const logMessageBytes = [];
 
@@ -286,16 +286,17 @@ export class ClpArchiveDecoder {
                 }
             });
 
-
-            const formattedTimestamp = (
-                "UTC" === globalThis.timezone ?
-                    dayjs.utc(Number(timestamp)) :
-                    dayjs(Number(timestamp))
-            )
-                .format();
+            console.log(timestamp);
+            const formattedTimestamp = 0 === timestamp ?
+                "" :
+                `${(
+                    "UTC" === globalThis.timezone ?
+                        dayjs.utc(timestamp) :
+                        dayjs(timestamp)
+                ).format()} `;
             const formattedMessage = ClpArchiveDecoder.#dec.decode(new Uint8Array(logMessageBytes)).trim();
 
-            this._decompressedLogs.push(`${formattedTimestamp} ${formattedMessage}`);
+            this._decompressedLogs.push(`${formattedTimestamp}${formattedMessage}`);
         } // for (let i = 0; i < numMessages; i++)
     }
 
