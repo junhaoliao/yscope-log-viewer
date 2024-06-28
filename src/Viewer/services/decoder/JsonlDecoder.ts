@@ -69,7 +69,7 @@ class JsonlDecoder implements FileDecoder {
             return;
         }
 
-        this.#dateFormat = `${JsonlDecoder.#convertLogbackDateFormatToDayjs(dateFormat)}ZZ`;
+        this.#dateFormat = JsonlDecoder.#convertLogbackDateFormatToDayjs(dateFormat);
     }
 
     #setEncoderPattern (pattern: string) {
@@ -125,7 +125,7 @@ class JsonlDecoder implements FileDecoder {
         this.#fileContent = fileContent;
         this.#timestampPropName = "ts";
         this.#setEncoderPattern(
-            "%d{yyyy-MM-dd HH:mm:ss.SSS} %level [%thread] %class.%method(%file:%line): %message%n"
+            "%d{yyyy-MM-dd HH:mm:ss.SSSZZ} %level [%thread] %class.%method(%file:%line): %message%n"
         );
     }
 
