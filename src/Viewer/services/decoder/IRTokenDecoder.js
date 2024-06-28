@@ -1,13 +1,11 @@
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
-import tz from "dayjs/plugin/timezone";
 
 import LogtypeBuf from "./LogtypeBuf";
 import PROTOCOL from "./PROTOCOL";
 
 
 dayjs.extend(utc);
-dayjs.extend(tz);
 
 class IRTokenDecoder {
     constructor () {
@@ -37,7 +35,11 @@ class IRTokenDecoder {
             // user's local  timezone. This should be more convenient for the
             // user.
             outputResizableBuffer.pushString(
-                dayjs.tz(Number(timestamp)).format()
+                (
+                    "UTC" === globalThis.timezone ?
+                        dayjs.utc(Number(timestamp)) :
+                        dayjs(Number(timestamp))
+                ).format()
             );
         }
     }

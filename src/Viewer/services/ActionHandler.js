@@ -146,11 +146,6 @@ class ActionHandler {
 
     async changeTimezone (timezone) {
         globalThis.timezone = timezone;
-        if ("local" === timezone) {
-            dayjs.tz.setDefault();
-        } else {
-            dayjs.tz.setDefault(timezone);
-        }
         if (null !== this._logFile._logsArray && 0 !== this._logFile._logsArray.length) {
             await this._logFile.loadLogFile();
         }
