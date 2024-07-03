@@ -1,5 +1,6 @@
 import Layout from "./components/Layout";
 import StateContextProvider from "./contexts/StateContextProvider";
+import UrlContextProvider from "./contexts/UrlContextProvider";
 
 
 /**
@@ -10,8 +11,11 @@ import StateContextProvider from "./contexts/StateContextProvider";
 const App = () => {
     return (
         <>
+
             <StateContextProvider>
-                <Layout/>
+                <UrlContextProvider>
+                    <Layout/>
+                </UrlContextProvider>
             </StateContextProvider>
         </>
     );
