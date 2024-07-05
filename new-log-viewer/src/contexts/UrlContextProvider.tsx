@@ -1,25 +1,30 @@
-import {
+import React, {
     createContext,
     useEffect,
     useState,
 } from "react";
 
 
-interface UrlContextProps {
+interface UrlContextType {
     setSearchParamSet: (searchParamSet: Record<string, string | null>) => void;
     setHashParamSet: (hashParamSet: Record<string, string | null>) => void;
     copyToClipboard: (searchParamSet: Record<string, string | null>, hashParamSet: Record<string, string | null>) => void;
 }
 
-const UrlContext = createContext <UrlContextProps>({} as UrlContextProps);
+const UrlContext = createContext <UrlContextType>({} as UrlContextType);
 
+
+interface UrlContextProviderProps {
+    children: React.ReactNode
+}
 
 /**
+ * Provides a context for managing URL parameters and hash values, including utilities for setting search and hash parameters, and copying the current URL with these parameters to the clipboard.
  *
- * @param root0
- * @param root0.children
+ * @param children.children
+ * @param children The child components that will have access to the context.
  */
-const UrlContextProvider = ({children}) => {
+const UrlContextProvider = ({children}: UrlContextProviderProps) => {
     const [hashParam, setHashParam] = useState<string>(window.location.hash.substring(1));
     useEffect(() => {
         setHashParam(window.location.hash.substring(1));
@@ -76,7 +81,13 @@ const UrlContextProvider = ({children}) => {
         const newUrl = new URL(window.location.href);
         newUrl.search = setSearchParamSetHelper(searchParamSet).toString();
         newUrl.hash = setHashParamSetHelper(hashParamSet).toString();
-        navigator.clipboard.writeText(newUrl.toString());
+        navigator.clipboard.writeText(newUrl.toString())
+            .then(() => {
+                console.log("URL copied to clipboard.");
+            })
+            .catch((error: unknown) => {
+                console.error("Failed to copy URL to clipboard:", error);
+            });
     };
 
     return (

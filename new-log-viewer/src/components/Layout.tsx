@@ -28,6 +28,10 @@ const Layout = () => {
         copyToClipboard,
     } = useContext(UrlContext);
 
+    setSearchParamSet({filePath: "path/to/file"});
+    setHashParamSet({logEventIdx: "1145414"});
+    copyToClipboard({filePath: "path/to/filePath"}, {logEventIdx: "1919810"});
+
     useEffect(() => {
         const urlSearchParams = new URLSearchParams(window.location.search);
         const filePath = urlSearchParams.get("filePath");
