@@ -15,14 +15,14 @@ interface IParsedObjectInfo {
 class S3Scanner {
     static readonly #S3_LIST_OBJECTS_MAX_KEYS_MAX_VALUE = 1000;
 
-    static readonly #S3_URL: string = `https://${process.env.S3_BUCKET}.${new URL(process.env.S3_ENDPOINT ?? "").host}`
+    static readonly #S3_URL: string = `https://${process.env.S3_BUCKET}.${new URL(process.env.S3_ENDPOINT ?? "").host}`;
 
     static readonly #S3_ENDPOINT: string = (window.location.origin === S3Scanner.#S3_URL) ?
-        (process.env.S3_ENDPOINT ?? ""):
+        (process.env.S3_ENDPOINT ?? "") :
         (process.env.S3_ALTERNATE_ENDPOINT ?? "");
 
     static readonly #S3_BUCKET: string = (window.location.origin === S3Scanner.#S3_URL) ?
-        (process.env.S3_BUCKET ?? ""):
+        (process.env.S3_BUCKET ?? "") :
         (process.env.S3_ALTERNATE_BUCKET ?? "");
 
     #s3Client: S3Client;
@@ -36,9 +36,9 @@ class S3Scanner {
         let endpoint: string | null = null;
         let pathname: string;
         try {
-            const s3EndpointUrl = new URL(S3Scanner.#S3_ENDPOINT ?? "")
-            endpoint = `https://${S3Scanner.#S3_BUCKET}.${s3EndpointUrl.host}${s3EndpointUrl.pathname}`
-            pathname = urlOrPath.replace(endpoint, "")
+            const s3EndpointUrl = new URL(S3Scanner.#S3_ENDPOINT);
+            endpoint = `https://${S3Scanner.#S3_BUCKET}.${s3EndpointUrl.host}${s3EndpointUrl.pathname}`;
+            pathname = urlOrPath.replace(endpoint, "");
         } catch (e) {
             pathname = urlOrPath;
         }
