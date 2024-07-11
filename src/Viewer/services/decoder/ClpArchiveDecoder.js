@@ -286,7 +286,6 @@ export class ClpArchiveDecoder {
                 }
             });
 
-            console.log(timestamp);
             const formattedTimestamp = 0 === timestamp ?
                 "" :
                 `${(
