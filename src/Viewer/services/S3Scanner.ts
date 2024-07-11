@@ -15,9 +15,15 @@ interface IParsedObjectInfo {
 class S3Scanner {
     static readonly #S3_LIST_OBJECTS_MAX_KEYS_MAX_VALUE = 1000;
 
-    static readonly #S3_ENDPOINT: string = process.env.S3_ENDPOINT ?? "";
+    static readonly #S3_URL: string = `https://${process.env.S3_BUCKET}.${new URL(process.env.S3_ENDPOINT ?? "").host}`
 
-    static readonly #S3_BUCKET: string = process.env.S3_BUCKET ?? "";
+    static readonly #S3_ENDPOINT: string = (window.location.origin === S3Scanner.#S3_URL) ?
+        (process.env.S3_ENDPOINT ?? ""):
+        (process.env.S3_ALTERNATE_ENDPOINT ?? "");
+
+    static readonly #S3_BUCKET: string = (window.location.origin === S3Scanner.#S3_URL) ?
+        (process.env.S3_BUCKET ?? ""):
+        (process.env.S3_ALTERNATE_BUCKET ?? "");
 
     #s3Client: S3Client;
 
@@ -27,12 +33,12 @@ class S3Scanner {
      * @param urlOrPath full URL of the s3 object, or path (without the gateway endpoint URL)
      */
     static #parseObjectInfo (urlOrPath: string): IParsedObjectInfo | null {
-        let pathname: string | null = null;
         let endpoint: string | null = null;
+        let pathname: string;
         try {
-            (
-                {origin: endpoint, pathname} = new URL(urlOrPath)
-            );
+            const s3EndpointUrl = new URL(S3Scanner.#S3_ENDPOINT ?? "")
+            endpoint = `https://${S3Scanner.#S3_BUCKET}.${s3EndpointUrl.host}${s3EndpointUrl.pathname}`
+            pathname = urlOrPath.replace(endpoint, "")
         } catch (e) {
             pathname = urlOrPath;
         }
@@ -262,11 +268,11 @@ class S3Scanner {
     }
 
     /**
-     * Queries the "first" object's path starting with the same prefix.
+     * Queries the "begin" object's path starting with the same prefix.
      *
      * @param objectPath of current
      */
-    public async getFirstObject (objectPath: string): Promise<string | null> {
+    public async getBeginObject (objectPath: string): Promise<string | null> {
         const objectInfo = S3Scanner.#parseObjectInfo(objectPath);
         if (null === objectInfo || null === objectInfo.endpoint) {
             return null;
@@ -302,11 +308,11 @@ class S3Scanner {
     }
 
     /**
-     * Queries the "last" object's path starting with the same prefix.
+     * Queries the "end" object's path starting with the same prefix.
      *
      * @param objectPath of current
      */
-    public async getLastObject (objectPath: string): Promise<string | null> {
+    public async getEndObject (objectPath: string): Promise<string | null> {
         const objectInfo = S3Scanner.#parseObjectInfo(objectPath);
         if (null === objectInfo || null === objectInfo.endpoint) {
             return null;

@@ -71,11 +71,11 @@ const getFileFromSeekParams = async (s3Scanner: S3Scanner, seekParams: FileSeek)
     let fileSrc: string | null;
     let logEventIdx: number;
     if (SEEK_PARAM_VALUE.BEGIN === seekParams.seek) {
-        fileSrc = await s3Scanner.getFirstObject(seekParams.filePathPrefix);
+        fileSrc = await s3Scanner.getBeginObject(seekParams.filePathPrefix);
         logEventIdx = 1;
     } else {
         // SEEK_PARAM_VALUE.END === seekParams.seek
-        fileSrc = await s3Scanner.getLastObject(seekParams.filePathPrefix);
+        fileSrc = await s3Scanner.getEndObject(seekParams.filePathPrefix);
         logEventIdx = -1;
     }
 
