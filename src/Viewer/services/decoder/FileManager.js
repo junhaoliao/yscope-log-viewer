@@ -10,14 +10,16 @@ import {binarySearchWithTimestamp} from "../utils";
 import WorkerPool from "../WorkerPool";
 import {ClpArchiveDecoder} from "./ClpArchiveDecoder";
 import {
-    DataInputStream, DataInputStreamEOFError,
+    DataInputStream,
+    DataInputStreamEOFError,
 } from "./DataInputStream";
 import FourByteClpIrStreamReader from "./FourByteClpIrStreamReader";
 import JsonlDecoder from "./JsonlDecoder";
 import ResizableUint8Array from "./ResizableUint8Array";
 import SimplePrettifier from "./SimplePrettifier";
 import {
-    combineArrayBuffers, formatSizeInBytes,
+    combineArrayBuffers,
+    formatSizeInBytes,
 } from "./utils";
 
 
@@ -470,9 +472,12 @@ class FileManager {
         this._logsArray = await clpArchiveDecoder.decode();
 
         // Update decompression status
-        const numNewlineChars = this._logsArray.length -1;
-        const sizeInBytes = this._logsArray.reduce((accumulator, currentValue)=> accumulator + currentValue.length, 0)
-            + numNewlineChars;
+        const numNewlineChars = this._logsArray.length - 1;
+        const sizeInBytes = this._logsArray.reduce(
+            (accumulator, currentValue) => accumulator + currentValue.length,
+            0
+        ) + numNewlineChars;
+
         this.state.decompressedHumanSize =
             formatSizeInBytes(sizeInBytes, false);
         this._loadingMessageCallback(`Decompressed ${this.state.decompressedHumanSize}.`);
