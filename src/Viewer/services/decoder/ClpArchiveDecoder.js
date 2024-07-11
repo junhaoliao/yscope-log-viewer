@@ -62,6 +62,7 @@ const unpackDictionary = (byteArray) => {
     return dictionary;
 };
 
+/* eslint-disable no-magic-numbers */
 /**
  *
  * @param encodedVar
@@ -91,13 +92,14 @@ const decodeClpFloat = (encodedVar) => {
     let pos = valueLength - 1;
     const decimalIdx = valueLength - 1 - decimalPos;
 
-    for (let i = 0; i < numDigits; i++, pos--) {
+    for (let i = 0; i < numDigits; i++, --pos) {
         if (decimalIdx === pos) {
-            value[pos--] = PERIOD_CHAR_CODE;
+            --pos;
         }
         value[pos] = ZERO_CHAR_CODE + Number(digits % BigInt(10));
         digits /= BigInt(10);
     }
+    value[decimalIdx] = PERIOD_CHAR_CODE;
 
     if (true === isNegative) {
         value[0] = HYPHEN_CHAR_CODE;
@@ -105,6 +107,7 @@ const decodeClpFloat = (encodedVar) => {
 
     return value;
 };
+/* eslint-enable no-magic-numbers */
 
 /**
  *
