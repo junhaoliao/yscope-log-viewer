@@ -12,6 +12,8 @@ import {setupShortcutActions} from "./shortcuts";
 import {setupThemes} from "./themes";
 
 
+const MONACO_RESIZE_DEBOUNCE_TIMEOUT = 250;
+
 /**
  * Centers the line in the editor and change the cursor position.
  *
@@ -48,8 +50,7 @@ const initMonacoEditor = (
     const editor = monaco.editor.create(
         editorContainer,
         {
-            // FIXME: add custom observer debounce automatic layout
-            automaticLayout: true,
+            automaticLayout: false,
             language: LOG_LANGUAGE_NAME,
             maxTokenizationLineLength: 30_000,
             mouseWheelZoom: true,
@@ -59,6 +60,18 @@ const initMonacoEditor = (
             wordWrap: "on",
         }
     );
+
+    let resizeTimeout: ReturnType<typeof setTimeout> | null = null;
+    const resizeObserver = new ResizeObserver(() => {
+        if (null !== resizeTimeout) {
+            clearTimeout(resizeTimeout);
+        }
+        resizeTimeout = setTimeout(() => {
+            editor.layout();
+        }, MONACO_RESIZE_DEBOUNCE_TIMEOUT);
+    });
+
+    resizeObserver.observe(editorContainer);
 
     setupShortcutActions(editor, changeAppState);
     setupCursorPosChangeAction(editor, changeAppState);
