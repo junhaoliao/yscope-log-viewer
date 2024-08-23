@@ -1,5 +1,10 @@
 import {
-    useCallback, useContext, useEffect, useMemo, useRef, useState,
+    useCallback,
+    useContext,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
 } from "react";
 import {Row} from "react-bootstrap";
 import LoadingIcons from "react-loading-icons";
@@ -10,13 +15,17 @@ import utc from "dayjs/plugin/utc";
 import {v1 as uuidv1} from "uuid";
 
 import {
-    APP_THEME, ThemeContext,
+    APP_THEME,
+    ThemeContext,
 } from "../ThemeContext/ThemeContext";
 import {
-    FileSeek, SEEK_PARAM_VALUE,
+    FileSeek,
+    SEEK_PARAM_VALUE,
 } from "../types/url.types";
 import {
-    LEFT_PANEL_DEFAULT_WIDTH_FACTOR, LEFT_PANEL_TAB_IDS, LeftPanel,
+    LEFT_PANEL_DEFAULT_WIDTH_FACTOR,
+    LEFT_PANEL_TAB_IDS,
+    LeftPanel,
 } from "./components/LeftPanel/LeftPanel";
 import MenuBar from "./components/MenuBar/MenuBar";
 import MonacoInstance from "./components/Monaco/MonacoInstance";
@@ -29,11 +38,14 @@ import MessageLogger from "./services/MessageLogger";
 import S3Scanner from "./services/S3Scanner";
 import STATE_CHANGE_TYPE, {CHANGE_FILE_DIREECTION} from "./services/STATE_CHANGE_TYPE";
 import {
-    getModifiedUrl, getNewLineAndPage, parseNum,
+    getModifiedUrl,
+    getNewLineAndPage,
+    parseNum,
 } from "./services/utils";
 import LogFileState from "./types/LogFileState";
 
 import "./Viewer.scss";
+
 
 dayjs.extend(utc);
 dayjs.extend(tz);
@@ -273,19 +285,20 @@ const Viewer = ({
             return;
         }
         switch (type) {
-            case STATE_CHANGE_TYPE.CHANGE_FILE:
-                loadFile(
-                    (args.direction === CHANGE_FILE_DIREECTION.PREV) ?
-                        logFileState.prevFilePath :
-                        logFileState.nextFilePath,
-                    {
-                        ...defaultLogFileState,
-                        logEventIdx: (args.direction === CHANGE_FILE_DIREECTION.PREV) ?
-                            -1 :
-                            1,
-                    }
+            case STATE_CHANGE_TYPE.CHANGE_FILE: {
+                const filePath = (args.direction === CHANGE_FILE_DIREECTION.PREV) ?
+                    logFileState.prevFilePath :
+                    logFileState.nextFilePath;
+                const logEventIdx = (args.direction === CHANGE_FILE_DIREECTION.PREV) ?
+                    -1 :
+                    1;
+                const logViewerUrl = window.location.origin + window.location.pathname;
+                window.open(
+                    `${logViewerUrl}?filePath=${filePath}#logEventIdx=${logEventIdx}`,
+                    "_blank"
                 );
                 break;
+            }
             case STATE_CHANGE_TYPE.PAGE_NUM:
                 if (null === logFileState.pageNum) {
                     throw new Error("Unexpected null logFileState.pageNum");
