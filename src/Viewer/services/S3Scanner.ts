@@ -50,7 +50,7 @@ class S3Scanner {
 
         const prefix = pathname.substring(0, lastSlashIndex + 1);
         const basename = pathname.substring(lastSlashIndex + 1);
-        const withTimestampMatch = basename.match(/^(.*)_(\d+)\.(\d+)\.(.*)$/);
+        const withTimestampMatch = basename.match(/^(.*)_(\d+)[.-](\d+)\.(.*)$/);
 
         let appName;
         let timestampString;
@@ -58,6 +58,7 @@ class S3Scanner {
             ([
                 ,
                 appName,
+                ,
                 timestampString,
             ] = withTimestampMatch);
         } else {
