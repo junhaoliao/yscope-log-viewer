@@ -435,10 +435,10 @@ const Viewer = ({
                 setLoadingLogs(false);
                 break;
             case CLP_WORKER_PROTOCOL.UPDATE_STATE:
-                setLogFileState({
-                    ...logFileState,
+                setLogFileState((v) => ({
+                    ...v,
                     ...event.data.state,
-                });
+                }));
                 setLoadingFile(false);
                 setLoadingLogs(false);
                 setStatusMessage("");
@@ -476,7 +476,6 @@ const Viewer = ({
                 break;
         }
     }, [
-        logFileState,
         logData,
         searchQuery,
         shouldReloadSearch,
