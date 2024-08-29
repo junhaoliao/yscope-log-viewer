@@ -3,6 +3,8 @@ import StateContextProvider from "./contexts/StateContextProvider";
 import UrlContextProvider from "./contexts/UrlContextProvider";
 
 
+// TODO: violation 1
+
 /**
  * Renders the main application.
  *
