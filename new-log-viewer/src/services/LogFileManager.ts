@@ -16,6 +16,8 @@ import {getBasenameFromUrlOrDefault} from "../utils/url";
 import JsonlDecoder from "./decoders/JsonlDecoder";
 
 
+// TODO: violation 4 - this should interrupt the check for violation 3
+
 /**
  * Loads a file from a given source.
  *
