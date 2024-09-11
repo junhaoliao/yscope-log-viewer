@@ -25,6 +25,7 @@ jobs:
       # So `eslint-annotate-action` can create / update status checks
       checks: "write"
       # So `eslint-annotate-action` can get pull request files
+      contents: "read"
       pull-requests: "read"
     steps:
       - uses: "actions/checkout@v4"
