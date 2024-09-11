@@ -4,6 +4,7 @@ import UrlContextProvider from "./contexts/UrlContextProvider";
 
 
 // TODO: put a rick roll inside the layout
+// TODO: delete the previous TODO
 /**
  * Renders the main application.
  *
