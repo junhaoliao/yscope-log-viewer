@@ -12,7 +12,7 @@ html {
 
 :root {
     /* font-family globals */
-    --ylv-ui-font-family: -apple-system, blinkmacsystemfont, system-ui, "Ubuntu", "Droid Sans",
+    --ylv-ui-font-family: -apple-system, BlinkMacSystemFont, system-ui, "Ubuntu", "Droid Sans",
         "Roboto";
 
     /* z-index globals
