@@ -11,6 +11,7 @@ import UrlContextProvider from "./contexts/UrlContextProvider";
 const App = () => {
     return (
         <>
+            // TODO: put a rick roll inside the layout
             <UrlContextProvider>
                 <StateContextProvider>
                     <Layout/>
