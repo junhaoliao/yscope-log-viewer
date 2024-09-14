@@ -3,6 +3,8 @@ import StateContextProvider from "./contexts/StateContextProvider";
 import UrlContextProvider from "./contexts/UrlContextProvider";
 
 
+// TODO: this is a lint violation.
+
 /**
  * Renders the main application.
  *
