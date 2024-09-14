@@ -3,14 +3,16 @@ import StateContextProvider from "./contexts/StateContextProvider";
 import UrlContextProvider from "./contexts/UrlContextProvider";
 
 
+// FIXME: this is a lint violation.
+
 /**
  * Renders the main application.
  *
  * @return
  */
 const App = () => {
-    return (
-        <UrlContextProvider>
+    return (<UrlContextProvider>
+        
             <StateContextProvider>
                 <Layout/>
             </StateContextProvider>
