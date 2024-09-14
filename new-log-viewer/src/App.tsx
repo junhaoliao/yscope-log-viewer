@@ -3,6 +3,11 @@ import StateContextProvider from "./contexts/StateContextProvider";
 import UrlContextProvider from "./contexts/UrlContextProvider";
 
 
+// TODO: put a rick roll inside the layout
+// TODO: delete the previous TODO
+
+// TODO: Ah, yes, the third TODO.
+// TODO: give you up
 /**
  * Renders the main application.
  *
@@ -11,6 +16,7 @@ import UrlContextProvider from "./contexts/UrlContextProvider";
 const App = () => {
     return (
         <>
+
             <UrlContextProvider>
                 <StateContextProvider>
                     <Layout/>
