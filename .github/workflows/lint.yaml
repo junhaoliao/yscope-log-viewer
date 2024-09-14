@@ -17,7 +17,11 @@ concurrency:
 jobs:
   lint-check:
     runs-on: "ubuntu-latest"
-    permissions: "write-all"
+    permissions:
+      actions: "write"
+      checks: "write"
+      contents: "read"
+      pull-requests: "read"
     steps:
       - uses: "actions/checkout@v4"
         with:
@@ -36,5 +40,4 @@ jobs:
         with:
           fail-on-error: true
           fail-on-warning: true
-          only-pr-files: true
           report-json: "./new-log-viewer/eslint-report.json"
