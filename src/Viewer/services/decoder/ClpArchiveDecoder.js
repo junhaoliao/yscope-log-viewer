@@ -6,7 +6,8 @@ import {XzReadableStream} from "xzwasm";
 import * as msgpack from "@msgpack/msgpack";
 
 import {
-    DataInputStream, DataInputStreamEOFError,
+    DataInputStream,
+    DataInputStreamEOFError,
 } from "./DataInputStream";
 
 
@@ -275,6 +276,13 @@ export class ClpArchiveDecoder {
             const timestamp = Number(timestamps[i]);
             const logType = logTypes[i];
             const logMessageBytes = [];
+            let formattedMessage = "";
+            const dumpMessageIfBytesExceed = (newLength) => {
+                if (51200000 < logMessageBytes.length + newLength) {
+                    formattedMessage += ClpArchiveDecoder.#dec.decode(new Uint8Array(logMessageBytes));
+                    logMessageBytes.length = 0;
+                }
+            };
 
             this._logTypeDict[logType].forEach((logTypeCharByte) => {
                 if ([0x11,
@@ -283,8 +291,10 @@ export class ClpArchiveDecoder {
                     const variable = variablesIterator.next().value;
                     const bytes = this._getBytesForVariable(logTypeCharByte, variable);
 
+                    dumpMessageIfBytesExceed(bytes.length);
                     logMessageBytes.push(...bytes);
                 } else {
+                    dumpMessageIfBytesExceed(1);
                     logMessageBytes.push(logTypeCharByte);
                 }
             });
@@ -296,7 +306,9 @@ export class ClpArchiveDecoder {
                         dayjs.utc(timestamp) :
                         dayjs(timestamp)
                 ).format()} `;
-            const formattedMessage = ClpArchiveDecoder.#dec.decode(new Uint8Array(logMessageBytes)).trim();
+
+            formattedMessage +=
+                ClpArchiveDecoder.#dec.decode(new Uint8Array(logMessageBytes)).trim();
 
             this._decompressedLogs.push(`${formattedTimestamp}${formattedMessage}`);
         } // for (let i = 0; i < numMessages; i++)
