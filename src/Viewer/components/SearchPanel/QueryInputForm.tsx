@@ -1,5 +1,8 @@
 import {
-    ChangeEvent, MouseEvent,
+    ChangeEvent,
+    MouseEvent,
+    useEffect,
+    useRef,
 } from "react";
 import {Regex} from "react-bootstrap-icons";
 
@@ -26,6 +29,7 @@ const QueryInputForm = ({
     query,
     queryChangeHandler,
 }:QueryInputFormProps) => {
+    const queryInputRef = useRef<HTMLTextAreaElement>(null);
     const handleQueryButtonClick = (e: MouseEvent<HTMLButtonElement>) => {
         e.preventDefault();
         const {action} = e.currentTarget.dataset;
@@ -41,20 +45,32 @@ const QueryInputForm = ({
         }
     };
 
+    const autoResizeHeight = () => {
+        if (null === queryInputRef.current) {
+            return;
+        }
+        queryInputRef.current.style.height = "0";
+        queryInputRef.current.style.height =
+            `${queryInputRef.current.scrollHeight + QUERY_INPUT_TEXTAREA_EXTRA_HEIGHT}px`;
+    };
+
     const handleQueryInputChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
-        // auto resize height of the input box
-        e.target.style.height = "0";
-        e.target.style.height = `${e.target.scrollHeight + QUERY_INPUT_TEXTAREA_EXTRA_HEIGHT}px`;
+        autoResizeHeight();
 
         const newQuery = e.target.value;
         queryChangeHandler({...query, searchString: newQuery});
     };
+
+    useEffect(() => {
+        autoResizeHeight();
+    }, []);
 
     return (
         <form style={{display: "flex"}}>
             <textarea
                 className={"search-input"}
                 placeholder={"Query"}
+                ref={queryInputRef}
                 style={{paddingRight: "66px"}}
                 value={query.searchString}
                 onChange={handleQueryInputChange}
