@@ -4,7 +4,11 @@ import FourByteVarBuf from "./FourByteVarBuf";
 import IRTokenDecoder from "./IRTokenDecoder";
 import LogtypeBuf from "./LogtypeBuf";
 import PROTOCOL from "./PROTOCOL";
-import {countByteOccurrencesInUtf8Uint8Array, uint8ArrayContains} from "./utils";
+import {
+    countByteOccurrencesInUtf8Uint8Array,
+    uint8ArrayContains,
+} from "./utils";
+
 
 const NEWLINE_CODE_POINT = "\n".codePointAt(0);
 
@@ -26,7 +30,9 @@ class FourByteClpIrStreamReaderEOFError extends Error {
  */
 class FourByteClpIrStreamReader {
     static textEncoder = new TextEncoder();
+
     static textDecoder = new TextDecoder();
+
     static VERBOSITIES = [
         {label: "≤ TRACE", uint8Array: FourByteClpIrStreamReader.textEncoder.encode("TRACE")},
         {label: "≤ DEBUG", uint8Array: FourByteClpIrStreamReader.textEncoder.encode("DEBUG")},
@@ -46,6 +52,7 @@ class FourByteClpIrStreamReader {
 
     /**
      * Constructor
+     *
      * @param {DataInputStream} dataInputStream
      * @param {LogEventContentFormatter} logEventContentFormatter
      */
@@ -56,9 +63,7 @@ class FourByteClpIrStreamReader {
         this._logtype = new LogtypeBuf();
         this._varPool = new BufferPool(FourByteVarBuf);
 
-        this._streamProtocolDecoder = new FourByteClpIrStreamProtocolDecoder(
-            dataInputStream, this._tokenDecoder
-        );
+        this._streamProtocolDecoder = new FourByteClpIrStreamProtocolDecoder(dataInputStream, this._tokenDecoder);
 
         this._logEventContentFormatter = logEventContentFormatter;
     }
@@ -66,6 +71,7 @@ class FourByteClpIrStreamReader {
     /**
      * Indexes the next log event in the stream. See `logEventOffsets` for the
      * data that's indexed.
+     *
      * @param {Array} logEventIndex An array to store index objects with the
      * keys:
      * "startIndex": The begin index of the event in the stream;
@@ -78,23 +84,27 @@ class FourByteClpIrStreamReader {
     indexNextLogEvent (logEventIndex) {
         try {
             const beginIdx = this._dataInputStream.getPos();
+
             // TODO _readLogEvent is not efficient for the purposes of indexing
             //  since it actually stores the log event in preparation for
             //  decoding whereas indexing the log event only needs to read
             //  the tag and length bytes.
-            const {timestamp, verbosityIx} = this._readLogEvent();
+            const logEvent = this._readLogEvent();
+            if (null === logEvent) {
+                return true;
+            }
+            const {timestamp, verbosityIx} = logEvent;
             logEventIndex.push({
-                "startIndex": beginIdx,
-                "endIndex": this._dataInputStream.getPos(),
-                "verbosityIx": verbosityIx,
-                "timestamp": timestamp,
+                startIndex: beginIdx,
+                endIndex: this._dataInputStream.getPos(),
+                verbosityIx: verbosityIx,
+                timestamp: timestamp,
             });
         } catch (error) {
             if (error instanceof FourByteClpIrStreamReaderEOFError) {
                 return false;
-            } else {
-                throw error;
             }
+            throw error;
         }
 
         return true;
@@ -102,6 +112,7 @@ class FourByteClpIrStreamReader {
 
     /**
      * Reads and decodes the next log event in the stream
+     *
      * @param {ResizableUint8Array} outputResizableBuffer Buffer to write the
      * decoded log event into
      * @param {Array} logEventMetadata An array to store metadata objects about
@@ -113,8 +124,9 @@ class FourByteClpIrStreamReader {
      * @return {boolean} Whether an event was read and decoded
      */
     readAndDecodeLogEvent (outputResizableBuffer, logEventMetadata) {
-        const {verbosityIx, beginOffset, contentBeginOffset}
-            = this.readAndDecodeLogEventIntoBuffer(outputResizableBuffer);
+        const {verbosityIx, beginOffset, contentBeginOffset} =
+            this.readAndDecodeLogEventIntoBuffer(outputResizableBuffer);
+
         if (null === verbosityIx) {
             return false;
         }
@@ -126,6 +138,7 @@ class FourByteClpIrStreamReader {
         } else {
             const [isFormatted, formattedContent] =
                 this._logEventContentFormatter(contentUint8Array);
+
             if (isFormatted) {
                 // Delete the unformatted content and replace it
                 // with the formatted content
@@ -136,17 +149,15 @@ class FourByteClpIrStreamReader {
                 // looping over the array while counting
                 numLines = formattedContent.split("\n").length - 1;
             } else {
-                numLines = countByteOccurrencesInUtf8Uint8Array(
-                    contentUint8Array, NEWLINE_CODE_POINT
-                );
+                numLines = countByteOccurrencesInUtf8Uint8Array(contentUint8Array, NEWLINE_CODE_POINT);
             }
         }
 
         logEventMetadata.push({
-            "beginOffset": beginOffset,
-            "endOffset": outputResizableBuffer.getLength(),
-            "numLines": numLines,
-            "verbosityIx": verbosityIx,
+            beginOffset: beginOffset,
+            endOffset: outputResizableBuffer.getLength(),
+            numLines: numLines,
+            verbosityIx: verbosityIx,
         });
 
         return true;
@@ -157,13 +168,13 @@ class FourByteClpIrStreamReader {
      *
      * @param {ResizableUint8Array} outputResizableBuffer where the decoded log
      * event will be stored.
-     * @return {Object} An object containing information about the decoded log
+     * @return {object} An object containing information about the decoded log
      * event:
-     *   - {number} verbosityIx of the log event
-     *   - {number} beginOffset of the WHOLE log event output
-     *   in outputResizableBuffer
-     *   - {number} contentBeginOffset of the log event output
-     *   in outputResizableBuffer
+     * - {number} verbosityIx of the log event
+     * - {number} beginOffset of the WHOLE log event output
+     * in outputResizableBuffer
+     * - {number} contentBeginOffset of the log event output
+     * in outputResizableBuffer
      */
     readAndDecodeLogEventIntoBuffer (outputResizableBuffer) {
         let timestamp = null;
@@ -174,7 +185,11 @@ class FourByteClpIrStreamReader {
         let contentBeginOffset = null;
 
         try {
-            ({timestamp, verbosityIx, numValidVars} = this._readLogEvent());
+            const logEvent = this._readLogEvent();
+            if (null === logEvent) {
+                return true;
+            }
+            ({timestamp, verbosityIx, numValidVars} = logEvent);
         } catch (error) {
             if (!(error instanceof FourByteClpIrStreamReaderEOFError)) {
                 throw error;
@@ -225,8 +240,12 @@ class FourByteClpIrStreamReader {
 
             // FIXME: This only supports verbosity levels starting at the 2nd
             //  character of the log type
-            if (uint8ArrayContains(this._logtype.getValueUint8Array(), 1,
-                verbosityUint8Array, 0)) {
+            if (uint8ArrayContains(
+                this._logtype.getValueUint8Array(),
+                1,
+                verbosityUint8Array,
+                0
+            )) {
                 return i;
             }
         }
@@ -237,9 +256,10 @@ class FourByteClpIrStreamReader {
 
     /**
      * Reads a log event from the stream
-     * @return {{timestamp: bigint, verbosityIx: number, numValidVars: number}}
-     * The log event's timestamp, verbosity index, and
-     * number of valid variables
+     *
+     * @return {{timestamp: bigint, verbosityIx: number, numValidVars: number} | null}
+     * The log event's timestamp, verbosity index, and number of valid variables
+     * or null if no log events were read but the stream may contain more events
      * @throws {FourByteClpIrStreamReaderEOFError} on EOF
      * @private
      */
@@ -247,6 +267,12 @@ class FourByteClpIrStreamReader {
         let tag = this._streamProtocolDecoder.readTag(this._dataInputStream);
         if (PROTOCOL.PAYLOAD.EOF === tag) {
             throw new FourByteClpIrStreamReaderEOFError();
+        } else if (PROTOCOL.PAYLOAD.TIMESTAMP_UTC_OFFSET_CHANGE === tag) {
+            // TODO: add formatting support for UTC offset changes
+            // Drain the int64 packet
+            this._dataInputStream.readSignedLong();
+
+            return null;
         }
 
         // Read variables if present in this message
@@ -257,6 +283,7 @@ class FourByteClpIrStreamReader {
             tag = decoder.readTag(this._dataInputStream);
             ++numValidVars;
         }
+
         // Read the logtype and timestamp present in every message
         this._streamProtocolDecoder.readLogtype(this._dataInputStream, tag, this._logtype);
         const verbosityIx = this._getLog4jVerbosity();

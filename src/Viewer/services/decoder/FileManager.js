@@ -221,6 +221,12 @@ class FileManager {
             this._timestampSorted = true;
             let prevTimestamp = decoder._metadataTimestamp;
             while (this._irStreamReader.indexNextLogEvent(this._logEventOffsets)) {
+                if (0 === this._logEventOffsets.length) {
+                    // indexNextLogEvent returns true to indicate deserialization success
+                    // even when no actual log event is deserialized (e.g., could be a utcOffset
+                    // packet)
+                    continue;
+                }
                 const currEv = this._logEventOffsets[this._logEventOffsets.length - 1];
                 const {timestamp} = currEv;
                 if (timestamp < prevTimestamp) {

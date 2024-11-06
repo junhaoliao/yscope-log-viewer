@@ -30,7 +30,7 @@ class IRTokenDecoder {
     }
 
     decodeTimestamp (outputResizableBuffer, timestamp) {
-        if (timestamp >= BigInt(0) && PROTOCOL.PAYLOAD.TIMESTAMP_NULL_VAL !== timestamp) {
+        if (0n <= timestamp) {
             // NOTE: Since we don't specify a timezone, JavaScript will use the
             // user's local  timezone. This should be more convenient for the
             // user.
