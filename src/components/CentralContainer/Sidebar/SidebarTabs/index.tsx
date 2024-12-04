@@ -20,6 +20,7 @@ import {openInNewTab} from "../../../../utils/url";
 import SettingsModal from "../../../modals/SettingsModal";
 import FileInfoTabPanel from "./FileInfoTabPanel";
 import SearchTabPanel from "./SearchTabPanel";
+import SettingsTabPanel from "./SettingsTabPanel";
 import TabButton from "./TabButton";
 
 import "./index.css";
@@ -64,9 +65,9 @@ const SidebarTabs = forwardRef<HTMLDivElement, SidebarTabsProps>((
 
     const handleTabButtonClick = (tabName: TAB_NAME) => {
         switch (tabName) {
-            case TAB_NAME.SETTINGS:
-                setIsSettingsModalOpen(true);
-                break;
+            // case TAB_NAME.SETTINGS:
+            //     setIsSettingsModalOpen(true);
+            //     break;
             case TAB_NAME.DOCUMENTATION:
                 openInNewTab(DOCUMENTATION_URL);
                 break;
@@ -110,6 +111,7 @@ const SidebarTabs = forwardRef<HTMLDivElement, SidebarTabsProps>((
                 </TabList>
                 <FileInfoTabPanel/>
                 <SearchTabPanel/>
+                <SettingsTabPanel/>
             </Tabs>
             <SettingsModal
                 isOpen={isSettingsModalOpen}

@@ -6,6 +6,7 @@ import React, {
 
 import {
     Button,
+    ButtonGroup,
     DialogActions,
     DialogContent,
     DialogTitle,
@@ -33,6 +34,13 @@ import ThemeSwitchToggle from "./ThemeSwitchToggle";
 
 
 const CONFIG_FORM_FIELDS = [
+    {
+        helperText: "Number of log messages to display per page.",
+        initialValue: getConfig(CONFIG_KEY.PAGE_SIZE),
+        label: "View: Page size",
+        name: LOCAL_STORAGE_KEY.PAGE_SIZE,
+        type: "number",
+    },
     {
         helperText: (
             <p>
@@ -68,13 +76,6 @@ const CONFIG_FORM_FIELDS = [
         label: "Decoder: Timestamp key",
         name: LOCAL_STORAGE_KEY.DECODER_OPTIONS_TIMESTAMP_KEY,
         type: "text",
-    },
-    {
-        helperText: "Number of log messages to display per page.",
-        initialValue: getConfig(CONFIG_KEY.PAGE_SIZE),
-        label: "View: Page size",
-        name: LOCAL_STORAGE_KEY.PAGE_SIZE,
-        type: "number",
     },
 ];
 
@@ -136,50 +137,48 @@ const SettingsDialog = forwardRef<HTMLFormElement>((_, ref) => {
             onReset={handleConfigFormReset}
             onSubmit={handleConfigFormSubmit}
         >
-            <ModalDialog
-                minWidth={"md"}
-                size={"lg"}
+            <FormControl className={"config-form-control"}>
+                <FormLabel>
+                    View: App theme
+                </FormLabel>
+                <ThemeSwitchToggle/>
+            </FormControl>
+
+            {CONFIG_FORM_FIELDS.map((field, index) => (
+                <FormControl
+                    className={"config-form-control"}
+                    key={index}
+                >
+                    <FormLabel>
+                        {field.label}
+                    </FormLabel>
+                    <Input
+                        defaultValue={field.initialValue}
+                        name={field.name}
+                        type={field.type}/>
+                    <FormHelperText>
+                        {field.helperText}
+                    </FormHelperText>
+                </FormControl>
+            ))}
+            <ButtonGroup
+                spacing={0.35}
+                sx={{flexDirection: "row-reverse", marginTop: "10px"}}
+                variant={"solid"}
             >
-                <DialogTitle className={"settings-dialog-title"}>
-                    <span className={"settings-dialog-title-text"}>
-                        Settings
-                    </span>
-                    <ThemeSwitchToggle/>
-                </DialogTitle>
-                <DialogContent>
-                    {CONFIG_FORM_FIELDS.map((field, index) => (
-                        <FormControl
-                            className={"config-form-control"}
-                            key={index}
-                        >
-                            <FormLabel>
-                                {field.label}
-                            </FormLabel>
-                            <Input
-                                defaultValue={field.initialValue}
-                                name={field.name}
-                                type={field.type}/>
-                            <FormHelperText>
-                                {field.helperText}
-                            </FormHelperText>
-                        </FormControl>
-                    ))}
-                </DialogContent>
-                <DialogActions>
-                    <Button
-                        color={"primary"}
-                        type={"submit"}
-                    >
-                        Apply & Reload
-                    </Button>
-                    <Button
-                        color={"neutral"}
-                        type={"reset"}
-                    >
-                        Reset Default
-                    </Button>
-                </DialogActions>
-            </ModalDialog>
+                <Button
+                    color={"primary"}
+                    type={"submit"}
+                >
+                    Apply & Reload
+                </Button>
+                <Button
+                    color={"neutral"}
+                    type={"reset"}
+                >
+                    Reset Default
+                </Button>
+            </ButtonGroup>
         </form>
     );
 });
