@@ -109,10 +109,15 @@ class JsonlDecoder implements FileDecoder {
         for (const propName of this.#propertyNames) {
             if (Object.hasOwn(logEvent, propName)) {
                 const placeholder = `%${propName}`;
-                const propValue = logEvent[propName];
+                let propValue = logEvent[propName];
                 if ("undefined" === typeof propValue) {
                     console.error(`Unexpected undefined logEvent[${propName}]`);
                 } else {
+                    if ("xEx" === propName &&
+                        "string" === typeof propValue &&
+                        0 < propValue.length) {
+                        propValue = `\n${propValue}`;
+                    }
                     result = result.replace(placeholder, propValue.toString());
                 }
             }
@@ -125,7 +130,7 @@ class JsonlDecoder implements FileDecoder {
         this.#fileContent = fileContent;
         this.#timestampPropName = "ts";
         this.#setEncoderPattern(
-            "%d{yyyy-MM-dd HH:mm:ss.SSSZZ} %level [%thread] %class.%method(%file:%line): %message%n"
+            "%d{yyyy-MM-dd HH:mm:ss.SSSZZ} %level [%thread] %class.%method(%file:%line): %message%n%xEx"
         );
     }
 
