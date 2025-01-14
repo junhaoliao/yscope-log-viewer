@@ -18,6 +18,13 @@ module.exports = mergeWithRules({
         hot: true,
         open: true,
         port: 3010,
+        client: {
+            overlay: {
+                errors: true,
+                warnings: false,
+                runtimeErrors: true,
+            },
+        },
     },
     devtool: "eval-source-map",
     mode: "development",
