@@ -136,7 +136,9 @@ const loadFile = async (fileSrc: FileSrcType)
     let fileData: Uint8Array;
     if ("string" === typeof fileSrc) {
         fileName = getBasenameFromUrlOrDefault(fileSrc);
-        fileData = await getUint8ArrayFrom(fileSrc, () => null);
+        fileData = await getUint8ArrayFrom(fileSrc, (numBytesDownloaded, numBytesTotal) => {
+            console.log(`Downloading ${numBytesDownloaded} of ${numBytesTotal} bytes...`);
+        });
     } else {
         fileName = fileSrc.name;
         fileData = new Uint8Array(await fileSrc.arrayBuffer());
