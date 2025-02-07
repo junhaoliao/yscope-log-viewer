@@ -47,7 +47,6 @@ const normalizeTotalSize = (onProgress: ProgressCallback) => ({
     loaded,
     total,
 }: AxiosProgressEvent) => {
-    console.log(total);
     if ("undefined" === typeof total || isNaN(total)) {
         total = loaded;
     }
