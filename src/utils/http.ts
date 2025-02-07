@@ -37,8 +37,8 @@ const convertAxiosError = (e: AxiosError): Error => {
 
 
 /**
- * Normalizes total size if undefined and calls the provided onProgress callback with loaded and
- * total sizes.
+ * Normalizes the total size of a download event, and calls the provided onProgress callback with
+ * loaded and total sizes.
  *
  * @param onProgress
  * @return The handler that wraps `onProgress`.
@@ -47,7 +47,8 @@ const normalizeTotalSize = (onProgress: ProgressCallback) => ({
     loaded,
     total,
 }: AxiosProgressEvent) => {
-    if ("undefined" === typeof total) {
+    console.log(total);
+    if ("undefined" === typeof total || isNaN(total)) {
         total = loaded;
     }
     onProgress(loaded, total);

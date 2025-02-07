@@ -6,12 +6,17 @@ import {
 } from "../../src/utils/http";
 
 
+const handleProgress = jest.fn((loaded, total) => {
+    expect(loaded).toBeGreaterThanOrEqual(0);
+    expect(total).toBeGreaterThanOrEqual(0);
+});
+
+beforeEach(() => {
+    handleProgress.mockReset();
+});
+
 describe("getJsonObjectFrom", () => {
     it("should fetch with progress callback and return a JSON object", async () => {
-        const handleProgress = jest.fn((loaded, total) => {
-            expect(loaded).toBeGreaterThanOrEqual(0);
-            expect(total).toBeGreaterThanOrEqual(0);
-        });
         const result = await getJsonObjectFrom<Record<string, never>>(
             "https://httpbin.org/json",
             handleProgress
@@ -62,10 +67,6 @@ describe("getUint8ArrayFrom", () => {
     it("should fetch a file and return a Uint8Array", async () => {
         const myString = "hello";
         const myDataArray = new TextEncoder().encode(myString);
-        const handleProgress = jest.fn((loaded, total) => {
-            expect(loaded).toBeGreaterThanOrEqual(0);
-            expect(total).toBeGreaterThanOrEqual(0);
-        });
         const result = await getUint8ArrayFrom(
             `https://httpbin.org/base64/${btoa(myString)}`,
             handleProgress
@@ -84,4 +85,18 @@ describe("getUint8ArrayFrom", () => {
             },
         });
     });
+});
+
+describe("normalizeTotalSize", () => {
+    it(
+        'should normalize total size if the response headers do not contain "Content-Length"',
+        async () => {
+            await getUint8ArrayFrom(
+                "https://httpbin.org/stream-bytes/4",
+                handleProgress
+            );
+
+            expect(handleProgress).toHaveBeenCalled();
+        }
+    );
 });
