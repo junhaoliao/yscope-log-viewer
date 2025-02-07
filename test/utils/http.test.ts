@@ -51,20 +51,10 @@ describe("getJsonObjectFrom", () => {
 
         expect(result).toContain("<html");
     });
-
-    it("should handle HTTP error and throw custom error", async () => {
-        const url = `https://httpbin.org/status/${StatusCodes.NOT_FOUND}`;
-        await expect(getJsonObjectFrom(url)).rejects.toMatchObject({
-            message: `Request failed with status code ${StatusCodes.NOT_FOUND}`,
-            cause: {
-                url: url,
-            },
-        });
-    });
 });
 
 describe("getUint8ArrayFrom", () => {
-    it("should fetch a file and return a Uint8Array", async () => {
+    it("should fetch a file with progress callback and return a Uint8Array", async () => {
         const myString = "hello";
         const myDataArray = new TextEncoder().encode(myString);
         const result = await getUint8ArrayFrom(
@@ -74,16 +64,6 @@ describe("getUint8ArrayFrom", () => {
 
         expect(handleProgress).toHaveBeenCalled();
         expect(result).toEqual(myDataArray);
-    });
-
-    it("should handle HTTP error and throw a custom error", async () => {
-        const url = `https://httpbin.org/status/${StatusCodes.NOT_FOUND}`;
-        await expect(getUint8ArrayFrom(url)).rejects.toMatchObject({
-            message: `Request failed with status code ${StatusCodes.NOT_FOUND}`,
-            cause: {
-                url: url,
-            },
-        });
     });
 });
 
@@ -99,4 +79,37 @@ describe("normalizeTotalSize", () => {
             expect(handleProgress).toHaveBeenCalled();
         }
     );
+});
+
+describe("Invalid HTTP sources", () => {
+    it(
+        "should cause a custom error to be thrown when the HTTP request is not successful",
+        async () => {
+            const url = `https://httpbin.org/status/${StatusCodes.NOT_FOUND}`;
+            await expect(getJsonObjectFrom(url)).rejects.toMatchObject({
+                message: `Request failed with status code ${StatusCodes.NOT_FOUND}`,
+                cause: {
+                    url: url,
+                },
+            });
+            await expect(getUint8ArrayFrom(url)).rejects.toMatchObject({
+                message: `Request failed with status code ${StatusCodes.NOT_FOUND}`,
+                cause: {
+                    url: url,
+                },
+            });
+        }
+    );
+
+    it("should cause a TypeError to be thrown when the URL is invalid", async () => {
+        const url = "/";
+        await expect(() => getJsonObjectFrom(url)).rejects.toThrow({
+            name: "TypeError",
+            message: "Invalid URL",
+        });
+        await expect(() => getUint8ArrayFrom(url)).rejects.toThrow({
+            name: "TypeError",
+            message: "Invalid URL",
+        });
+    });
 });
