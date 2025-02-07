@@ -55,10 +55,10 @@ const normalizeTotalSize = (onProgress: ProgressCallback) => ({
 
 /**
  * Retrieves an object that is stored as JSON in a remote location.
- * If the response is not JSON, the response is returned as a string.
+ * If the response is not an object, the response is returned as a string.
  *
  * @param remoteUrl
- * @param onProgress
+ * @param [onProgress]
  * @return The parsed JSON object.
  * @throws {Error} if the download fails.
  */
@@ -85,7 +85,7 @@ const getJsonObjectFrom = async <T>(
  * Downloads (bypassing any caching) a file as a Uint8Array.
  *
  * @param fileUrl
- * @param onProgress
+ * @param [onProgress]
  * @return The file's content.
  * @throws {Error} if the download fails.
  */
