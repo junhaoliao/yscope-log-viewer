@@ -114,6 +114,7 @@ const getUint8ArrayFrom = async (
 };
 
 export {
+    convertAxiosError,
     getJsonObjectFrom,
     getUint8ArrayFrom,
 };

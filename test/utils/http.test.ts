@@ -1,6 +1,11 @@
-import {StatusCodes} from "http-status-codes";
+import axios, {AxiosError} from "axios";
+import {
+    getReasonPhrase,
+    StatusCodes,
+} from "http-status-codes";
 
 import {
+    convertAxiosError,
     getJsonObjectFrom,
     getUint8ArrayFrom,
 } from "../../src/utils/http";
@@ -116,6 +121,58 @@ describe("Invalid HTTP sources", () => {
         await expect(() => getUint8ArrayFrom(url)).rejects.toThrow({
             name: "TypeError",
             message: "Invalid URL",
+        });
+    });
+});
+
+describe("convertAxiosError", () => {
+    it("should handle errors with a response available", async () => {
+        const url = `https://httpbin.org/status/${StatusCodes.NOT_FOUND}`;
+        const expectedCode = "ERR_BAD_REQUEST";
+        const expectedStatus = StatusCodes.NOT_FOUND;
+        const expectedStatusText = getReasonPhrase(expectedStatus).toUpperCase();
+        const expectedBody = "";
+
+        try {
+            // Access a 404 route.
+            await axios.get(url);
+        } catch (e) {
+            const error = convertAxiosError(e as AxiosError);
+            expect(error.cause).toEqual({
+                url: url,
+                code: expectedCode,
+                details: `get returned ${expectedStatus}(${expectedStatusText}): ${expectedBody}`,
+            });
+        }
+    });
+
+    it("should handle errors with no response available", async () => {
+        const url = "http://127.0.0.1:9";
+        const expectedCode = "ECONNREFUSED";
+
+        try {
+            // Access the Discard server.
+            await axios.get(url);
+        } catch (e) {
+            const error = convertAxiosError(e as AxiosError);
+            expect(error.cause).toEqual({
+                url: url,
+                code: expectedCode,
+                details: `get ${url} failed with no response: ${expectedCode}`,
+            });
+        }
+    });
+
+    it("should handle errors with certain properties missing", () => {
+        const expectedUrl = "UNKNOWN URL";
+        const expectedCode = "UNKNOWN CODE";
+
+        const error = convertAxiosError(new AxiosError(""));
+        expect(error.message).toBe(`${AxiosError.name}: ${expectedCode}`);
+        expect(error.cause).toEqual({
+            url: expectedUrl,
+            code: expectedCode,
+            details: `UNKNOWN METHOD ${expectedUrl} failed with no response: ${expectedCode}`,
         });
     });
 });
