@@ -16,14 +16,9 @@ beforeEach(() => {
 });
 
 describe("getJsonObjectFrom", () => {
-    it("should fetch with progress callback and return a JSON object", async () => {
-        const result = await getJsonObjectFrom<Record<string, never>>(
-            "https://httpbin.org/json",
-            handleProgress
-        );
-
-        expect(handleProgress).toHaveBeenCalled();
-        expect(result).toEqual({
+    it("should fetch a JSON with an optional progress callback and return a object", async () => {
+        const url = "https://httpbin.org/json";
+        const expected = {
             slideshow: {
                 author: "Yours Truly",
                 date: "date of publication",
@@ -43,7 +38,14 @@ describe("getJsonObjectFrom", () => {
                 ],
                 title: "Sample Slide Show",
             },
-        });
+        };
+
+        let result = await getJsonObjectFrom<Record<string, never>>(url);
+        expect(result).toEqual(expected);
+
+        result = await getJsonObjectFrom<Record<string, never>>(url, handleProgress);
+        expect(result).toEqual(expected);
+        expect(handleProgress).toHaveBeenCalled();
     });
 
     it("should fetch and return a string if response is non-JSON", async () => {
@@ -54,17 +56,21 @@ describe("getJsonObjectFrom", () => {
 });
 
 describe("getUint8ArrayFrom", () => {
-    it("should fetch a file with progress callback and return a Uint8Array", async () => {
-        const myString = "hello";
-        const myDataArray = new TextEncoder().encode(myString);
-        const result = await getUint8ArrayFrom(
-            `https://httpbin.org/base64/${btoa(myString)}`,
-            handleProgress
-        );
+    it(
+        "should fetch a file with an optional progress callback and return a Uint8Array",
+        async () => {
+            const myString = "hello";
+            const myDataArray = new TextEncoder().encode(myString);
+            const url = `https://httpbin.org/base64/${btoa(myString)}`;
 
-        expect(handleProgress).toHaveBeenCalled();
-        expect(result).toEqual(myDataArray);
-    });
+            let result = await getUint8ArrayFrom(url);
+            expect(result).toEqual(myDataArray);
+
+            result = await getUint8ArrayFrom(url, handleProgress);
+            expect(result).toEqual(myDataArray);
+            expect(handleProgress).toHaveBeenCalled();
+        }
+    );
 });
 
 describe("normalizeTotalSize", () => {
