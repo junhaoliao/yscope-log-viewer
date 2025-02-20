@@ -12,18 +12,27 @@ interface IParsedObjectInfo {
     timestamp: number | null;
 }
 
+/**
+ *
+ * @param hostname
+ */
+const getMainDomain = (hostname: string) => {
+    const parts = hostname.split(".");
+
+    if (2 < parts.length) {
+        return parts.slice(-2).join(".");
+    }
+
+    return hostname;
+};
+
+
 class S3Scanner {
     static readonly #S3_LIST_OBJECTS_MAX_KEYS_MAX_VALUE = 1000;
 
-    static readonly #S3_URL: string = `https://${process.env.S3_BUCKET}.${new URL(process.env.S3_ENDPOINT ?? "").host}`;
+    static readonly #S3_ENDPOINT: string = `https://${getMainDomain(window.location.hostname)}/_gateway`;
 
-    static readonly #S3_ENDPOINT: string = (window.location.origin === S3Scanner.#S3_URL) ?
-        (process.env.S3_ENDPOINT ?? "") :
-        (process.env.S3_ALTERNATE_ENDPOINT ?? "");
-
-    static readonly #S3_BUCKET: string = (window.location.origin === S3Scanner.#S3_URL) ?
-        (process.env.S3_BUCKET ?? "") :
-        (process.env.S3_ALTERNATE_BUCKET ?? "");
+    static readonly #S3_BUCKET: string = window.location.hostname.split(".")[0];
 
     #s3Client: S3Client;
 
@@ -37,7 +46,7 @@ class S3Scanner {
         let pathname: string;
         try {
             const s3EndpointUrl = new URL(S3Scanner.#S3_ENDPOINT);
-            endpoint = `https://${S3Scanner.#S3_BUCKET}.${s3EndpointUrl.host}${s3EndpointUrl.pathname}`;
+            endpoint = `https://${S3Scanner.#S3_BUCKET}.${s3EndpointUrl.host}/`;
             pathname = urlOrPath.replace(endpoint, "");
         } catch (e) {
             pathname = urlOrPath;
