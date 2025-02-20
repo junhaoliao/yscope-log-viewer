@@ -426,7 +426,9 @@ const Viewer = ({
             case CLP_WORKER_PROTOCOL.LOADING_MESSAGES:
                 if ("string" === typeof event.data.status.message &&
                     event.data.status.message.includes("Input protocol version is too new")) {
-                    window.location.href = window.location.href.replace("/prod/log-viewer", "/staging/log-viewer");
+                    let newHref = window.location.href.replace("/prod/log-viewer", "/staging/log-viewer");
+                    newHref = newHref.replace("logEventIdx", "logEventNum");
+                    window.location.href = newHref;
                 }
                 msgLogger.current.add(event.data.status, event.data.error);
                 setStatusMessageLogs([...msgLogger.current.get()]);
