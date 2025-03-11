@@ -1,4 +1,4 @@
-/* eslint max-lines: ["error", 600] */
+/* eslint max-lines: ["error", 700] */
 import React, {
     createContext,
     useCallback,
@@ -7,6 +7,12 @@ import React, {
     useRef,
     useState,
 } from "react";
+
+import {
+    ListObjectsCommand,
+    ListObjectsCommandOutput,
+    S3Client,
+} from "@aws-sdk/client-s3";
 
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 
@@ -82,6 +88,7 @@ interface StateContextType {
     pageNum: number;
     queryProgress: number;
     queryResults: QueryResults;
+    s3FileList: Nullable<string[]>;
 
     exportLogs: () => void;
     filterLogs: (filter: LogLevelFilter) => void;
@@ -107,6 +114,7 @@ const STATE_DEFAULT: Readonly<StateContextType> = Object.freeze({
     pageNum: 0,
     queryProgress: QUERY_PROGRESS_VALUE_MIN,
     queryResults: new Map(),
+    s3FileList: null,
     uiState: UI_STATE.UNOPENED,
 
     exportLogs: () => null,
@@ -266,6 +274,7 @@ const StateContextProvider = ({children}: StateContextProviderProps) => {
     const [pageNum, setPageNum] = useState<number>(STATE_DEFAULT.pageNum);
     const [queryProgress, setQueryProgress] = useState<number>(STATE_DEFAULT.queryProgress);
     const [queryResults, setQueryResults] = useState<QueryResults>(STATE_DEFAULT.queryResults);
+    const [s3FileList, setS3FileList] = useState<Nullable<string[]>>(STATE_DEFAULT.s3FileList);
     const [uiState, setUiState] = useState<UI_STATE>(STATE_DEFAULT.uiState);
 
     // Refs
@@ -407,6 +416,7 @@ const StateContextProvider = ({children}: StateContextProviderProps) => {
         setUiState(UI_STATE.FILE_LOADING);
         setFileName("Loading...");
         setLogData("Loading...");
+        setS3FileList(STATE_DEFAULT.s3FileList);
         setOnDiskFileSizeInBytes(STATE_DEFAULT.onDiskFileSizeInBytes);
         setExportProgress(STATE_DEFAULT.exportProgress);
         setActivatedProfileName(null);
@@ -474,7 +484,7 @@ const StateContextProvider = ({children}: StateContextProviderProps) => {
 
         setUiState(UI_STATE.FAST_LOADING);
         loadPageByCursor(mainWorkerRef.current, cursor);
-    }, []);
+    }, [loadFile]);
 
     const filterLogs = useCallback((filter: LogLevelFilter) => {
         if (null === mainWorkerRef.current) {
@@ -564,7 +574,77 @@ const StateContextProvider = ({children}: StateContextProviderProps) => {
             };
         }
         loadFile(filePath, cursor)
-            .then()
+            .then(async () => {
+                const filePathUrl = new URL(filePath);
+                const {host, pathname} = filePathUrl;
+
+                const endpointPath = "terrablob.uberinternal.com" === host ?
+                    "/_gateway" :
+                    "";
+                const s3Path = pathname.substring(endpointPath.length);
+
+                const match = s3Path.match(/(.*?-)\d+\./);
+                const s3PrefixWithPartialBaseName = (null !== match) ?
+                    match[1] ?? null :
+                    null;
+
+                if (null === s3PrefixWithPartialBaseName) {
+                    throw new Error(
+                        `Failed to extract S3 prefix with partial base name from "${s3Path}"`
+                    );
+                }
+                const s3Prefix = s3Path.substring(0, s3Path.lastIndexOf("/") + 1);
+
+                const s3Client = new S3Client({
+                    region: ".",
+                    credentials: {
+                        accessKeyId: "",
+                        secretAccessKey: "",
+                    },
+                    signer: {
+                        // eslint-disable-next-line @typescript-eslint/require-await
+                        sign: async (request) => {
+                            request.hostname = host;
+                            request.path = endpointPath;
+
+                            return request;
+                        },
+                    },
+                });
+
+                let marker: string | undefined = s3PrefixWithPartialBaseName;
+                let resp: ListObjectsCommandOutput;
+                const fileList = [];
+                do {
+                    resp = await s3Client.send(
+                        new ListObjectsCommand({
+                            Bucket: ".",
+                            Prefix: s3Prefix,
+                            Marker: marker,
+                        })
+                    );
+
+                    if ("undefined" === typeof resp.Contents || 0 === resp.Contents.length) {
+                        break;
+                    }
+
+                    for (const content of resp.Contents) {
+                        if (content.Key?.startsWith(s3PrefixWithPartialBaseName)) {
+                            fileList.push(content.Key);
+                        } else {
+                            // eslint-disable-next-line no-undefined
+                            marker = undefined;
+                            break;
+                        }
+                    }
+                    if ("undefined" !== typeof marker) {
+                        marker = resp.NextMarker;
+                    }
+                } while (0 < resp.Contents.length && "undefined" !== typeof marker);
+
+                console.log("fileList length:", fileList.length);
+                setS3FileList(fileList);
+            })
             .catch((e:unknown) => {
                 console.error(`Error occurred when loading file "${filePath}" with cursor=${
                     JSON.stringify(cursor)}:`, e);
@@ -588,6 +668,7 @@ const StateContextProvider = ({children}: StateContextProviderProps) => {
                 pageNum: pageNum,
                 queryProgress: queryProgress,
                 queryResults: queryResults,
+                s3FileList: s3FileList,
                 uiState: uiState,
 
                 exportLogs: exportLogs,
