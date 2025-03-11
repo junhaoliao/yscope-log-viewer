@@ -11,7 +11,7 @@ enum THEME_NAME {
 enum GLOBAL_CONFIG_KEY {
     INITIAL_TAB_NAME = "initialTabName",
     PAGE_SIZE = "pageSize",
-    THEME = "theme",
+    THEME = "uiTheme",
 }
 
 enum PROFILE_MANAGED_CONFIG_KEY {
