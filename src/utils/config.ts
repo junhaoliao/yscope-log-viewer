@@ -35,7 +35,8 @@ const CONFIG_DEFAULT: ConfigMap = Object.freeze({
     [CONFIG_KEY.THEME]: THEME_NAME.SYSTEM,
     [CONFIG_KEY.PAGE_SIZE]: 10_000,
     [CONFIG_KEY.LLM_OPTIONS]: {
-        endpoint: "llm/v1/chat/completions",
+        authorization: "",
+        endpoint: "https://viewer.cloud.yscope.com/llm/",
         eventNum: 11,
         prompt: "Analyze the following sequence of log events:",
     },
@@ -118,6 +119,10 @@ const setConfig = ({key, value}: ConfigUpdate): Nullable<string> => {
             break;
         case CONFIG_KEY.LLM_OPTIONS:
             window.localStorage.setItem(
+                LOCAL_STORAGE_KEY.LLM_OPTIONS_AUTHORIZATION,
+                value.authorization
+            );
+            window.localStorage.setItem(
                 LOCAL_STORAGE_KEY.LLM_OPTIONS_ENDPOINT,
                 value.endpoint
             );
@@ -175,12 +180,15 @@ const getConfig = <T extends CONFIG_KEY>(key: T): ConfigMap[T] => {
             break;
         case CONFIG_KEY.LLM_OPTIONS:
             value = {
+                authorization: window.localStorage.getItem(
+                    LOCAL_STORAGE_KEY.LLM_OPTIONS_AUTHORIZATION
+                ),
                 endpoint: window.localStorage.getItem(
                     LOCAL_STORAGE_KEY.LLM_OPTIONS_ENDPOINT
                 ),
                 eventNum: Number(window.localStorage.getItem(
                     LOCAL_STORAGE_KEY.LLM_OPTIONS_EVENT_NUM
-                ) ?? "11"),
+                ) ?? CONFIG_DEFAULT[CONFIG_KEY.LLM_OPTIONS].eventNum.toString()),
                 prompt: window.localStorage.getItem(
                     LOCAL_STORAGE_KEY.LLM_OPTIONS_PROMPT
                 ),

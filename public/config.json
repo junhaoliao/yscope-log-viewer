@@ -1,0 +1,4 @@
+{
+    "default_llm_endpoint": "https://viewer.cloud.yscope.com/llm/",
+    "default_llm_model": "gpt-4",
+}

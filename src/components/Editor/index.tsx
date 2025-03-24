@@ -21,10 +21,7 @@ import {
     CONFIG_KEY,
     THEME_NAME,
 } from "../../typings/config";
-import {
-    LlmState,
-    SetLlmStateCallback,
-} from "../../typings/llm.js";
+import {TAB_NAME} from "../../typings/tab";
 import {BeginLineNumToLogEventNumMap} from "../../typings/worker";
 import {
     ACTION_NAME,
@@ -39,7 +36,6 @@ import {
     getMapKeyByValue,
     getMapValueWithNearestLessThanOrEqualKey,
 } from "../../utils/data";
-import {requestLlm} from "../../utils/llm";
 import MonacoInstance from "./MonacoInstance";
 import {goToPositionAndCenter} from "./MonacoInstance/utils";
 
@@ -139,17 +135,17 @@ const handleWordWrapAction = (editor: monaco.editor.IStandaloneCodeEditor) => {
  *
  * @param editor
  * @param beginLineNumToLogEventNum
- * @param llmState
+ * @param requestLlmWithLog
  * @param requestLlmWithLoadRange
- * @param setLlmState
+ * @param setActiveTabName
  * @throws {Error} if the editor's model cannot be retrieved.
  */
 const handleAskLlmAction = (
     editor: monaco.editor.IStandaloneCodeEditor,
     beginLineNumToLogEventNum: BeginLineNumToLogEventNumMap,
-    llmState: LlmState,
-    requestLlmWithLoadRange: ((beginLogEventNum:number, endLogEventNum:number) =>void),
-    setLlmState: SetLlmStateCallback,
+    requestLlmWithLog: (logText:string) => void,
+    requestLlmWithLoadRange: (beginLogEventNum:number, endLogEventNum:number) =>void,
+    setActiveTabName: (tabName: TAB_NAME) => void,
 ) => {
     const selection = editor.getSelection();
     if (null === selection) {
@@ -181,8 +177,9 @@ const handleAskLlmAction = (
         if (null === logText) {
             throw new Error("Unable to get the text model.");
         }
-        requestLlm(logText, llmState, setLlmState);
+        requestLlmWithLog(logText);
     }
+    setActiveTabName(TAB_NAME.ASK_LLM);
 };
 
 /**
@@ -190,7 +187,7 @@ const handleAskLlmAction = (
  *
  * @return
  */
-// eslint-disable-next-line max-lines-per-function
+// eslint-disable-next-line max-lines-per-function, max-statements
 const Editor = () => {
     const {mode, systemMode} = useColorScheme();
 
@@ -198,8 +195,9 @@ const Editor = () => {
         llmState,
         logData,
         loadPageByAction,
+        requestLlmWithLog,
         requestLlmWithLoadRange,
-        setLlmState} = useContext(StateContext);
+        setActiveTabName} = useContext(StateContext);
     const {logEventNum} = useContext(UrlContext);
 
     const [lineNum, setLineNum] = useState<number>(1);
@@ -210,6 +208,8 @@ const Editor = () => {
     const isMouseDownRef = useRef<boolean>(false);
     const pageSizeRef = useRef(getConfig(CONFIG_KEY.PAGE_SIZE));
     const llmStateRef = useRef(llmState);
+    const requestLlmWithLogRef = useRef(requestLlmWithLog);
+    const requestLlmWithLoadRangeRef = useRef(requestLlmWithLoadRange);
 
     const handleEditorCustomAction = useCallback((
         editor: monaco.editor.IStandaloneCodeEditor,
@@ -243,17 +243,16 @@ const Editor = () => {
                 handleAskLlmAction(
                     editor,
                     beginLineNumToLogEventNumRef.current,
-                    llmStateRef.current,
-                    requestLlmWithLoadRange,
-                    setLlmState,
+                    requestLlmWithLogRef.current,
+                    requestLlmWithLoadRangeRef.current,
+                    setActiveTabName,
                 );
                 break;
             default:
                 break;
         }
     }, [loadPageByAction,
-        requestLlmWithLoadRange,
-        setLlmState]);
+        setActiveTabName]);
 
     /**
      * Sets `editorRef` and configures callbacks for mouse down detection.
@@ -352,6 +351,16 @@ const Editor = () => {
         logEventNum,
         beginLineNumToLogEventNum,
     ]);
+
+    // Synchronize request llm functions.
+    useEffect(
+        () => {
+            requestLlmWithLogRef.current = requestLlmWithLog;
+            requestLlmWithLoadRangeRef.current = requestLlmWithLoadRange;
+        },
+        [requestLlmWithLog,
+            requestLlmWithLoadRange]
+    );
 
     return (
         <div className={"editor"}>

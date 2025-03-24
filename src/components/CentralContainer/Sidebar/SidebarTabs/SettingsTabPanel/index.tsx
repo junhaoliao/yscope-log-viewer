@@ -95,6 +95,18 @@ const getConfigFormFields = () => [
         type: "string",
     },
     {
+        helperText: (
+            <span>
+                The token for Bearer authorization.
+                {" "}
+                Leave it blank if the endpoint does not require authorization.
+            </span>),
+        initialValue: getConfig(CONFIG_KEY.LLM_OPTIONS).authorization,
+        key: LOCAL_STORAGE_KEY.LLM_OPTIONS_AUTHORIZATION,
+        label: "LLM: Authorization",
+        type: "string",
+    },
+    {
         helperText: "The number of events to send to the LLM.",
         initialValue: getConfig(CONFIG_KEY.LLM_OPTIONS).eventNum,
         key: LOCAL_STORAGE_KEY.LLM_OPTIONS_EVENT_NUM,
@@ -139,6 +151,7 @@ const SettingsTabPanel = () => {
         const logLevelKey = getFormDataValue(LOCAL_STORAGE_KEY.DECODER_OPTIONS_LOG_LEVEL_KEY);
         const timestampKey = getFormDataValue(LOCAL_STORAGE_KEY.DECODER_OPTIONS_TIMESTAMP_KEY);
         const pageSize = getFormDataValue(LOCAL_STORAGE_KEY.PAGE_SIZE);
+        const authorization = getFormDataValue(LOCAL_STORAGE_KEY.LLM_OPTIONS_AUTHORIZATION);
         const endpoint = getFormDataValue(LOCAL_STORAGE_KEY.LLM_OPTIONS_ENDPOINT);
         const eventNum = getFormDataValue(LOCAL_STORAGE_KEY.LLM_OPTIONS_EVENT_NUM);
         const prompt = getFormDataValue(LOCAL_STORAGE_KEY.LLM_OPTIONS_PROMPT);
@@ -154,7 +167,8 @@ const SettingsTabPanel = () => {
         });
         error ||= setConfig({
             key: CONFIG_KEY.LLM_OPTIONS,
-            value: {endpoint: endpoint,
+            value: {authorization: authorization,
+                endpoint: endpoint,
                 eventNum: Number(eventNum),
                 prompt: prompt},
         });

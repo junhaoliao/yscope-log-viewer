@@ -103,7 +103,7 @@ const runNegativeCases = (func: (input: ConfigUpdate) => Nullable<string>) => {
 
         const result = func({
             key: CONFIG_KEY.LLM_OPTIONS,
-            value: {endpoint: "", eventNum: -1, prompt: ""},
+            value: {authorization: "", endpoint: "", eventNum: -1, prompt: ""},
         });
 
         expect(result).not.toBeNull();
@@ -146,7 +146,7 @@ describe("testConfig", () => {
     it("should return null for valid llm event number", () => {
         const result = testConfig({
             key: CONFIG_KEY.LLM_OPTIONS,
-            value: {endpoint: "", eventNum: 1, prompt: ""},
+            value: {authorization: "", endpoint: "", eventNum: 1, prompt: ""},
         });
 
         expect(result).toBeNull();
@@ -198,7 +198,7 @@ describe("setConfig", () => {
     it("should store llm options in localStorage", () => {
         const result = setConfig({
             key: CONFIG_KEY.LLM_OPTIONS,
-            value: {endpoint: "", eventNum: VALID_LLM_EVENT_NUM, prompt: ""},
+            value: {authorization: "", endpoint: "", eventNum: VALID_LLM_EVENT_NUM, prompt: ""},
         });
 
         expect(result).toBeNull();

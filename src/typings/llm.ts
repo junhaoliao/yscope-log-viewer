@@ -10,6 +10,10 @@ enum LLM_REQUEST_STATUS {
 
 type LlmState = {
     abortController: Nullable<AbortController>;
+    modelRefreshAbortController: Nullable<AbortController>;
+    modelRefreshStatus: LLM_REQUEST_STATUS;
+    availableModels: string[];
+    model: string;
     log: string;
     prompt: string;
     response: string[];
@@ -17,6 +21,7 @@ type LlmState = {
 };
 
 interface LlmOptions {
+    authorization: string;
     endpoint: string;
     eventNum: number;
     prompt: string;
@@ -28,17 +33,20 @@ interface LlmOptions {
  */
 const LLM_STATE_DEFAULT: Readonly<LlmState> = Object.freeze({
     abortController: null,
+    availableModels: [],
+    log: "",
+    model: "",
+    modelRefreshAbortController: null,
+    modelRefreshStatus: LLM_REQUEST_STATUS.NOT_YET_INITIATED,
     prompt: "",
     response: [],
     status: LLM_REQUEST_STATUS.NOT_YET_INITIATED,
 });
-
-type SetLlmStateCallback = (llmState: LlmState) => void;
 
 export {
     LLM_REQUEST_STATUS,
     LLM_STATE_DEFAULT,
 };
 export type {
-    LlmOptions, LlmState, SetLlmStateCallback,
+    LlmOptions, LlmState,
 };

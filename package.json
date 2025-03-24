@@ -25,6 +25,7 @@
   },
   "homepage": "https://github.com/y-scope/yscope-log-viewer#readme",
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.775.0",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
     "@mui/icons-material": "^6.4.1",
@@ -32,7 +33,6 @@
     "axios": "^1.8.2",
     "clp-ffi-js": "^0.5.0",
     "dayjs": "^1.11.13",
-    "github-markdown-css": "^5.8.1",
     "monaco-editor": "0.50.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

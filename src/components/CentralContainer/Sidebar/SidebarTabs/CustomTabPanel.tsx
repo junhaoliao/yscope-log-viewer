@@ -1,4 +1,4 @@
-import React from "react";
+import React, {Ref} from "react";
 
 import {
     Box,
@@ -14,6 +14,7 @@ import "./CustomTabPanel.css";
 
 interface CustomTabPanelProps {
     children: React.ReactNode;
+    contentContainerRef?: Ref<HTMLDivElement>;
     tabName: string;
     title: string;
     titleButtons?: React.ReactNode;
@@ -27,10 +28,12 @@ interface CustomTabPanelProps {
  * @param props.tabName
  * @param props.title
  * @param props.titleButtons
+ * @param props.contentContainerRef
  * @return
  */
 const CustomTabPanel = ({
     children,
+    contentContainerRef,
     tabName,
     title,
     titleButtons,
@@ -41,7 +44,9 @@ const CustomTabPanel = ({
             sx={{width: "0"}}
             value={tabName}
         >
-            <Box className={"sidebar-tab-panel-container"}>
+            <Box
+                className={"sidebar-tab-panel-container"}
+            >
                 <DialogTitle className={"sidebar-tab-panel-title-container"}>
                     <Typography
                         className={"sidebar-tab-panel-title"}
@@ -57,7 +62,7 @@ const CustomTabPanel = ({
                         {titleButtons}
                     </ButtonGroup>
                 </DialogTitle>
-                <DialogContent>
+                <DialogContent ref={contentContainerRef}>
                     {children}
                 </DialogContent>
             </Box>

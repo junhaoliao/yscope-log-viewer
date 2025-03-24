@@ -1,4 +1,5 @@
-/* eslint max-lines: ["error", 700] */
+/* eslint max-lines: ["error", 1000] */
+/* eslint-disable @typescript-eslint/no-shadow */
 import React, {
     createContext,
     useCallback,
@@ -17,6 +18,7 @@ import LogExportManager, {
 import {Nullable} from "../typings/common";
 import {CONFIG_KEY} from "../typings/config";
 import {
+    LLM_REQUEST_STATUS,
     LLM_STATE_DEFAULT,
     LlmState,
 } from "../typings/llm";
@@ -59,8 +61,12 @@ import {
     findNearestLessThanOrEqualElement,
     isWithinBounds,
 } from "../utils/data";
-import {requestLlm} from "../utils/llm";
+import {formatPromptWithLog} from "../utils/llm";
 import {clamp} from "../utils/math";
+import {
+    parseOpenAiModelResponse,
+    pipeThroughOpenAiStream,
+} from "../utils/openai";
 import {NotificationContext} from "./NotificationContextProvider";
 import {
     updateWindowUrlHashParams,
@@ -90,8 +96,9 @@ interface StateContextType {
     filterLogs: (filter: LogLevelFilter) => void;
     loadFile: (fileSrc: FileSrcType, cursor: CursorType) => void;
     loadPageByAction: (navAction: NavigationAction) => void;
+    requestLlmWithLog: (logText: string) => void;
     requestLlmWithLoadRange: (beginLogEventNum: number,
-        endLogEventNum:number) => null;
+        endLogEventNum:number) => void;
     setActiveTabName: (tabName: TAB_NAME) => void;
     setLlmState: (llmState: LlmState) => void;
     startQuery: (queryArgs: QueryArgs) => void;
@@ -122,6 +129,7 @@ const STATE_DEFAULT: Readonly<StateContextType> = Object.freeze({
     loadFile: () => null,
     loadPageByAction: () => null,
     requestLlmWithLoadRange: () => null,
+    requestLlmWithLog: () => null,
     setActiveTabName: () => null,
     setLlmState: () => null,
     startQuery: () => null,
@@ -249,6 +257,9 @@ const updateUrlIfEventOnPage = (
     return true;
 };
 
+const HTTP_RESPONSE_STATUS_OK = 200;
+const DEFAULT_MODEL = "gpt-4";
+
 /**
  * Provides state management for the application. This provider must be wrapped by
  * UrlContextProvider to function correctly.
@@ -289,6 +300,179 @@ const StateContextProvider = ({children}: StateContextProviderProps) => {
     const numPagesRef = useRef<number>(numPages);
     const pageNumRef = useRef<number>(pageNum);
     const uiStateRef = useRef<UI_STATE>(uiState);
+    const lastEndpointRef = useRef<string>("");
+
+
+    const requestLlmWithLog = useCallback((logText: string) => {
+        const llmState = llmStateRef.current;
+        if (null !== llmState.abortController) {
+            llmState.abortController.abort();
+        }
+        const {authorization: authorizationToken, endpoint, prompt} =
+        getConfig(CONFIG_KEY.LLM_OPTIONS);
+        const promptWithLog: string = formatPromptWithLog(logText, prompt);
+
+        // eslint-disable-next-line no-warning-comments
+        // TODO: Concatenate URLs properly
+        const request = new Request(new URL(
+            "v1/chat/completions",
+            endpoint.endsWith("/") ?
+                endpoint :
+                `${endpoint}/`
+        ), {
+            method: "POST",
+            body: JSON.stringify({
+                model: "" === llmState.model ?
+                    DEFAULT_MODEL :
+                    llmState.model,
+                messages: [
+                    {
+                        content: promptWithLog,
+                        role: "user",
+                    },
+                ],
+                stream: true,
+            }),
+            headers: {
+                "Content-Type": "application/json",
+                ...("" === authorizationToken ?
+                    {} :
+                    {Authorization: `Bearer ${authorizationToken}`}),
+            },
+        });
+        const abortController = new AbortController();
+        llmStateRef.current = ({
+            ...llmState,
+            abortController: abortController,
+            log: logText,
+            prompt: prompt,
+            response: [],
+            status: LLM_REQUEST_STATUS.STREAMING,
+        });
+        setLlmState(llmStateRef.current);
+        fetch(request, {signal: abortController.signal}).then((response) => {
+            if (HTTP_RESPONSE_STATUS_OK !== response.status) {
+                throw new Error();
+            }
+
+            if (null === response.body) {
+                throw new Error("Failed to read response body.");
+            }
+
+            return response.body;
+        })
+            .then(async (body) => {
+                const reader = pipeThroughOpenAiStream(body).getReader();
+                for (;;) {
+                    const result = await reader.read();
+                    console.log(result);
+                    const llmState = llmStateRef.current;
+                    if (result.done) {
+                        llmStateRef.current = ({...llmState, status: LLM_REQUEST_STATUS.COMPLETED});
+                        setLlmState(llmStateRef.current);
+                        break;
+                    }
+                    llmStateRef.current = ({...llmState,
+                        response: llmState.response.concat([result.value])});
+                    setLlmState(llmStateRef.current);
+                }
+            })
+            .catch((reason:unknown) => {
+                const llmState = llmStateRef.current;
+                if ("AbortError" !== reason.name) {
+                    llmStateRef.current = ({...llmState,
+                        abortController: null,
+                        status: LLM_REQUEST_STATUS.ERROR});
+                    setLlmState(llmStateRef.current);
+                }
+            });
+    }, [setLlmState]);
+
+
+    const requestLlmWithLoadRange =
+     useCallback((
+         beginLogEventNum: number,
+         endLogEventNum:number
+     ) => {
+         if (null === mainWorkerRef.current) {
+             return;
+         }
+         workerPostReq(
+             mainWorkerRef.current,
+             WORKER_REQ_CODE.LOAD_RANGE,
+             {beginLogEventIdx: beginLogEventNum,
+                 endLogEventIdx: endLogEventNum}
+         );
+     }, []);
+
+
+    const requestLlmModels = useCallback(() => {
+        const llmState = llmStateRef.current;
+        if (null !== llmState.modelRefreshAbortController) {
+            llmState.modelRefreshAbortController.abort();
+        }
+        const {authorization: authorizationToken, endpoint} = getConfig(CONFIG_KEY.LLM_OPTIONS);
+
+        // eslint-disable-next-line no-warning-comments
+        // TODO: Concatenate URLs properly
+        const request = new Request(new URL(
+            "v1/models",
+            endpoint.endsWith("/") ?
+                endpoint :
+                `${endpoint}/`
+        ), {
+            redirect: "manual",
+            method: "GET",
+            headers: {
+                ...("" === authorizationToken ?
+                    {} :
+                    {Authorization: `Bearer ${authorizationToken}`}),
+            },
+        });
+        const abortController = new AbortController();
+        llmStateRef.current = ({...llmState,
+            modelRefreshAbortController: abortController,
+            modelRefreshStatus: LLM_REQUEST_STATUS.STREAMING});
+        setLlmState(llmStateRef.current);
+        fetch(request, {signal: abortController.signal}).then((response) => {
+            console.log(response);
+            if ("opaqueredirect" === response.type) {
+                console.log(response);
+                window.open(response.url);
+                console.log("opened");
+                abortController.abort();
+            }
+            if (HTTP_RESPONSE_STATUS_OK !== response.status) {
+                throw new Error();
+            }
+            const json = response.json();
+            return json;
+        })
+            .then((json) => {
+                const llmState = llmStateRef.current;
+                const openAiModelResponse = parseOpenAiModelResponse(json);
+                const availableModels = openAiModelResponse.data.map((model) => model.id);
+
+                llmStateRef.current = ({...llmState,
+                    availableModels: availableModels,
+                    model: availableModels.includes(DEFAULT_MODEL) ?
+                        DEFAULT_MODEL :
+                        availableModels.at(0) ?? "N/A",
+                    modelRefreshStatus: LLM_REQUEST_STATUS.COMPLETED});
+                setLlmState(llmStateRef.current);
+            })
+            .catch((reason:unknown) => {
+                const llmState = llmStateRef.current;
+                if ("AbortError" !== reason.name) {
+                    llmStateRef.current = ({...llmState,
+                        modelRefreshAbortController: null,
+                        modelRefreshStatus: LLM_REQUEST_STATUS.ERROR});
+                    setLlmState(llmStateRef.current);
+                }
+            });
+    }, [
+        setLlmState,
+    ]);
 
     const handleFormatPopupPrimaryAction = useCallback(() => {
         setActiveTabName(TAB_NAME.SETTINGS);
@@ -379,7 +563,7 @@ const StateContextProvider = ({children}: StateContextProviderProps) => {
                 }
                 break;
             case WORKER_RESP_CODE.RANGE_DATA:
-                requestLlm(args.logs, llmStateRef.current, setLlmState);
+                requestLlmWithLog(args.logs);
                 break;
             default:
                 console.error(`Unexpected ev.data: ${JSON.stringify(ev.data)}`);
@@ -387,6 +571,7 @@ const StateContextProvider = ({children}: StateContextProviderProps) => {
         }
     }, [
         handleFormatPopupPrimaryAction,
+        requestLlmWithLog,
         postPopUp,
     ]);
 
@@ -500,32 +685,31 @@ const StateContextProvider = ({children}: StateContextProviderProps) => {
         });
     }, []);
 
-    const requestLlmWithLoadRange =
-     useCallback((
-         beginLogEventNum: number,
-         endLogEventNum:number
-     ) => {
-         if (null === mainWorkerRef.current) {
-             return;
-         }
-         workerPostReq(
-             mainWorkerRef.current,
-             WORKER_REQ_CODE.LOAD_RANGE,
-             {beginLogEventIdx: beginLogEventNum,
-                 endLogEventIdx: endLogEventNum}
-         );
-     }, []);
 
+    // Synchronize `uiStateRef` with `uiState`.
+    useEffect(() => {
+        uiStateRef.current = uiState;
+        if (uiState === UI_STATE.UNOPENED) {
+            setFileName(STATE_DEFAULT.fileName);
+            setLogData(STATE_DEFAULT.logData);
+        }
+    }, [uiState]);
+
+
+    // Updating settings modifies `uiState`. We update llm models when endpoint is changed.
+    useEffect(() => {
+        const {endpoint} = getConfig(CONFIG_KEY.LLM_OPTIONS);
+        if (lastEndpointRef.current !== endpoint) {
+            lastEndpointRef.current = endpoint;
+            requestLlmModels();
+        }
+    }, [uiState,
+        requestLlmModels]);
 
     // Synchronize `logEventNumRef` with `logEventNum`.
     useEffect(() => {
         logEventNumRef.current = logEventNum;
     }, [logEventNum]);
-
-    // Synchronize `llmStateRef` with `llmState`.
-    useEffect(() => {
-        llmStateRef.current = llmState;
-    }, [llmState]);
 
     // Synchronize `pageNumRef` with `pageNum`.
     useEffect(() => {
@@ -619,6 +803,7 @@ const StateContextProvider = ({children}: StateContextProviderProps) => {
                 loadFile: loadFile,
                 loadPageByAction: loadPageByAction,
                 requestLlmWithLoadRange: requestLlmWithLoadRange,
+                requestLlmWithLog: requestLlmWithLog,
                 setActiveTabName: setActiveTabName,
                 setLlmState: setLlmState,
                 startQuery: startQuery,
