@@ -1,5 +1,5 @@
 /* eslint max-lines: ["error", 1000] */
-/* eslint-disable @typescript-eslint/no-shadow */
+
 import React, {
     createContext,
     useCallback,
@@ -8,6 +8,8 @@ import React, {
     useRef,
     useState,
 } from "react";
+
+import {isAxiosError} from "axios";
 
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 
@@ -304,9 +306,8 @@ const StateContextProvider = ({children}: StateContextProviderProps) => {
 
 
     const requestLlmWithLog = useCallback((logText: string) => {
-        const llmState = llmStateRef.current;
-        if (null !== llmState.abortController) {
-            llmState.abortController.abort();
+        if (null !== llmStateRef.current.abortController) {
+            llmStateRef.current.abortController.abort();
         }
         const {authorization: authorizationToken, endpoint, prompt} =
         getConfig(CONFIG_KEY.LLM_OPTIONS);
@@ -322,9 +323,9 @@ const StateContextProvider = ({children}: StateContextProviderProps) => {
         ), {
             method: "POST",
             body: JSON.stringify({
-                model: "" === llmState.model ?
+                model: "" === llmStateRef.current.model ?
                     DEFAULT_MODEL :
-                    llmState.model,
+                    llmStateRef.current.model,
                 messages: [
                     {
                         content: promptWithLog,
@@ -341,15 +342,14 @@ const StateContextProvider = ({children}: StateContextProviderProps) => {
             },
         });
         const abortController = new AbortController();
-        llmStateRef.current = ({
-            ...llmState,
+        setLlmState({
+            ...llmStateRef.current,
             abortController: abortController,
             log: logText,
             prompt: prompt,
             response: [],
             status: LLM_REQUEST_STATUS.STREAMING,
         });
-        setLlmState(llmStateRef.current);
         fetch(request, {signal: abortController.signal}).then((response) => {
             if (HTTP_RESPONSE_STATUS_OK !== response.status) {
                 throw new Error();
@@ -366,50 +366,48 @@ const StateContextProvider = ({children}: StateContextProviderProps) => {
                 for (;;) {
                     const result = await reader.read();
                     console.log(result);
-                    const llmState = llmStateRef.current;
                     if (result.done) {
-                        llmStateRef.current = ({...llmState, status: LLM_REQUEST_STATUS.COMPLETED});
-                        setLlmState(llmStateRef.current);
+                        setLlmState({...llmStateRef.current, status: LLM_REQUEST_STATUS.COMPLETED});
                         break;
                     }
-                    llmStateRef.current = ({...llmState,
-                        response: llmState.response.concat([result.value])});
-                    setLlmState(llmStateRef.current);
+                    setLlmState({
+                        ...llmStateRef.current,
+                        response: llmStateRef.current.response.concat([result.value]),
+                    });
                 }
             })
-            .catch((reason:unknown) => {
-                const llmState = llmStateRef.current;
-                if ("AbortError" !== reason.name) {
-                    llmStateRef.current = ({...llmState,
-                        abortController: null,
-                        status: LLM_REQUEST_STATUS.ERROR});
-                    setLlmState(llmStateRef.current);
+            .catch((error: unknown) => {
+                if (isAxiosError(error) && "AbortError" === error.name) {
+                    return;
                 }
+                setLlmState({
+                    ...llmStateRef.current,
+                    abortController: null,
+                    status: LLM_REQUEST_STATUS.ERROR,
+                });
             });
-    }, [setLlmState]);
+    }, []);
 
 
-    const requestLlmWithLoadRange =
-     useCallback((
-         beginLogEventNum: number,
-         endLogEventNum:number
-     ) => {
-         if (null === mainWorkerRef.current) {
-             return;
-         }
-         workerPostReq(
-             mainWorkerRef.current,
-             WORKER_REQ_CODE.LOAD_RANGE,
-             {beginLogEventIdx: beginLogEventNum,
-                 endLogEventIdx: endLogEventNum}
-         );
-     }, []);
+    const requestLlmWithLoadRange = useCallback((
+        beginLogEventNum: number,
+        endLogEventNum:number
+    ) => {
+        if (null === mainWorkerRef.current) {
+            return;
+        }
+        workerPostReq(
+            mainWorkerRef.current,
+            WORKER_REQ_CODE.LOAD_RANGE,
+            {beginLogEventIdx: beginLogEventNum,
+                endLogEventIdx: endLogEventNum}
+        );
+    }, []);
 
 
     const requestLlmModels = useCallback(() => {
-        const llmState = llmStateRef.current;
-        if (null !== llmState.modelRefreshAbortController) {
-            llmState.modelRefreshAbortController.abort();
+        if (null !== llmStateRef.current.modelRefreshAbortController) {
+            llmStateRef.current.modelRefreshAbortController.abort();
         }
         const {authorization: authorizationToken, endpoint} = getConfig(CONFIG_KEY.LLM_OPTIONS);
 
@@ -430,10 +428,11 @@ const StateContextProvider = ({children}: StateContextProviderProps) => {
             },
         });
         const abortController = new AbortController();
-        llmStateRef.current = ({...llmState,
+        setLlmState({
+            ...llmStateRef.current,
             modelRefreshAbortController: abortController,
-            modelRefreshStatus: LLM_REQUEST_STATUS.STREAMING});
-        setLlmState(llmStateRef.current);
+            modelRefreshStatus: LLM_REQUEST_STATUS.STREAMING,
+        });
         fetch(request, {signal: abortController.signal}).then((response) => {
             console.log(response);
             if ("opaqueredirect" === response.type) {
@@ -445,34 +444,33 @@ const StateContextProvider = ({children}: StateContextProviderProps) => {
             if (HTTP_RESPONSE_STATUS_OK !== response.status) {
                 throw new Error();
             }
-            const json = response.json();
-            return json;
+
+            return response.json();
         })
             .then((json) => {
-                const llmState = llmStateRef.current;
                 const openAiModelResponse = parseOpenAiModelResponse(json);
                 const availableModels = openAiModelResponse.data.map((model) => model.id);
 
-                llmStateRef.current = ({...llmState,
+                setLlmState({
+                    ...llmStateRef.current,
                     availableModels: availableModels,
                     model: availableModels.includes(DEFAULT_MODEL) ?
                         DEFAULT_MODEL :
                         availableModels.at(0) ?? "N/A",
-                    modelRefreshStatus: LLM_REQUEST_STATUS.COMPLETED});
-                setLlmState(llmStateRef.current);
+                    modelRefreshStatus: LLM_REQUEST_STATUS.COMPLETED,
+                });
             })
-            .catch((reason:unknown) => {
-                const llmState = llmStateRef.current;
-                if ("AbortError" !== reason.name) {
-                    llmStateRef.current = ({...llmState,
-                        modelRefreshAbortController: null,
-                        modelRefreshStatus: LLM_REQUEST_STATUS.ERROR});
-                    setLlmState(llmStateRef.current);
+            .catch((error: unknown) => {
+                if (isAxiosError(error) && "AbortError" === error.name) {
+                    return;
                 }
+                setLlmState({
+                    ...llmStateRef.current,
+                    modelRefreshAbortController: null,
+                    modelRefreshStatus: LLM_REQUEST_STATUS.ERROR,
+                });
             });
-    }, [
-        setLlmState,
-    ]);
+    }, []);
 
     const handleFormatPopupPrimaryAction = useCallback(() => {
         setActiveTabName(TAB_NAME.SETTINGS);
@@ -685,6 +683,10 @@ const StateContextProvider = ({children}: StateContextProviderProps) => {
         });
     }, []);
 
+    // Synchronize `llmStateRef` with `llmState`.
+    useEffect(() => {
+        llmStateRef.current = llmState;
+    }, [llmState]);
 
     // Synchronize `uiStateRef` with `uiState`.
     useEffect(() => {
