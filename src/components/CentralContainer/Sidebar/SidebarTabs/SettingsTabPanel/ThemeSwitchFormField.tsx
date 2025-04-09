@@ -10,24 +10,28 @@ import type {Mode} from "@mui/system/cssVars/useCurrentColorScheme";
 
 import DarkModeIcon from "@mui/icons-material/DarkMode";
 import LightModeIcon from "@mui/icons-material/LightMode";
+import SettingsBrightnessIcon from "@mui/icons-material/SettingsBrightness";
 
 import {THEME_NAME} from "../../../../../typings/config";
 
+import "./ThemeSwitchFormField.css";
+
 
 /**
- * Renders a theme selection field in the settings form.
+ * Renders a toggle button form field for theme selection.
  *
  * @return
  */
-const ThemeSwitchField = () => {
+const ThemeSwitchFormField = () => {
     const {setMode, mode} = useColorScheme();
 
     return (
         <FormControl>
             <FormLabel>
-                Theme override
+                Theme
             </FormLabel>
             <ToggleButtonGroup
+                className={"theme-switch-toggle-button-group"}
                 size={"sm"}
                 value={mode as string}
                 onChange={(__, newValue) => {
@@ -41,6 +45,12 @@ const ThemeSwitchField = () => {
                     Light
                 </Button>
                 <Button
+                    startDecorator={<SettingsBrightnessIcon/>}
+                    value={THEME_NAME.SYSTEM}
+                >
+                    System
+                </Button>
+                <Button
                     startDecorator={<DarkModeIcon/>}
                     value={THEME_NAME.DARK}
                 >
@@ -48,11 +58,10 @@ const ThemeSwitchField = () => {
                 </Button>
             </ToggleButtonGroup>
             <FormHelperText>
-                {`Current mode: ${mode}`}
+                Log viewer color theme. System theme will match your system settings.
             </FormHelperText>
         </FormControl>
-
     );
 };
 
-export default ThemeSwitchField;
+export default ThemeSwitchFormField;

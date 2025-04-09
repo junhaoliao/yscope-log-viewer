@@ -36,6 +36,7 @@ import SdStorageIcon from "@mui/icons-material/SdStorage";
 
 import {NotificationContext} from "../../../../../contexts/NotificationContextProvider";
 import {StateContext} from "../../../../../contexts/StateContextProvider";
+import {Nullable} from "../../../../../typings/common";
 import {
     CONFIG_KEY,
     ProfileName,
@@ -59,56 +60,69 @@ import {
 } from "../../../../../utils/config";
 import {defer} from "../../../../../utils/time";
 import CustomTabPanel from "../CustomTabPanel";
-import ThemeSwitchField from "./ThemeSwitchField";
+import ThemeSwitchFormField from "./ThemeSwitchFormField";
 
 import "./index.css";
 
 
 /**
+ * Gets form fields information for user input of configuration values.
  *
  * @param profileName
+ * @return A list of form fields information.
  */
-const getConfigFormFields = (profileName: ProfileName) => {
-    return [
-        {
-            helperText: (
-                <span>
-                    {"[JSON] Format string for formatting a JSON log event as plain text. See the "}
-                    <Link
-                        href={"https://docs.yscope.com/yscope-log-viewer/main/user-guide/format-struct-logs-overview.html"}
-                        level={"body-sm"}
-                        rel={"noopener"}
-                        target={"_blank"}
-                    >
-                        format string syntax docs
-                    </Link>
-                    {" or leave this blank to display the entire log event."}
-                </span>
-            ),
-            initialValue: getConfig(CONFIG_KEY.DECODER_OPTIONS_FORMAT_STRING, profileName),
-            key: CONFIG_KEY.DECODER_OPTIONS_FORMAT_STRING,
-            label: "Decoder: Format string",
-            type: "text",
-        },
-        {
-            helperText: "[JSON] Key to extract the log level from.",
-            initialValue: getConfig(CONFIG_KEY.DECODER_OPTIONS_LOG_LEVEL_KEY, profileName),
-            key: CONFIG_KEY.DECODER_OPTIONS_LOG_LEVEL_KEY,
-            label: "Decoder: Log level key",
-            type: "text",
-        },
-        {
-            helperText: "[JSON] Key to extract the log timestamp from.",
-            initialValue: getConfig(CONFIG_KEY.DECODER_OPTIONS_TIMESTAMP_KEY, profileName),
-            key: CONFIG_KEY.DECODER_OPTIONS_TIMESTAMP_KEY,
-            label: "Decoder: Timestamp key",
-            type: "text",
-        },
-    ];
+const getConfigFormFields = (profileName: ProfileName) => [
+    {
+        helperText: (
+            <span>
+                [JSON] Format string for formatting a JSON log event as plain text. See the
+                {" "}
+                <Link
+                    href={"https://docs.yscope.com/yscope-log-viewer/main/user-guide/format-struct-logs-overview.html"}
+                    level={"body-sm"}
+                    rel={"noopener"}
+                    target={"_blank"}
+                >
+                    format string syntax docs
+                </Link>
+                {" "}
+                or leave this blank to display the entire log event.
+            </span>
+        ),
+        initialValue: getConfig(CONFIG_KEY.DECODER_OPTIONS_FORMAT_STRING, profileName),
+        key: CONFIG_KEY.DECODER_OPTIONS_FORMAT_STRING,
+        label: "Decoder: Format string",
+        type: "text",
+    },
+    {
+        helperText: "[JSON] Key to extract the log level from.",
+        initialValue: getConfig(CONFIG_KEY.DECODER_OPTIONS_LOG_LEVEL_KEY, profileName),
+        key: CONFIG_KEY.DECODER_OPTIONS_LOG_LEVEL_KEY,
+        label: "Decoder: Log level key",
+        type: "text",
+    },
+    {
+        helperText: "[JSON] Key to extract the log timestamp from.",
+        initialValue: getConfig(CONFIG_KEY.DECODER_OPTIONS_TIMESTAMP_KEY),
+        key: CONFIG_KEY.DECODER_OPTIONS_TIMESTAMP_KEY,
+        label: "Decoder: Timestamp key",
+        type: "text",
+    },
+];
+
+/**
+ * Handles the reset event for the configuration form.
+ *
+ * @param ev
+ */
+const handleConfigFormReset = (ev: React.FormEvent) => {
+    ev.preventDefault();
+    window.localStorage.clear();
+    window.location.reload();
 };
 
 /**
- * Displays a panel for FIXME
+ * Displays a setting tab panel for configurations.
  *
  * @return
  */
@@ -116,9 +130,7 @@ const SettingsTabPanel = () => {
     const {postPopUp} = useContext(NotificationContext);
     const {activatedProfileName, loadPageByAction} = useContext(StateContext);
     const [newProfileName, setNewProfileName] = useState<string>("");
-    const [selectedProfileName, setSelectedProfileName] = useState<ProfileName>(
-        activatedProfileName ?? DEFAULT_PROFILE_NAME,
-    );
+    const [selectedProfileName, setSelectedProfileName] = useState<Nullable<ProfileName>>(activatedProfileName);
     const [profilesMetadata, setProfilesMetadata] =
         useState<ReadonlyMap<ProfileName, ProfileMetadata>>(listProfiles());
     const [canApply, setCanApply] = useState<boolean>(false);
@@ -154,7 +166,7 @@ const SettingsTabPanel = () => {
 
         setProfilesMetadata(listProfiles());
         setCanApply(false);
-        setSelectedProfileName(DEFAULT_PROFILE_NAME);
+        setSelectedProfileName(null);
         loadPageByAction({code: ACTION_NAME.RELOAD, args: null});
     }, [
         loadPageByAction,
@@ -168,14 +180,18 @@ const SettingsTabPanel = () => {
         }
 
         // The activated profile changes when the profile system is initialized / re-initialized.
-        setSelectedProfileName(activatedProfileName);
+        setProfilesMetadata(listProfiles());
 
         // Which means the profiles' metadata may have changed.
-        setProfilesMetadata(listProfiles());
+        setSelectedProfileName(activatedProfileName);
     }, [activatedProfileName]);
 
-    const isSelectedProfileLocalStorage = profilesMetadata.get(selectedProfileName)?.isLocalStorage ?? false;
-    const isSelectedProfileForced = profilesMetadata.get(selectedProfileName)?.isForced ?? false;
+    const isSelectedProfileLocalStorage =
+        (null !== selectedProfileName &&
+        profilesMetadata.get(selectedProfileName)?.isLocalStorage) ?? false;
+    const isSelectedProfileForced =
+        (null !== selectedProfileName &&
+            profilesMetadata.get(selectedProfileName)?.isForced) ?? false;
 
     return (
         <CustomTabPanel
@@ -183,23 +199,16 @@ const SettingsTabPanel = () => {
             title={TAB_DISPLAY_NAMES[TAB_NAME.SETTINGS]}
         >
             <form
-                style={{overflowY: "hidden", display: "flex", flexDirection: "column", gap: "0.75rem"}}
+                className={"settings-tab-container"}
                 tabIndex={-1}
+                onReset={handleConfigFormReset}
                 onSubmit={handleConfigFormSubmit}
                 onChange={() => {
                     setCanApply(true);
                 }}
             >
-                <Box
-                    sx={{
-                        display: "flex",
-                        flexDirection: "column",
-                        flexGrow: 1,
-                        gap: "0.75rem",
-                        overflowY: "auto",
-                    }}
-                >
-                    <ThemeSwitchField/>
+                <Box className={"settings-form-fields-container"}>
+                    <ThemeSwitchFormField/>
                     <FormControl>
                         <FormLabel>View: Page Size</FormLabel>
                         <Input
@@ -210,6 +219,7 @@ const SettingsTabPanel = () => {
                     </FormControl>
 
                     <Divider/>
+
 
                     <FormControl>
                         <FormLabel>Profile</FormLabel>
@@ -246,6 +256,13 @@ const SettingsTabPanel = () => {
                                                 >
                                                     <MenuItem
                                                         onClick={() => {
+                                                            if (null === selectedProfileName) {
+                                                                console.error(
+                                                                    "Unexpected null selectedProfileName"
+                                                                );
+
+                                                                return;
+                                                            }
                                                             deleteLocalStorageProfile(
                                                                 selectedProfileName,
                                                             );
@@ -269,7 +286,7 @@ const SettingsTabPanel = () => {
 
                                                     forceProfile(newForcedProfileName);
                                                     setProfilesMetadata(listProfiles());
-                                                    setSelectedProfileName(DEFAULT_PROFILE_NAME);
+                                                    setSelectedProfileName(null);
                                                     loadPageByAction({
                                                         code: ACTION_NAME.RELOAD,
                                                         args: null,
@@ -357,7 +374,7 @@ const SettingsTabPanel = () => {
                                             onClick={() => {
                                                 const result = createProfile(newProfileName);
                                                 if (result) {
-                                                    setProfilesMetadata(listProfiles);
+                                                    setProfilesMetadata(listProfiles());
                                                     setSelectedProfileName(newProfileName);
                                                 }
                                             }}
@@ -373,27 +390,35 @@ const SettingsTabPanel = () => {
                         </FormHelperText>
                     </FormControl>
 
-                    {getConfigFormFields(selectedProfileName).map((field, index) => (
-                        <FormControl key={index}>
-                            <FormLabel>
-                                {field.label}
-                            </FormLabel>
-                            <Input
-                                defaultValue={field.initialValue}
-                                name={field.key}
-                                type={field.type}/>
-                            <FormHelperText>
-                                {field.helperText}
-                            </FormHelperText>
-                        </FormControl>
-                    ))}
+                    {null !== selectedProfileName &&
+                        getConfigFormFields(selectedProfileName).map((field, index) => (
+                            <FormControl key={index}>
+                                <FormLabel>
+                                    {field.label}
+                                </FormLabel>
+                                <Input
+                                    defaultValue={field.initialValue}
+                                    name={field.key}
+                                    type={field.type}/>
+                                <FormHelperText>
+                                    {field.helperText}
+                                </FormHelperText>
+                            </FormControl>
+                        ))}
                 </Box>
                 <Divider/>
                 <Button
+                    color={"primary"}
                     disabled={false === canApply}
                     type={"submit"}
                 >
                     Apply
+                </Button>
+                <Button
+                    color={"neutral"}
+                    type={"reset"}
+                >
+                    Reset Default
                 </Button>
             </form>
         </CustomTabPanel>

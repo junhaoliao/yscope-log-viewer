@@ -16,10 +16,7 @@ import {
 
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 
-import LogExportManager, {
-    EXPORT_LOG_PROGRESS_VALUE_MAX,
-    EXPORT_LOG_PROGRESS_VALUE_MIN,
-} from "../services/LogExportManager";
+import LogExportManager, {EXPORT_LOGS_PROGRESS_VALUE_MIN} from "../services/LogExportManager";
 import {Nullable} from "../typings/common";
 import {
     CONFIG_KEY,
@@ -39,6 +36,7 @@ import {
     QueryResults,
 } from "../typings/query";
 import {UI_STATE} from "../typings/states";
+import {TAB_NAME} from "../typings/tab";
 import {SEARCH_PARAM_NAMES} from "../typings/url";
 import {
     BeginLineNumToLogEventNumMap,
@@ -77,6 +75,7 @@ import {
 
 interface StateContextType {
     activatedProfileName: Nullable<ProfileName>;
+    activeTabName: TAB_NAME;
     beginLineNumToLogEventNum: BeginLineNumToLogEventNumMap;
     exportProgress: Nullable<number>;
     fileName: string;
@@ -94,6 +93,7 @@ interface StateContextType {
     filterLogs: (filter: LogLevelFilter) => void;
     loadFile: (fileSrc: FileSrcType, cursor: CursorType) => Promise<void>;
     loadPageByAction: (navAction: NavigationAction) => void;
+    setActiveTabName: (tabName: TAB_NAME) => void;
     startQuery: (queryArgs: QueryArgs) => void;
 }
 
@@ -103,6 +103,7 @@ const StateContext = createContext<StateContextType>({} as StateContextType);
  * Default values of the state object.
  */
 const STATE_DEFAULT: Readonly<StateContextType> = Object.freeze({
+    activeTabName: getConfig(CONFIG_KEY.INITIAL_TAB_NAME),
     activatedProfileName: null,
     beginLineNumToLogEventNum: new Map<number, number>(),
     exportProgress: null,
@@ -122,6 +123,7 @@ const STATE_DEFAULT: Readonly<StateContextType> = Object.freeze({
     loadFile: async () => {
     },
     loadPageByAction: () => null,
+    setActiveTabName: () => null,
     startQuery: () => null,
 });
 
@@ -261,6 +263,7 @@ const StateContextProvider = ({children}: StateContextProviderProps) => {
     const {filePath, logEventNum} = useContext(UrlContext);
 
     // States
+    const [activeTabName, setActiveTabName] = useState<TAB_NAME>(STATE_DEFAULT.activeTabName);
     const [activatedProfileName, setActivatedProfileName] =
         useState<Nullable<ProfileName>>(STATE_DEFAULT.activatedProfileName);
     const [exportProgress, setExportProgress] =
@@ -288,6 +291,10 @@ const StateContextProvider = ({children}: StateContextProviderProps) => {
     const pageNumRef = useRef<number>(pageNum);
     const uiStateRef = useRef<UI_STATE>(uiState);
 
+    const handleFormatPopupPrimaryAction = useCallback(() => {
+        setActiveTabName(TAB_NAME.SETTINGS);
+    }, []);
+
     const handleMainWorkerResp = useCallback((ev: MessageEvent<MainWorkerRespMessage>) => {
         const {code, args} = ev.data;
         console.log(`[MainWorker -> Renderer] code=${code}`);
@@ -296,9 +303,6 @@ const StateContextProvider = ({children}: StateContextProviderProps) => {
                 if (null !== logExportManagerRef.current) {
                     const progress = logExportManagerRef.current.appendChunk(args.logs);
                     setExportProgress(progress);
-                    if (EXPORT_LOG_PROGRESS_VALUE_MAX === progress) {
-                        setUiState(UI_STATE.READY);
-                    }
                 }
                 break;
             case WORKER_RESP_CODE.FORMAT_POPUP:
@@ -309,9 +313,7 @@ const StateContextProvider = ({children}: StateContextProviderProps) => {
                     primaryAction: {
                         children: "Settings",
                         startDecorator: <SettingsOutlinedIcon/>,
-                        onClick: () => {
-                            alert("fix open settings button");
-                        },
+                        onClick: handleFormatPopupPrimaryAction,
                     },
                     timeoutMillis: LONG_AUTO_DISMISS_TIMEOUT_MILLIS,
                     title: "A format string has not been configured",
@@ -332,9 +334,6 @@ const StateContextProvider = ({children}: StateContextProviderProps) => {
 
                 switch (uiStateRef.current) {
                     case UI_STATE.FAST_LOADING:
-                        setUiState(UI_STATE.READY);
-                        break;
-                    case UI_STATE.SLOW_LOADING:
                         setUiState(UI_STATE.READY);
                         break;
                     case UI_STATE.FILE_LOADING:
@@ -378,7 +377,10 @@ const StateContextProvider = ({children}: StateContextProviderProps) => {
                 console.error(`Unexpected ev.data: ${JSON.stringify(ev.data)}`);
                 break;
         }
-    }, [postPopUp]);
+    }, [
+        handleFormatPopupPrimaryAction,
+        postPopUp,
+    ]);
 
     const startQuery = useCallback((queryArgs: QueryArgs) => {
         setQueryResults(STATE_DEFAULT.queryResults);
@@ -396,15 +398,14 @@ const StateContextProvider = ({children}: StateContextProviderProps) => {
 
             return;
         }
-        setUiState(UI_STATE.SLOW_LOADING);
-        setExportProgress(EXPORT_LOG_PROGRESS_VALUE_MIN);
+        setExportProgress(EXPORT_LOGS_PROGRESS_VALUE_MIN);
         logExportManagerRef.current = new LogExportManager(
             Math.ceil(numEvents / EXPORT_LOGS_CHUNK_SIZE),
             fileName
         );
         workerPostReq(
             mainWorkerRef.current,
-            WORKER_REQ_CODE.EXPORT_LOG,
+            WORKER_REQ_CODE.EXPORT_LOGS,
             null
         );
     }, [
@@ -460,9 +461,10 @@ const StateContextProvider = ({children}: StateContextProviderProps) => {
 
             return;
         }
+
         if (navAction.code === ACTION_NAME.RELOAD) {
             if (null === fileSrcRef.current || null === logEventNumRef.current) {
-                throw new Error(`Expected fileSrc=${JSON.stringify(fileSrcRef.current)
+                throw new Error(`Unexpected fileSrc=${JSON.stringify(fileSrcRef.current)
                 }, logEventNum=${logEventNumRef.current} when reloading.`);
             }
             loadFile(fileSrcRef.current, {
@@ -471,6 +473,12 @@ const StateContextProvider = ({children}: StateContextProviderProps) => {
             }).catch((e:unknown) => {
                 console.error(e);
             });
+
+            return;
+        }
+
+        if (UI_STATE.READY !== uiStateRef.current) {
+            console.warn("Skipping navigation: page load in progress.");
 
             return;
         }
@@ -555,100 +563,92 @@ const StateContextProvider = ({children}: StateContextProviderProps) => {
 
     // On `filePath` update, load file.
     useEffect(() => {
-        initProfiles({filePath: null})
-            .then((initResult) => {
-                setActivatedProfileName(initResult);
-            })
-            .catch((e:unknown) => {
-                console.error("Error occurred when initializing profiles:", e);
+        (async () => {
+            if (URL_SEARCH_PARAMS_DEFAULT.filePath === filePath) {
+                return;
+            }
+
+            let cursor: CursorType = {code: CURSOR_CODE.LAST_EVENT, args: null};
+            if (URL_HASH_PARAMS_DEFAULT.logEventNum !== logEventNumRef.current) {
+                cursor = {
+                    code: CURSOR_CODE.EVENT_NUM,
+                    args: {eventNum: logEventNumRef.current},
+                };
+            }
+            await loadFile(filePath, cursor);
+
+            const filePathUrl = new URL(filePath);
+            const {host, pathname} = filePathUrl;
+
+            const endpointPath = "terrablob.uberinternal.com" === host ?
+                "/_gateway" :
+                "";
+            const s3Path = pathname.substring(endpointPath.length);
+
+            const match = s3Path.match(/(.*?-)\d+\./);
+            const s3PrefixWithPartialBaseName = (null !== match) ?
+                match[1] ?? null :
+                null;
+
+            if (null === s3PrefixWithPartialBaseName) {
+                console.error(
+                    `Failed to extract S3 prefix with partial base name from "${s3Path}"`
+                );
+
+                return;
+            }
+            const s3Prefix = s3Path.substring(0, s3Path.lastIndexOf("/") + 1);
+
+            const s3Client = new S3Client({
+                region: ".",
+                credentials: {
+                    accessKeyId: "",
+                    secretAccessKey: "",
+                },
+                signer: {
+                    // eslint-disable-next-line @typescript-eslint/require-await
+                    sign: async (request) => {
+                        request.hostname = host;
+                        request.path = endpointPath;
+
+                        return request;
+                    },
+                },
             });
-        if (URL_SEARCH_PARAMS_DEFAULT.filePath === filePath) {
-            return;
-        }
 
-        let cursor: CursorType = {code: CURSOR_CODE.LAST_EVENT, args: null};
-        if (URL_HASH_PARAMS_DEFAULT.logEventNum !== logEventNumRef.current) {
-            cursor = {
-                code: CURSOR_CODE.EVENT_NUM,
-                args: {eventNum: logEventNumRef.current},
-            };
-        }
-        loadFile(filePath, cursor)
-            .then(async () => {
-                const filePathUrl = new URL(filePath);
-                const {host, pathname} = filePathUrl;
+            let marker: string | undefined = s3PrefixWithPartialBaseName;
+            let resp: ListObjectsCommandOutput;
+            const fileList = [];
+            do {
+                resp = await s3Client.send(
+                    new ListObjectsCommand({
+                        Bucket: ".",
+                        Prefix: s3Prefix,
+                        Marker: marker,
+                    })
+                );
 
-                const endpointPath = "terrablob.uberinternal.com" === host ?
-                    "/_gateway" :
-                    "";
-                const s3Path = pathname.substring(endpointPath.length);
-
-                const match = s3Path.match(/(.*?-)\d+\./);
-                const s3PrefixWithPartialBaseName = (null !== match) ?
-                    match[1] ?? null :
-                    null;
-
-                if (null === s3PrefixWithPartialBaseName) {
-                    throw new Error(
-                        `Failed to extract S3 prefix with partial base name from "${s3Path}"`
-                    );
+                if ("undefined" === typeof resp.Contents || 0 === resp.Contents.length) {
+                    break;
                 }
-                const s3Prefix = s3Path.substring(0, s3Path.lastIndexOf("/") + 1);
 
-                const s3Client = new S3Client({
-                    region: ".",
-                    credentials: {
-                        accessKeyId: "",
-                        secretAccessKey: "",
-                    },
-                    signer: {
-                        // eslint-disable-next-line @typescript-eslint/require-await
-                        sign: async (request) => {
-                            request.hostname = host;
-                            request.path = endpointPath;
-
-                            return request;
-                        },
-                    },
-                });
-
-                let marker: string | undefined = s3PrefixWithPartialBaseName;
-                let resp: ListObjectsCommandOutput;
-                const fileList = [];
-                do {
-                    resp = await s3Client.send(
-                        new ListObjectsCommand({
-                            Bucket: ".",
-                            Prefix: s3Prefix,
-                            Marker: marker,
-                        })
-                    );
-
-                    if ("undefined" === typeof resp.Contents || 0 === resp.Contents.length) {
+                for (const content of resp.Contents) {
+                    if (content.Key?.startsWith(s3PrefixWithPartialBaseName)) {
+                        fileList.push(content.Key);
+                    } else {
+                        // eslint-disable-next-line no-undefined
+                        marker = undefined;
                         break;
                     }
+                }
+                if ("undefined" !== typeof marker) {
+                    marker = resp.NextMarker;
+                }
+            } while (0 < resp.Contents.length && "undefined" !== typeof marker);
 
-                    for (const content of resp.Contents) {
-                        if (content.Key?.startsWith(s3PrefixWithPartialBaseName)) {
-                            fileList.push(content.Key);
-                        } else {
-                            // eslint-disable-next-line no-undefined
-                            marker = undefined;
-                            break;
-                        }
-                    }
-                    if ("undefined" !== typeof marker) {
-                        marker = resp.NextMarker;
-                    }
-                } while (0 < resp.Contents.length && "undefined" !== typeof marker);
-
-                console.log("fileList length:", fileList.length);
-                setS3FileList(fileList);
-            })
-            .catch((e:unknown) => {
-                console.error(`Error occurred when loading file "${filePath}" with cursor=${
-                    JSON.stringify(cursor)}:`, e);
-            });
+            console.log("fileList length:", fileList.length);
+            setS3FileList(fileList);
+        })();
     }, [
         filePath,
         loadFile,
@@ -658,6 +658,7 @@ const StateContextProvider = ({children}: StateContextProviderProps) => {
         <StateContext.Provider
             value={{
                 activatedProfileName: activatedProfileName,
+                activeTabName: activeTabName,
                 beginLineNumToLogEventNum: beginLineNumToLogEventNumRef.current,
                 exportProgress: exportProgress,
                 fileName: fileName,
@@ -675,6 +676,7 @@ const StateContextProvider = ({children}: StateContextProviderProps) => {
                 filterLogs: filterLogs,
                 loadFile: loadFile,
                 loadPageByAction: loadPageByAction,
+                setActiveTabName: setActiveTabName,
                 startQuery: startQuery,
             }}
         >

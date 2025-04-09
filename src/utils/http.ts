@@ -1,10 +1,7 @@
-import axios, {
-    AxiosError,
-    AxiosProgressEvent,
-} from "axios";
+import axios, {AxiosError} from "axios";
 
+import {JsonValue} from "../typings/js";
 
-type ProgressCallback = (numBytesDownloaded:number, numBytesTotal:number) => void;
 
 /**
  * Converts an Axios error into a custom Error object.
@@ -35,41 +32,19 @@ const convertAxiosError = (e: AxiosError): Error => {
     );
 };
 
-
 /**
- * Normalizes total size if undefined and calls the provided onProgress callback with loaded and
- * total sizes.
- *
- * @param onProgress
- * @return The handler that wraps `onProgress`.
- */
-const normalizeTotalSize = (onProgress: ProgressCallback) => ({
-    loaded,
-    total,
-}: AxiosProgressEvent) => {
-    if ("undefined" === typeof total) {
-        total = loaded;
-    }
-    onProgress(loaded, total);
-};
-
-/**
- * Retrieves an object that is stored as JSON in a remote location.
+ * Downloads and parses JSON from the specified remote URL.
  *
  * @param remoteUrl
- * @param onProgress
- * @return The parsed JSON object.
+ * @return The parsed response. If the HTTP response body is not JSON, the body is gracefully
+ * returned as a string.
  * @throws {Error} if the download fails.
  */
-const getJsonObjectFrom = async <T>(
-    remoteUrl: string,
-    onProgress: ProgressCallback = () => null
-)
-: Promise<T> => {
+const getJsonObjectFrom = async (remoteUrl: string)
+: Promise<JsonValue> => {
     try {
-        const {data} = await axios.get<T>(remoteUrl, {
+        const {data} = await axios.get<JsonValue>(remoteUrl, {
             responseType: "json",
-            onDownloadProgress: normalizeTotalSize(onProgress),
         });
 
         return data;
@@ -84,19 +59,14 @@ const getJsonObjectFrom = async <T>(
  * Downloads (bypassing any caching) a file as a Uint8Array.
  *
  * @param fileUrl
- * @param onProgress
  * @return The file's content.
  * @throws {Error} if the download fails.
  */
-const getUint8ArrayFrom = async (
-    fileUrl: string,
-    onProgress: ProgressCallback = () => null
-)
+const getUint8ArrayFrom = async (fileUrl: string)
 : Promise<Uint8Array> => {
     try {
         const {data} = await axios.get<ArrayBuffer>(fileUrl, {
             responseType: "arraybuffer",
-            onDownloadProgress: normalizeTotalSize(onProgress),
             headers: {
                 "Cache-Control": "no-cache",
                 "Pragma": "no-cache",

@@ -1,4 +1,7 @@
-import {forwardRef} from "react";
+import {
+    Ref,
+    useContext,
+} from "react";
 
 import {
     TabList,
@@ -11,6 +14,7 @@ import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import SearchIcon from "@mui/icons-material/Search";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 
+import {StateContext} from "../../../../contexts/StateContextProvider";
 import {TAB_NAME} from "../../../../typings/tab";
 import {openInNewTab} from "../../../../utils/url";
 import FileInfoTabPanel from "./FileInfoTabPanel";
@@ -35,30 +39,33 @@ const TABS_INFO_LIST: Readonly<Array<{
 ]);
 
 interface SidebarTabsProps {
-    activeTabName: TAB_NAME;
-    onActiveTabNameChange: (newValue: TAB_NAME) => void;
+    ref: Ref<HTMLDivElement>;
 }
 
 /**
  * Displays a set of tabs in a vertical orientation.
  *
- * @param tabListRef Reference object used to access the TabList DOM element.
+ * @param props
+ * @param props.ref Reference object used to access the TabList DOM element.
  * @return
  */
-const SidebarTabs = forwardRef<HTMLDivElement, SidebarTabsProps>((
-    {
-        activeTabName,
-        onActiveTabNameChange,
-    },
-    tabListRef
-) => {
+const SidebarTabs = ({
+    ref,
+}: SidebarTabsProps) => {
+    const {activeTabName, setActiveTabName} = useContext(StateContext);
+
     const handleTabButtonClick = (tabName: TAB_NAME) => {
         switch (tabName) {
             case TAB_NAME.DOCUMENTATION:
                 openInNewTab(DOCUMENTATION_URL);
                 break;
-            default:
-                onActiveTabNameChange(tabName);
+            default: {
+                const newTabName = (activeTabName === tabName) ?
+                    TAB_NAME.NONE :
+                    tabName;
+
+                setActiveTabName(newTabName);
+            }
         }
     };
 
@@ -70,7 +77,7 @@ const SidebarTabs = forwardRef<HTMLDivElement, SidebarTabsProps>((
             variant={"plain"}
         >
             <TabList
-                ref={tabListRef}
+                ref={ref}
                 size={"lg"}
             >
                 {TABS_INFO_LIST.map(({tabName, Icon}) => (
@@ -99,7 +106,7 @@ const SidebarTabs = forwardRef<HTMLDivElement, SidebarTabsProps>((
             <SettingsTabPanel/>
         </Tabs>
     );
-});
+};
 
-SidebarTabs.displayName = "SidebarTabs";
+
 export default SidebarTabs;
