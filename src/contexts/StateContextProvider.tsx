@@ -507,7 +507,6 @@ const StateContextProvider = ({children}: StateContextProviderProps) => {
 
     // Synchronize `logEventNumRef` with `logEventNum`.
     useEffect(() => {
-        console.log(import.meta.env.S3_ALTERNATE_ENDPOINT);
         logEventNumRef.current = logEventNum;
     }, [logEventNum]);
 
