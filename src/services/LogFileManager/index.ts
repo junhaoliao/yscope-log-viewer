@@ -1,4 +1,4 @@
-/* eslint max-lines: ["error", 500] */
+/* eslint max-lines: ["error", 600] */
 import {
     Decoder,
     DecodeResult,
@@ -149,10 +149,9 @@ class LogFileManager {
             decoder: decoder,
             fileName: fileName,
             onDiskFileSizeInBytes: fileData.length,
-            pageSize: pageSize,
-
             onExportChunk: onExportChunk,
             onQueryResults: onQueryResults,
+            pageSize: pageSize,
         });
     }
 
@@ -237,6 +236,39 @@ class LogFileManager {
                 this.exportChunkAndScheduleNext(endLogEventIdx);
             });
         }
+    }
+
+    /**
+     * Loads log events in the range
+     * [`beginLogEventIdx`, `endLogEventIdx`).
+     *
+     * @param beginLogEventIdx
+     * @param endLogEventIdx
+     * @return An object containing the log events as a string.
+     * @throws {Error} if any error occurs when decoding the log events.
+     */
+    loadRange (beginLogEventIdx: number, endLogEventIdx: number): {
+        logs: string;
+    } {
+        const validBeginLogEventIdx = Math.max(0, beginLogEventIdx);
+        const validEndLogEventIdx = Math.min(endLogEventIdx, this.#numEvents);
+        const results = this.#decoder.decodeRange(
+            validBeginLogEventIdx,
+            validEndLogEventIdx,
+            false,
+        );
+
+        if (null === results) {
+            throw new Error(
+                `Failed to decode log events in range [${beginLogEventIdx}, ${endLogEventIdx})`
+            );
+        }
+
+        const messages = results.map(([msg]) => msg);
+
+        return {
+            logs: messages.join(""),
+        };
     }
 
     /**

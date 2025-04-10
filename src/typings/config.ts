@@ -1,4 +1,5 @@
 import {DecoderOptions} from "./decoders";
+import {LlmOptions} from "./llm";
 import {TAB_NAME} from "./tab";
 
 
@@ -12,6 +13,7 @@ enum GLOBAL_CONFIG_KEY {
     INITIAL_TAB_NAME = "initialTabName",
     PAGE_SIZE = "pageSize",
     THEME = "uiTheme",
+    LLM_OPTIONS = "llmOptions",
 }
 
 enum PROFILE_MANAGED_CONFIG_KEY {
@@ -54,14 +56,21 @@ const getProfileNameFromLocalStorageKey = (key: string): string => key.substring
  */
 const getLocalStorageKeyFromProfileName = (profileName: string): string => `${LOCAL_STORAGE_KEY_PROFILE_PREFIX}${profileName}`;
 
+/* eslint-disable @typescript-eslint/prefer-literal-enum-member */
 enum LOCAL_STORAGE_KEY {
     FORCED_PROFILE = "forcedProfile",
-    INITIAL_TAB_NAME = "initialTabName",
-    PAGE_SIZE = "pageSize",
-
-    // This key should only be used by Joy UI.
-    THEME = "theme",
+    DECODER_OPTIONS_FORMAT_STRING = `${CONFIG_KEY.DECODER_OPTIONS}/formatString`,
+    DECODER_OPTIONS_LOG_LEVEL_KEY = `${CONFIG_KEY.DECODER_OPTIONS}/logLevelKey`,
+    DECODER_OPTIONS_TIMESTAMP_KEY = `${CONFIG_KEY.DECODER_OPTIONS}/timestampKey`,
+    INITIAL_TAB_NAME = CONFIG_KEY.INITIAL_TAB_NAME,
+    THEME = CONFIG_KEY.THEME,
+    PAGE_SIZE = CONFIG_KEY.PAGE_SIZE,
+    LLM_OPTIONS_AUTHORIZATION = `${CONFIG_KEY.LLM_OPTIONS}/authorization`,
+    LLM_OPTIONS_ENDPOINT = `${CONFIG_KEY.LLM_OPTIONS}/endpoint`,
+    LLM_OPTIONS_EVENT_NUM = `${CONFIG_KEY.LLM_OPTIONS}/eventNum`,
+    LLM_OPTIONS_PROMPT = `${CONFIG_KEY.LLM_OPTIONS}/prompt`,
 }
+/* eslint-enable @typescript-eslint/prefer-literal-enum-member */
 
 interface ProfileManagedConfigMap {
     [PROFILE_MANAGED_CONFIG_KEY.DECODER_OPTIONS_FORMAT_STRING]: DecoderOptions["formatString"];
@@ -73,6 +82,7 @@ interface ConfigMap extends ProfileManagedConfigMap {
     [GLOBAL_CONFIG_KEY.INITIAL_TAB_NAME]: TAB_NAME;
     [GLOBAL_CONFIG_KEY.PAGE_SIZE]: number;
     [GLOBAL_CONFIG_KEY.THEME]: THEME_NAME;
+    [GLOBAL_CONFIG_KEY.LLM_OPTIONS]: LlmOptions;
 }
 
 type ConfigUpdates = {

@@ -1,4 +1,5 @@
 /* eslint max-lines: ["error", 700] */
+/* eslint-disable max-statements */
 import React, {
     createContext,
     useCallback,
@@ -88,12 +89,15 @@ interface StateContextType {
     queryProgress: number;
     queryResults: QueryResults;
     s3FileList: Nullable<string[]>;
+    settingsChanged: object;
 
     exportLogs: () => void;
     filterLogs: (filter: LogLevelFilter) => void;
     loadFile: (fileSrc: FileSrcType, cursor: CursorType) => Promise<void>;
     loadPageByAction: (navAction: NavigationAction) => void;
+    loadRange: (beginLogEventNum: number, endLogEventNum: number) => Promise<string>;
     setActiveTabName: (tabName: TAB_NAME) => void;
+    notifyChangedSettings: () => void;
     startQuery: (queryArgs: QueryArgs) => void;
 }
 
@@ -108,9 +112,12 @@ const STATE_DEFAULT: Readonly<StateContextType> = Object.freeze({
     beginLineNumToLogEventNum: new Map<number, number>(),
     exportProgress: null,
     fileName: "",
+    loadRange: () => null,
     logData: "No file is open.",
+    notifyChangedSettings: () => null,
     numEvents: 0,
     numPages: 0,
+
     onDiskFileSizeInBytes: 0,
     pageNum: 0,
     queryProgress: QUERY_PROGRESS_VALUE_MIN,
@@ -124,7 +131,9 @@ const STATE_DEFAULT: Readonly<StateContextType> = Object.freeze({
     },
     loadPageByAction: () => null,
     setActiveTabName: () => null,
+    settingsChanged: {},
     startQuery: () => null,
+    uiState: UI_STATE.UNOPENED,
 });
 
 interface StateContextProviderProps {
@@ -145,7 +154,7 @@ const workerPostReq = <T extends WORKER_REQ_CODE>(
     code: T,
     args: WorkerReq<T>
 ) => {
-    worker.postMessage({code, args});
+    worker.postMessage({args, code});
 };
 
 /**
@@ -191,8 +200,8 @@ const getPageNumCursor = (
     }
 
     return {
+        args: {eventPositionOnPage: position, pageNum: newPageNum},
         code: CURSOR_CODE.PAGE_NUM,
-        args: {pageNum: newPageNum, eventPositionOnPage: position},
     };
 };
 
@@ -257,7 +266,7 @@ const updateUrlIfEventOnPage = (
  * @param props.children
  * @return
  */
-// eslint-disable-next-line max-lines-per-function, max-statements
+// eslint-disable-next-line max-lines-per-function
 const StateContextProvider = ({children}: StateContextProviderProps) => {
     const {postPopUp} = useContext(NotificationContext);
     const {filePath, logEventNum} = useContext(UrlContext);
@@ -279,6 +288,7 @@ const StateContextProvider = ({children}: StateContextProviderProps) => {
     const [queryResults, setQueryResults] = useState<QueryResults>(STATE_DEFAULT.queryResults);
     const [s3FileList, setS3FileList] = useState<Nullable<string[]>>(STATE_DEFAULT.s3FileList);
     const [uiState, setUiState] = useState<UI_STATE>(STATE_DEFAULT.uiState);
+    const [settingsChanged, setSettingsChanged] = useState<object>({});
 
     // Refs
     const beginLineNumToLogEventNumRef =
@@ -290,6 +300,7 @@ const StateContextProvider = ({children}: StateContextProviderProps) => {
     const numPagesRef = useRef<number>(numPages);
     const pageNumRef = useRef<number>(pageNum);
     const uiStateRef = useRef<UI_STATE>(uiState);
+    const llmLoadRangeCallbacksRef = useRef(new Map<number, (log: string) => void>());
 
     const handleFormatPopupPrimaryAction = useCallback(() => {
         setActiveTabName(TAB_NAME.SETTINGS);
@@ -312,8 +323,8 @@ const StateContextProvider = ({children}: StateContextProviderProps) => {
                     " structured logs by customizing how fields are displayed.",
                     primaryAction: {
                         children: "Settings",
-                        startDecorator: <SettingsOutlinedIcon/>,
                         onClick: handleFormatPopupPrimaryAction,
+                        startDecorator: <SettingsOutlinedIcon/>,
                     },
                     timeoutMillis: LONG_AUTO_DISMISS_TIMEOUT_MILLIS,
                     title: "A format string has not been configured",
@@ -373,6 +384,16 @@ const StateContextProvider = ({children}: StateContextProviderProps) => {
                     });
                 }
                 break;
+            case WORKER_RESP_CODE.RANGE_DATA: {
+                const callback = llmLoadRangeCallbacksRef.current.get(args.id) ?? null;
+                if (null === callback) {
+                    console.log(args);
+                    console.log(llmLoadRangeCallbacksRef.current);
+                    throw new Error("The callback is null.");
+                }
+                callback(args.logs);
+                break;
+            }
             default:
                 console.error(`Unexpected ev.data: ${JSON.stringify(ev.data)}`);
                 break;
@@ -455,6 +476,27 @@ const StateContextProvider = ({children}: StateContextProviderProps) => {
         handleMainWorkerResp,
     ]);
 
+    const loadRange =
+        (beginLogEventNum: number, endLogEventNum: number): Promise<string> => {
+            const nextId = Object.keys(llmLoadRangeCallbacksRef.current).length;
+
+            if (null === mainWorkerRef.current) {
+                return new Promise((_, error: (reason: Error) => void) => {
+                    error(new Error("MainWorker is not yet initialized."));
+                });
+            }
+            workerPostReq(mainWorkerRef.current, WORKER_REQ_CODE.LOAD_RANGE, {
+                beginLogEventIdx: beginLogEventNum,
+                endLogEventIdx: endLogEventNum,
+                id: nextId,
+            });
+
+            return new Promise((callback: (log: string) => void) => {
+                llmLoadRangeCallbacksRef.current.set(nextId, callback);
+                console.log("set");
+            });
+        };
+
     const loadPageByAction = useCallback((navAction: NavigationAction) => {
         if (null === mainWorkerRef.current) {
             console.error("Unexpected null mainWorkerRef.current");
@@ -500,7 +542,7 @@ const StateContextProvider = ({children}: StateContextProviderProps) => {
         }
         setUiState(UI_STATE.FAST_LOADING);
         workerPostReq(mainWorkerRef.current, WORKER_REQ_CODE.SET_FILTER, {
-            cursor: {code: CURSOR_CODE.EVENT_NUM, args: {eventNum: logEventNumRef.current ?? 1}},
+            cursor: {args: {eventNum: logEventNumRef.current ?? 1}, code: CURSOR_CODE.EVENT_NUM},
             logLevelFilter: filter,
         });
     }, []);
@@ -550,8 +592,8 @@ const StateContextProvider = ({children}: StateContextProviderProps) => {
         }
 
         const cursor: CursorType = {
-            code: CURSOR_CODE.EVENT_NUM,
             args: {eventNum: logEventNum},
+            code: CURSOR_CODE.EVENT_NUM,
         };
 
         setUiState(UI_STATE.FAST_LOADING);
@@ -654,6 +696,10 @@ const StateContextProvider = ({children}: StateContextProviderProps) => {
         loadFile,
     ]);
 
+    const notifyChangedSettings = useCallback(() => {
+        setSettingsChanged({});
+    }, [setSettingsChanged]);
+
     return (
         <StateContext.Provider
             value={{
@@ -662,22 +708,26 @@ const StateContextProvider = ({children}: StateContextProviderProps) => {
                 beginLineNumToLogEventNum: beginLineNumToLogEventNumRef.current,
                 exportProgress: exportProgress,
                 fileName: fileName,
+                loadRange: loadRange,
                 logData: logData,
+                notifyChangedSettings: notifyChangedSettings,
                 numEvents: numEvents,
                 numPages: numPages,
+
                 onDiskFileSizeInBytes: onDiskFileSizeInBytes,
                 pageNum: pageNum,
                 queryProgress: queryProgress,
                 queryResults: queryResults,
                 s3FileList: s3FileList,
-                uiState: uiState,
 
                 exportLogs: exportLogs,
                 filterLogs: filterLogs,
                 loadFile: loadFile,
                 loadPageByAction: loadPageByAction,
                 setActiveTabName: setActiveTabName,
+                settingsChanged: settingsChanged,
                 startQuery: startQuery,
+                uiState: uiState,
             }}
         >
             {children}

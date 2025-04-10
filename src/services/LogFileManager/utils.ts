@@ -42,7 +42,7 @@ const getPageNumCursorData = (
             pageBegin :
             pageEnd - 1;
 
-    return {pageBegin, pageEnd, matchingEvent};
+    return {matchingEvent, pageBegin, pageEnd};
 };
 
 /**
@@ -101,7 +101,7 @@ const getEventNumCursorData = (
     const pageEnd: ActiveLogCollectionEventIdx =
         Math.min(numActiveEvents, pageBegin + pageSize);
 
-    return {pageBegin, pageEnd, matchingEvent};
+    return {matchingEvent, pageBegin, pageEnd};
 };
 
 /**
@@ -119,7 +119,7 @@ const getLastEventCursorData = (
         (getChunkNum(numActiveEvents, pageSize) - 1) * pageSize;
     const pageEnd: ActiveLogCollectionEventIdx = Math.min(numActiveEvents, pageBegin + pageSize);
     const matchingEvent: ActiveLogCollectionEventIdx = pageEnd - 1;
-    return {pageBegin, pageEnd, matchingEvent};
+    return {matchingEvent, pageBegin, pageEnd};
 };
 
 /**
@@ -146,8 +146,8 @@ const loadFile = async (fileSrc: FileSrcType)
     }
 
     return {
-        fileName,
         fileData,
+        fileName,
     };
 };
 

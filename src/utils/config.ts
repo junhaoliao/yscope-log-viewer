@@ -13,12 +13,16 @@ import {
     ProfileName,
     THEME_NAME,
 } from "../typings/config";
-import {TAB_NAME} from "../typings/tab";
 import {getJsonObjectFrom} from "./http";
+import {DecoderOptions} from "../typings/decoders";
+import {LlmOptions} from "../typings/llm";
+import {TAB_NAME} from "../typings/tab";
+import {globalServerConfig} from "./serverConfig";
 
 
 const EXPORT_LOGS_CHUNK_SIZE = 10_000;
 const MAX_PAGE_SIZE = 1_000_000;
+const MAX_LLM_EVENT_NUM = 100;
 const QUERY_CHUNK_SIZE = 10_000;
 
 /**
@@ -41,6 +45,12 @@ const CONFIG_DEFAULT: ConfigMap = Object.freeze({
     [CONFIG_KEY.DECODER_OPTIONS_FORMAT_STRING]: "",
     [CONFIG_KEY.DECODER_OPTIONS_LOG_LEVEL_KEY]: "log.level",
     [CONFIG_KEY.DECODER_OPTIONS_TIMESTAMP_KEY]: "@timestamp",
+    [CONFIG_KEY.LLM_OPTIONS]: {
+        authorization: "",
+        endpoint: "",
+        eventNum: 11,
+        prompt: "Analyze the following sequence of log events:",
+    },
 });
 
 interface ProfileMetadata {
@@ -200,6 +210,12 @@ const testConfig = ({key, value}: ConfigUpdateEntry): Nullable<string> => {
         case CONFIG_KEY.INITIAL_TAB_NAME:
             // This config option is not intended for direct user input.
             break;
+        case CONFIG_KEY.LLM_OPTIONS:
+            if (0 > value.eventNum || MAX_LLM_EVENT_NUM < value.eventNum) {
+                result = "The number of events must be greater than or equal to 1 and less than " +
+                    `${MAX_LLM_EVENT_NUM + 1}.`;
+            }
+            break;
         case CONFIG_KEY.PAGE_SIZE:
             if (0 >= value || MAX_PAGE_SIZE < value) {
                 result = `Page size must be greater than 0 and less than ${MAX_PAGE_SIZE + 1}.`;
@@ -282,6 +298,24 @@ const updateConfig = (
                     updateEntry.value.toString()
                 );
                 break;
+            case CONFIG_KEY.LLM_OPTIONS:
+                window.localStorage.setItem(
+                    LOCAL_STORAGE_KEY.LLM_OPTIONS_AUTHORIZATION,
+                    value.authorization
+                );
+                window.localStorage.setItem(
+                    LOCAL_STORAGE_KEY.LLM_OPTIONS_ENDPOINT,
+                    value.endpoint
+                );
+                window.localStorage.setItem(
+                    LOCAL_STORAGE_KEY.LLM_OPTIONS_EVENT_NUM,
+                    value.eventNum.toString()
+                );
+                window.localStorage.setItem(
+                    LOCAL_STORAGE_KEY.LLM_OPTIONS_PROMPT,
+                    value.prompt
+                );
+                break;
 
             // Profile managed
             case CONFIG_KEY.DECODER_OPTIONS_FORMAT_STRING:
@@ -297,7 +331,8 @@ const updateConfig = (
                     isProfileUpdated = true;
                 }
                 break;
-            } default: break;
+            }
+            default: break;
         }
     }
 
@@ -344,6 +379,41 @@ const getConfig = <T extends CONFIG_KEY>(
                 Number(storedValue);
             break;
         }
+        case CONFIG_KEY.DECODER_OPTIONS:
+            value = {
+                formatString: window.localStorage.getItem(
+                    LOCAL_STORAGE_KEY.DECODER_OPTIONS_FORMAT_STRING
+                ),
+                logLevelKey: window.localStorage.getItem(
+                    LOCAL_STORAGE_KEY.DECODER_OPTIONS_LOG_LEVEL_KEY
+                ),
+                timestampKey: window.localStorage.getItem(
+                    LOCAL_STORAGE_KEY.DECODER_OPTIONS_TIMESTAMP_KEY
+                ),
+            } as DecoderOptions;
+            break;
+        case CONFIG_KEY.LLM_OPTIONS:
+            value = {
+                authorization: window.localStorage.getItem(
+                    LOCAL_STORAGE_KEY.LLM_OPTIONS_AUTHORIZATION
+                ),
+                endpoint: window.localStorage.getItem(
+                    LOCAL_STORAGE_KEY.LLM_OPTIONS_ENDPOINT
+                ),
+                eventNum: Number(window.localStorage.getItem(
+                    LOCAL_STORAGE_KEY.LLM_OPTIONS_EVENT_NUM
+                ) ?? CONFIG_DEFAULT[CONFIG_KEY.LLM_OPTIONS].eventNum.toString()),
+                prompt: window.localStorage.getItem(
+                    LOCAL_STORAGE_KEY.LLM_OPTIONS_PROMPT
+                ),
+            } as LlmOptions;
+            break;
+        case CONFIG_KEY.INITIAL_TAB_NAME:
+            value = window.localStorage.getItem(LOCAL_STORAGE_KEY.INITIAL_TAB_NAME);
+            break;
+        case CONFIG_KEY.PAGE_SIZE:
+            value = window.localStorage.getItem(LOCAL_STORAGE_KEY.PAGE_SIZE);
+            break;
         default: break;
     }
 
@@ -357,6 +427,16 @@ const getConfig = <T extends CONFIG_KEY>(
             break;
         }
         default: break;
+    }
+
+    // TODO: integrate this with profile
+    // Fallback to globalServerConfig for LLM options.
+    if (key === CONFIG_KEY.LLM_OPTIONS) {
+        if (null === value ||
+            ("object" === typeof value && Object.values(value).includes(null))) {
+            value = CONFIG_DEFAULT[CONFIG_KEY.LLM_OPTIONS];
+            value.endpoint = globalServerConfig.defaultLlmEndpoint;
+        }
     }
 
     return value as ConfigMap[T];

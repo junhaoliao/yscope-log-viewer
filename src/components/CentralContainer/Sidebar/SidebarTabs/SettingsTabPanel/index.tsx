@@ -39,6 +39,7 @@ import {StateContext} from "../../../../../contexts/StateContextProvider";
 import {Nullable} from "../../../../../typings/common";
 import {
     CONFIG_KEY,
+    LOCAL_STORAGE_KEY,
     ProfileName,
 } from "../../../../../typings/config";
 import {LOG_LEVEL} from "../../../../../typings/logs";
@@ -108,6 +109,46 @@ const getConfigFormFields = (profileName: ProfileName) => [
         label: "Decoder: Timestamp key",
         type: "text",
     },
+    {
+        helperText: "Number of log messages to display per page.",
+        initialValue: getConfig(CONFIG_KEY.PAGE_SIZE),
+        key: LOCAL_STORAGE_KEY.PAGE_SIZE,
+        label: "View: Page size",
+        type: "number",
+    },
+    {
+        helperText: "The endpoint for accessing the LLM model.",
+        initialValue: getConfig(CONFIG_KEY.LLM_OPTIONS).endpoint,
+        key: LOCAL_STORAGE_KEY.LLM_OPTIONS_ENDPOINT,
+        label: "LLM: Endpoint",
+        type: "string",
+    },
+    {
+        helperText: (
+            <span>
+                The token for Bearer authorization.
+                {" "}
+                Leave it blank if the endpoint does not require authorization.
+            </span>),
+        initialValue: getConfig(CONFIG_KEY.LLM_OPTIONS).authorization,
+        key: LOCAL_STORAGE_KEY.LLM_OPTIONS_AUTHORIZATION,
+        label: "LLM: Authorization",
+        type: "string",
+    },
+    {
+        helperText: "The number of events to send to the LLM.",
+        initialValue: getConfig(CONFIG_KEY.LLM_OPTIONS).eventNum,
+        key: LOCAL_STORAGE_KEY.LLM_OPTIONS_EVENT_NUM,
+        label: "LLM: Number of events",
+        type: "number",
+    },
+    {
+        helperText: "The prompt to be used with the LLM models.",
+        initialValue: getConfig(CONFIG_KEY.LLM_OPTIONS).prompt,
+        key: LOCAL_STORAGE_KEY.LLM_OPTIONS_PROMPT,
+        label: "LLM: Prompt",
+        type: "string",
+    },
 ];
 
 /**
@@ -128,7 +169,7 @@ const handleConfigFormReset = (ev: React.FormEvent) => {
  */
 const SettingsTabPanel = () => {
     const {postPopUp} = useContext(NotificationContext);
-    const {activatedProfileName, loadPageByAction} = useContext(StateContext);
+    const {activatedProfileName, loadPageByAction, notifyChangedSettings} = useContext(StateContext);
     const [newProfileName, setNewProfileName] = useState<string>("");
     const [selectedProfileName, setSelectedProfileName] = useState<Nullable<ProfileName>>(activatedProfileName);
     const [profilesMetadata, setProfilesMetadata] =
@@ -144,6 +185,10 @@ const SettingsTabPanel = () => {
         const logLevelKey = getFormDataValue(CONFIG_KEY.DECODER_OPTIONS_LOG_LEVEL_KEY);
         const timestampKey = getFormDataValue(CONFIG_KEY.DECODER_OPTIONS_TIMESTAMP_KEY);
         const pageSize = Number(getFormDataValue(CONFIG_KEY.PAGE_SIZE));
+        const authorization = getFormDataValue(LOCAL_STORAGE_KEY.LLM_OPTIONS_AUTHORIZATION);
+        const endpoint = getFormDataValue(LOCAL_STORAGE_KEY.LLM_OPTIONS_ENDPOINT);
+        const eventNum = getFormDataValue(LOCAL_STORAGE_KEY.LLM_OPTIONS_EVENT_NUM);
+        const prompt = getFormDataValue(LOCAL_STORAGE_KEY.LLM_OPTIONS_PROMPT);
 
         const errorList = updateConfig(
             {
@@ -151,6 +196,10 @@ const SettingsTabPanel = () => {
                 [CONFIG_KEY.DECODER_OPTIONS_LOG_LEVEL_KEY]: logLevelKey,
                 [CONFIG_KEY.DECODER_OPTIONS_TIMESTAMP_KEY]: timestampKey,
                 [CONFIG_KEY.PAGE_SIZE]: pageSize,
+                [CONFIG_KEY.LLM_OPTIONS]: {authorization: authorization,
+                    endpoint: endpoint,
+                    eventNum: Number(eventNum),
+                    prompt: prompt},
             },
             selectedProfileName,
         );
@@ -169,6 +218,7 @@ const SettingsTabPanel = () => {
         setSelectedProfileName(null);
         loadPageByAction({code: ACTION_NAME.RELOAD, args: null});
     }, [
+        notifyChangedSettings,
         loadPageByAction,
         postPopUp,
         selectedProfileName,

@@ -1,0 +1,5 @@
+{
+  "defaultLlmEndpoint": "",
+  "defaultLlmModel": "gpt-4",
+  "usageStatsConfigFunction": "() => {return {endpoint: '', bucket: '', path: ''}}"
+}

@@ -33,7 +33,7 @@ const postResp = <T extends WORKER_RESP_CODE>(
     code: T,
     args: WorkerResp<T>
 ) => {
-    postMessage({code, args});
+    postMessage({args, code});
 };
 
 
@@ -107,6 +107,16 @@ onmessage = async (ev: MessageEvent<MainWorkerReqMessage>) => {
                 postResp(
                     WORKER_RESP_CODE.PAGE_DATA,
                     LOG_FILE_MANAGER.loadPage(args.cursor)
+                );
+                break;
+            case WORKER_REQ_CODE.LOAD_RANGE:
+                if (null === LOG_FILE_MANAGER) {
+                    throw new Error("Log file manager hasn't been initialized");
+                }
+                postResp(
+                    WORKER_RESP_CODE.RANGE_DATA,
+                    {id: args.id,
+                        ...LOG_FILE_MANAGER.loadRange(args.beginLogEventIdx, args.endLogEventIdx)}
                 );
                 break;
             case WORKER_REQ_CODE.SET_FILTER:

@@ -1,3 +1,5 @@
+/* eslint max-lines: ["error", 400] */
+/* eslint-disable max-params */
 import {
     useCallback,
     useContext,
@@ -9,6 +11,7 @@ import {
 import {useColorScheme} from "@mui/joy";
 import * as monaco from "monaco-editor/esm/vs/editor/editor.api.js";
 
+import {LlmContext} from "../../contexts/LlmContextProvider";
 import {StateContext} from "../../contexts/StateContextProvider";
 import {
     updateWindowUrlHashParams,
@@ -19,6 +22,7 @@ import {
     CONFIG_KEY,
     THEME_NAME,
 } from "../../typings/config";
+import {TAB_NAME} from "../../typings/tab";
 import {BeginLineNumToLogEventNumMap} from "../../typings/worker";
 import {
     ACTION_NAME,
@@ -126,15 +130,74 @@ const handleWordWrapAction = (editor: monaco.editor.IStandaloneCodeEditor) => {
     editor.updateOptions({wordWrap: newWordWrap});
 };
 
+
+/**
+ * Handles ask llm action in the editor.
+ *
+ * @param editor
+ * @param beginLineNumToLogEventNum
+ * @param requestLlmWithLog
+ * @param requestLlmWithRange
+ * @param setActiveTabName
+ * @throws {Error} if the editor's model cannot be retrieved.
+ */
+const handleAskLlmAction = (
+    editor: monaco.editor.IStandaloneCodeEditor,
+    beginLineNumToLogEventNum: BeginLineNumToLogEventNumMap,
+    requestLlmWithLog: (logText:string) => void,
+    requestLlmWithRange: (beginLogEventNum:number, endLogEventNum:number) =>void,
+    setActiveTabName: (tabName: TAB_NAME) => void,
+) => {
+    const selection = editor.getSelection();
+    if (null === selection) {
+        return;
+    }
+    let logText: string | null;
+    if (selection.startLineNumber === selection.endLineNumber &&
+        selection.startColumn === selection.endColumn) {
+        // no selected text
+        const {eventNum} = getConfig(CONFIG_KEY.LLM_OPTIONS);
+        const eventBefore = Math.floor(eventNum / 2);
+        const selectedLogEventNum = getSelectedLogEventNum(
+            editor,
+            beginLineNumToLogEventNum,
+        );
+
+        if (null === selectedLogEventNum) {
+            return;
+        }
+        const beginLogEventNum =
+            selectedLogEventNum - eventBefore;
+        const endLogEventNum =
+            selectedLogEventNum - eventBefore + eventNum;
+
+        requestLlmWithRange(beginLogEventNum - 1, endLogEventNum - 1);
+    } else {
+        // has selected text
+        logText = editor.getModel()?.getValueInRange(selection) ?? null;
+        if (null === logText) {
+            throw new Error("Unable to get the text model.");
+        }
+        requestLlmWithLog(logText);
+    }
+    setActiveTabName(TAB_NAME.ASK_LLM);
+};
+
 /**
  * Renders a read-only editor for viewing logs.
  *
  * @return
  */
+// eslint-disable-next-line max-lines-per-function
 const Editor = () => {
     const {mode, systemMode} = useColorScheme();
 
-    const {beginLineNumToLogEventNum, logData, loadPageByAction} = useContext(StateContext);
+    const {beginLineNumToLogEventNum,
+        logData,
+        loadPageByAction,
+        setActiveTabName} = useContext(StateContext);
+    const {requestLlmWithLog,
+        requestLlmWithRange} = useContext(LlmContext);
     const {logEventNum} = useContext(UrlContext);
 
     const [lineNum, setLineNum] = useState<number>(1);
@@ -144,6 +207,8 @@ const Editor = () => {
     const editorRef = useRef<Nullable<monaco.editor.IStandaloneCodeEditor>>(null);
     const isMouseDownRef = useRef<boolean>(false);
     const pageSizeRef = useRef(getConfig(CONFIG_KEY.PAGE_SIZE));
+    const requestLlmWithLogRef = useRef(requestLlmWithLog);
+    const requestLlmWithRangeRef = useRef(requestLlmWithRange);
 
     const handleEditorCustomAction = useCallback((
         editor: monaco.editor.IStandaloneCodeEditor,
@@ -154,17 +219,17 @@ const Editor = () => {
             case ACTION_NAME.PREV_PAGE:
             case ACTION_NAME.NEXT_PAGE:
             case ACTION_NAME.LAST_PAGE:
-                loadPageByAction({code: actionName, args: null});
+                loadPageByAction({args: null, code: actionName});
                 break;
             case ACTION_NAME.PAGE_TOP:
-                goToPositionAndCenter(editor, {lineNumber: 1, column: 1});
+                goToPositionAndCenter(editor, {column: 1, lineNumber: 1});
                 break;
             case ACTION_NAME.PAGE_BOTTOM: {
                 const lineCount = editor.getModel()?.getLineCount();
                 if ("undefined" === typeof lineCount) {
                     break;
                 }
-                goToPositionAndCenter(editor, {lineNumber: lineCount, column: 1});
+                goToPositionAndCenter(editor, {column: 1, lineNumber: lineCount});
                 break;
             }
             case ACTION_NAME.COPY_LOG_EVENT:
@@ -173,10 +238,20 @@ const Editor = () => {
             case ACTION_NAME.WORD_WRAP:
                 handleWordWrapAction(editor);
                 break;
+            case ACTION_NAME.ASK_LLM:
+                handleAskLlmAction(
+                    editor,
+                    beginLineNumToLogEventNumRef.current,
+                    requestLlmWithLogRef.current,
+                    requestLlmWithRangeRef.current,
+                    setActiveTabName,
+                );
+                break;
             default:
                 break;
         }
-    }, [loadPageByAction]);
+    }, [loadPageByAction,
+        setActiveTabName]);
 
     /**
      * Sets `editorRef` and configures callbacks for mouse down detection.
@@ -270,6 +345,16 @@ const Editor = () => {
         logEventNum,
         beginLineNumToLogEventNum,
     ]);
+
+    // Synchronize request llm functions.
+    useEffect(
+        () => {
+            requestLlmWithLogRef.current = requestLlmWithLog;
+            requestLlmWithRangeRef.current = requestLlmWithRange;
+        },
+        [requestLlmWithLog,
+            requestLlmWithRange]
+    );
 
     return (
         <div className={"editor"}>
