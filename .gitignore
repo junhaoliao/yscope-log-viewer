@@ -12,3 +12,9 @@
 # IDEs
 /.idea
 /.vscode
+
+# Local overrides
+/.env.local
+
+# Customer-specific
+package-lock.json

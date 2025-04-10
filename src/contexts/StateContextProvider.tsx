@@ -507,6 +507,7 @@ const StateContextProvider = ({children}: StateContextProviderProps) => {
 
     // Synchronize `logEventNumRef` with `logEventNum`.
     useEffect(() => {
+        console.log(import.meta.env.S3_ALTERNATE_ENDPOINT);
         logEventNumRef.current = logEventNum;
     }, [logEventNum]);
 
@@ -580,7 +581,7 @@ const StateContextProvider = ({children}: StateContextProviderProps) => {
             const filePathUrl = new URL(filePath);
             const {host, pathname} = filePathUrl;
 
-            const endpointPath = "terrablob.uberinternal.com" === host ?
+            const endpointPath = import.meta.env.S3_ALTERNATE_ENDPOINT === host ?
                 "/_gateway" :
                 "";
             const s3Path = pathname.substring(endpointPath.length);

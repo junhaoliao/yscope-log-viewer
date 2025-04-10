@@ -5,6 +5,7 @@ const path = require("path");
 const CopyWebpackPlugin = require("copy-webpack-plugin");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const MonacoWebpackPlugin = require("monaco-editor-webpack-plugin");
+const DotenvWebpackPlugin = require("dotenv-webpack");
 
 
 const distPath = path.resolve(__dirname, "dist");
@@ -67,6 +68,11 @@ module.exports = {
         publicPath: "auto",
     },
     plugins: [
+        new DotenvWebpackPlugin({
+            path: ".env.local",
+            defaults: ".env",
+            prefix: "import.meta.env.",
+        }),
         new CopyWebpackPlugin({
             patterns: [
                 {
