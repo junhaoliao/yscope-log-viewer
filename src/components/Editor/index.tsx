@@ -198,7 +198,7 @@ const Editor = () => {
      * Resets the cached page size in case it causes a client OOM. If it doesn't, the saved value
      * will be restored when {@link restoreCachedPageSize} is called.
      */
-    const resetCachedPageSize = () => {
+    const resetCachedPageSize = useCallback(() => {
         pageSizeRef.current = getConfig(CONFIG_KEY.PAGE_SIZE);
         const errors = updateConfig({[CONFIG_KEY.PAGE_SIZE]: CONFIG_DEFAULT[CONFIG_KEY.PAGE_SIZE]});
 
@@ -207,7 +207,7 @@ const Editor = () => {
                 `Unexpected errors returned by updateConfig(): ${JSON.stringify(errors)}`
             );
         }
-    };
+    }, []);
 
     /**
      * Restores the cached page size that was unset in {@link resetCachedPageSize};
