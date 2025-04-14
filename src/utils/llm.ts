@@ -143,21 +143,19 @@ const useLlm = ({endpoint, apiKey, model: initialModel, onError}: UseLlmOptions)
                 listModelsAbortControllerRef.current.abort();
             }
             listModelsAbortControllerRef.current = new AbortController();
-            const headers = "" === apiKey ?
-                {} :
-                {Authorization: `Bearer ${apiKey}`};
             const endpointWithPath = new URL(
-                "v1/models",
+                "models",
                 endpoint.endsWith("/") ?
                     endpoint :
                     `${endpoint}/`,
             );
+
             const request = new Request(endpointWithPath, {
-                headers: headers,
                 method: "GET",
                 redirect: "manual",
             });
 
+            // FIXME: This should be replaced by axios.get()
             fetch(request, {signal: listModelsAbortControllerRef.current.signal})
                 .then((response) => {
                     if (Number(HttpStatusCode.Ok) !== response.status) {
