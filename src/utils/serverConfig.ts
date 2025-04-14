@@ -13,7 +13,7 @@ let globalServerConfig: ServerConfig;
  * Initialize `globalServerConfig`.
  */
 const initGlobalServerConfig = async () => {
-    await fetch("/serverConfig.json")
+    await fetch("serverConfig.json")
         .then((response) => {
             if (Number(HttpStatusCode.Ok) !== response.status) {
                 throw new Error();
