@@ -14,6 +14,7 @@ import {
     UrlSearchParams,
     UrlSearchParamUpdatesType,
 } from "../typings/url";
+import {filterNullValues} from "../utils/js.ts";
 import {getAbsoluteUrl} from "../utils/url";
 
 
@@ -41,6 +42,61 @@ const AMBIGUOUS_URL_CHARS_REGEX =
     new RegExp(`${encodeURIComponent("#")}|${encodeURIComponent("&")}`);
 
 /**
+ * Retrieves all search parameters from the current window's URL.
+ *
+ * @return An object containing the search parameters.
+ */
+const getWindowUrlSearchParams = () => {
+    const searchParams : NullableProperties<UrlSearchParams> = structuredClone(
+        URL_SEARCH_PARAMS_DEFAULT
+    );
+    const urlSearchParams = new URLSearchParams(window.location.search.substring(1));
+
+    if (urlSearchParams.has(SEARCH_PARAM_NAMES.FILE_PATH)) {
+        // Split the search string and take everything after as `filePath` value.
+        // This ensures any parameters following `filePath=` are incorporated into the `filePath`.
+        const [, filePath] = window.location.search.split("filePath=");
+        if ("undefined" !== typeof filePath && 0 !== filePath.length) {
+            let resolvedFilePath = decodeURIComponent(filePath);
+            try {
+                resolvedFilePath = getAbsoluteUrl(resolvedFilePath);
+            } catch (e) {
+                console.error("Unable to get absolute URL from filePath:", e);
+            }
+            searchParams[SEARCH_PARAM_NAMES.FILE_PATH] = resolvedFilePath;
+        }
+    }
+
+    return searchParams;
+};
+
+/**
+ * Retrieves all hash parameters from the current window's URL.
+ *
+ * @return An object containing the hash parameters.
+ */
+const getWindowUrlHashParams = () => {
+    const urlHashParams: NullableProperties<UrlHashParams> =
+        structuredClone(URL_HASH_PARAMS_DEFAULT);
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+
+    const logEventNum = hashParams.get(HASH_PARAM_NAMES.LOG_EVENT_NUM);
+    if (null !== logEventNum) {
+        const parsed = Number(logEventNum);
+        urlHashParams[HASH_PARAM_NAMES.LOG_EVENT_NUM] = Number.isNaN(parsed) ?
+            null :
+            parsed;
+    }
+
+    const isPrettified = hashParams.get(HASH_PARAM_NAMES.IS_PRETTIFIED);
+    if (null !== isPrettified) {
+        urlHashParams[HASH_PARAM_NAMES.IS_PRETTIFIED] = "true" === isPrettified;
+    }
+
+    return urlHashParams;
+};
+
+/**
  * Computes updated URL search parameters based on the provided key-value pairs.
  *
  * @param updates An object containing key-value pairs to update the search parameters. If a value
@@ -48,7 +104,8 @@ const AMBIGUOUS_URL_CHARS_REGEX =
  * @return The updated search parameters string.
  */
 const getUpdatedSearchParams = (updates: UrlSearchParamUpdatesType) => {
-    const newSearchParams = new URLSearchParams(window.location.search.substring(1));
+    const currentParams = getWindowUrlSearchParams();
+    const newSearchParams = new URLSearchParams(filterNullValues(currentParams));
     const {filePath: newFilePath} = updates;
 
     for (const [key, value] of Object.entries(updates)) {
@@ -100,7 +157,9 @@ const getUpdatedSearchParams = (updates: UrlSearchParamUpdatesType) => {
  * @return The updated hash parameters string.
  */
 const getUpdatedHashParams = (updates: UrlHashParamUpdatesType) => {
-    const newHashParams = new URLSearchParams(window.location.hash.substring(1));
+    const currentParams = getWindowUrlHashParams();
+    const newHashParams = new URLSearchParams(filterNullValues(currentParams));
+
     for (const [key, value] of Object.entries(updates)) {
         if (null === value) {
             newHashParams.delete(key);
@@ -169,61 +228,6 @@ const copyPermalinkToClipboard = (
         .catch((error: unknown) => {
             console.error("Failed to copy URL to clipboard:", error);
         });
-};
-
-/**
- * Retrieves all search parameters from the current window's URL.
- *
- * @return An object containing the search parameters.
- */
-const getWindowUrlSearchParams = () => {
-    const searchParams : NullableProperties<UrlSearchParams> = structuredClone(
-        URL_SEARCH_PARAMS_DEFAULT
-    );
-    const urlSearchParams = new URLSearchParams(window.location.search.substring(1));
-
-    if (urlSearchParams.has(SEARCH_PARAM_NAMES.FILE_PATH)) {
-        // Split the search string and take everything after as `filePath` value.
-        // This ensures any parameters following `filePath=` are incorporated into the `filePath`.
-        const [, filePath] = window.location.search.split("filePath=");
-        if ("undefined" !== typeof filePath && 0 !== filePath.length) {
-            let resolvedFilePath = decodeURIComponent(filePath);
-            try {
-                resolvedFilePath = getAbsoluteUrl(resolvedFilePath);
-            } catch (e) {
-                console.error("Unable to get absolute URL from filePath:", e);
-            }
-            searchParams[SEARCH_PARAM_NAMES.FILE_PATH] = resolvedFilePath;
-        }
-    }
-
-    return searchParams;
-};
-
-/**
- * Retrieves all hash parameters from the current window's URL.
- *
- * @return An object containing the hash parameters.
- */
-const getWindowUrlHashParams = () => {
-    const urlHashParams: NullableProperties<UrlHashParams> =
-        structuredClone(URL_HASH_PARAMS_DEFAULT);
-    const hashParams = new URLSearchParams(window.location.hash.substring(1));
-
-    const logEventNum = hashParams.get(HASH_PARAM_NAMES.LOG_EVENT_NUM);
-    if (null !== logEventNum) {
-        const parsed = Number(logEventNum);
-        urlHashParams[HASH_PARAM_NAMES.LOG_EVENT_NUM] = Number.isNaN(parsed) ?
-            null :
-            parsed;
-    }
-
-    const isPrettified = hashParams.get(HASH_PARAM_NAMES.IS_PRETTIFIED);
-    if (null !== isPrettified) {
-        urlHashParams[HASH_PARAM_NAMES.IS_PRETTIFIED] = "true" === isPrettified;
-    }
-
-    return urlHashParams;
 };
 
 const searchParams = getWindowUrlSearchParams();
